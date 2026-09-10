@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FileSpreadsheet, Printer } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
@@ -29,7 +29,7 @@ function InformeGrupal() {
 
   const [search, setSearch] = useState("");
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
-  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [selectedControlIds, setSelectedControlIds] = useState<number[]>([]);
   const [selectedMetrics, setSelectedMetrics] = useState<MetricKey[]>([
     "weight",
     "sum6",
@@ -53,69 +53,79 @@ function InformeGrupal() {
     );
   }, [players, selectedPlayerIds]);
 
-  const availableDates = useMemo(() => {
-    if (selectedPlayerIds.length === 0) return [];
-
-    const ids = new Set(selectedPlayerIds);
-
-    return [
-      ...new Set(
-        (controls ?? [])
-          .filter((control) => ids.has(control.playerId))
-          .map((control) => control.date),
-      ),
-    ].sort((a, b) => b.localeCompare(a));
-  }, [controls, selectedPlayerIds]);
-
-  useEffect(() => {
-    setSelectedDates((current) => {
-      const valid = current.filter((date) =>
-        availableDates.includes(date),
-      );
-
-      if (
-        valid.length === current.length &&
-        valid.every((date, index) => date === current[index])
-      ) {
-        return current;
-      }
-
-      return valid;
-    });
-  }, [availableDates]);
-
-  const reportDates = useMemo(
-    () => [...selectedDates].sort((a, b) => b.localeCompare(a)),
-    [selectedDates],
-  );
-
-  const controlByPlayerDate = useMemo(() => {
-    const map = new Map<string, Control>();
+  const controlsByPlayer = useMemo(() => {
+    const map = new Map<number, Control[]>();
 
     for (const control of controls ?? []) {
-      const key = `${control.playerId}|${control.date}`;
+      const list = map.get(control.playerId) ?? [];
+      list.push(control);
+      map.set(control.playerId, list);
+    }
 
-      if (!map.has(key)) {
-        map.set(key, control);
-      }
+    for (const list of map.values()) {
+      list.sort((a, b) => {
+        const byDate = b.date.localeCompare(a.date);
+
+        if (byDate !== 0) return byDate;
+
+        return (b.id ?? 0) - (a.id ?? 0);
+      });
     }
 
     return map;
   }, [controls]);
 
+  const reportGroups = useMemo(() => {
+    return selectedPlayers
+      .map((player) => {
+        const playerControls =
+          player.id != null
+            ? controlsByPlayer.get(player.id) ?? []
+            : [];
+
+        return {
+          player,
+          controls: playerControls.filter(
+            (control) =>
+              control.id != null &&
+              selectedControlIds.includes(control.id),
+          ),
+        };
+      })
+      .filter((group) => group.controls.length > 0);
+  }, [
+    selectedPlayers,
+    controlsByPlayer,
+    selectedControlIds,
+  ]);
+
   function togglePlayer(id: number) {
-    setSelectedPlayerIds((current) =>
+    const selected = selectedPlayerIds.includes(id);
+
+    if (selected) {
+      setSelectedPlayerIds((current) =>
+        current.filter((item) => item !== id),
+      );
+
+      const idsToRemove = new Set(
+        (controlsByPlayer.get(id) ?? [])
+          .filter((control) => control.id != null)
+          .map((control) => control.id!),
+      );
+
+      setSelectedControlIds((current) =>
+        current.filter((id) => !idsToRemove.has(id)),
+      );
+    } else {
+      setSelectedPlayerIds((current) => [...current, id]);
+    }
+  }
+
+  function toggleControl(id: number) {
+    setSelectedControlIds((current) =>
       current.includes(id)
         ? current.filter((item) => item !== id)
         : [...current, id],
-    );
-  }
-
-  function toggleDate(date: string) {
-    setSelectedDates((current) =>
-      current.includes(date)
-        ? current.filter((item) => item !== date)
-        : [...current, date],
     );
   }
 
@@ -147,17 +157,57 @@ function InformeGrupal() {
 
   function ningunaJugadora() {
     setSelectedPlayerIds([]);
-    setSelectedDates([]);
+    setSelectedControlIds([]);
   }
 
-  function seleccionarUltimasDosFechas() {
-    setSelectedDates(availableDates.slice(0, 2));
+  function seleccionarUltimoPorJugadora() {
+    const ids: number[] = [];
+
+    for (const playerId of selectedPlayerIds) {
+      const latest = controlsByPlayer.get(playerId)?.[0];
+
+      if (latest?.id != null) {
+        ids.push(latest.id);
+      }
+    }
+
+    setSelectedControlIds(ids);
+  }
+
+  function seleccionarUltimosDosPorJugadora() {
+    const ids: number[] = [];
+
+    for (const playerId of selectedPlayerIds) {
+      const latest =
+        controlsByPlayer.get(playerId)?.slice(0, 2) ?? [];
+
+      for (const control of latest) {
+        if (control.id != null) {
+          ids.push(control.id);
+        }
+      }
+    }
+
+    setSelectedControlIds(ids);
+  }
+
+  function seleccionarTodosLosControles() {
+    const ids: number[] = [];
+
+    for (const playerId of selectedPlayerIds) {
+      for (const control of controlsByPlayer.get(playerId) ?? []) {
+        if (control.id != null) {
+          ids.push(control.id);
+        }
+      }
+    }
+
+    setSelectedControlIds(ids);
   }
 
   async function exportarExcel() {
     if (
-      selectedPlayers.length === 0 ||
-      reportDates.length === 0 ||
+      reportGroups.length === 0 ||
       selectedMetrics.length === 0
     ) {
       return;
@@ -165,16 +215,11 @@ function InformeGrupal() {
 
     const rows: Record<string, unknown>[] = [];
 
-    for (const player of selectedPlayers) {
-      for (const date of reportDates) {
-        const control =
-          player.id != null
-            ? controlByPlayerDate.get(`${player.id}|${date}`)
-            : undefined;
-
+    for (const group of reportGroups) {
+      for (const control of group.controls) {
         const row: Record<string, unknown> = {
-          Jugadora: player.name,
-          Fecha: fmtDate(date),
+          Jugadora: group.player.name,
+          Fecha: fmtDate(control.date),
         };
 
         for (const key of selectedMetrics) {
@@ -206,8 +251,7 @@ function InformeGrupal() {
   ] as const;
 
   const ready =
-    selectedPlayers.length > 0 &&
-    reportDates.length > 0 &&
+    reportGroups.length > 0 &&
     selectedMetrics.length > 0;
 
   return (
@@ -267,7 +311,8 @@ function InformeGrupal() {
             {filteredPlayers.map((player) => {
               if (player.id == null) return null;
 
-              const selected = selectedPlayerIds.includes(player.id);
+              const selected =
+                selectedPlayerIds.includes(player.id);
 
               return (
                 <label
@@ -294,16 +339,16 @@ function InformeGrupal() {
           </div>
         </div>
 
-        {/* FECHAS */}
+        {/* CONTROLES POR JUGADORA */}
         <div className="rounded-lg border border-border bg-card p-4 shadow-panel">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="panel-title text-xs text-muted-foreground">
-                2. Controles / fechas
+                2. Controles a comparar
               </p>
 
               <p className="mt-1 text-sm">
-                {selectedDates.length} fechas seleccionadas
+                {selectedControlIds.length} controles seleccionados
               </p>
             </div>
 
@@ -311,62 +356,106 @@ function InformeGrupal() {
               <Button
                 size="sm"
                 variant="outline"
-                disabled={availableDates.length === 0}
-                onClick={seleccionarUltimasDosFechas}
+                disabled={selectedPlayerIds.length === 0}
+                onClick={seleccionarUltimoPorJugadora}
               >
-                Últimas 2 fechas
+                Último de cada una
               </Button>
 
               <Button
                 size="sm"
                 variant="outline"
-                disabled={availableDates.length === 0}
-                onClick={() =>
-                  setSelectedDates([...availableDates])
-                }
+                disabled={selectedPlayerIds.length === 0}
+                onClick={seleccionarUltimosDosPorJugadora}
               >
-                Todas
+                Últimos 2 de cada una
               </Button>
 
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setSelectedDates([])}
+                disabled={selectedPlayerIds.length === 0}
+                onClick={seleccionarTodosLosControles}
               >
-                Ninguna
+                Todos
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectedControlIds([])}
+              >
+                Ninguno
               </Button>
             </div>
           </div>
 
-          {selectedPlayerIds.length === 0 ? (
+          {selectedPlayers.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
               Primero seleccioná las jugadoras que querés incluir.
             </p>
           ) : (
-            <div className="mt-4 grid max-h-[280px] gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-4">
-              {availableDates.map((date) => {
-                const selected = selectedDates.includes(date);
+            <div className="mt-4 space-y-4">
+              {selectedPlayers.map((player) => {
+                if (player.id == null) return null;
+
+                const playerControls =
+                  controlsByPlayer.get(player.id) ?? [];
 
                 return (
-                  <label
-                    key={date}
-                    className={`flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 text-sm ${
-                      selected
-                        ? "border-primary bg-primary/5"
-                        : "border-border"
-                    }`}
+                  <div
+                    key={player.id}
+                    className="overflow-hidden rounded-lg border border-border"
                   >
-                    <input
-                      type="checkbox"
-                      checked={selected}
-                      onChange={() => toggleDate(date)}
-                      className="h-4 w-4"
-                    />
+                    <div className="flex items-center justify-between bg-[#0B234A] px-4 py-3 text-white">
+                      <span className="font-semibold">
+                        {player.name}
+                      </span>
 
-                    <span className="font-medium">
-                      {fmtDate(date)}
-                    </span>
-                  </label>
+                      <span className="text-xs text-white/70">
+                        {playerControls.length} controles
+                      </span>
+                    </div>
+
+                    {playerControls.length === 0 ? (
+                      <div className="p-4 text-sm text-muted-foreground">
+                        No tiene controles cargados.
+                      </div>
+                    ) : (
+                      <div className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-4">
+                        {playerControls.map((control) => {
+                          if (control.id == null) return null;
+
+                          const selected =
+                            selectedControlIds.includes(control.id);
+
+                          return (
+                            <label
+                              key={control.id}
+                              className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                                selected
+                                  ? "border-[#D71920] bg-red-50"
+                                  : "border-border"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() =>
+                                  toggleControl(control.id!)
+                                }
+                                className="h-4 w-4"
+                              />
+
+                              <span className="font-medium">
+                                {fmtDate(control.date)}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -501,7 +590,7 @@ function InformeGrupal() {
         </div>
       </div>
 
-      {/* INFORME */}
+      {/* INFORME FINAL */}
       <div className="mt-6 overflow-hidden rounded-lg border border-border bg-card shadow-panel">
         <div className="border-b border-border p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
@@ -518,16 +607,16 @@ function InformeGrupal() {
 
           {ready && (
             <p className="mt-3 text-sm font-medium">
-              {selectedPlayers.length} jugadoras ·{" "}
-              {reportDates.length} controles seleccionados
+              {reportGroups.length} jugadoras ·{" "}
+              {selectedControlIds.length} controles
             </p>
           )}
         </div>
 
         {selectedPlayers.length === 0 ? (
-          <Empty text="Seleccioná las jugadoras que querés incluir en el informe." />
-        ) : reportDates.length === 0 ? (
-          <Empty text="Seleccioná al menos una fecha." />
+          <Empty text="Seleccioná las jugadoras que querés incluir." />
+        ) : selectedControlIds.length === 0 ? (
+          <Empty text="Seleccioná los controles de cada jugadora que querés comparar." />
         ) : selectedMetrics.length === 0 ? (
           <Empty text="Seleccioná al menos una variable." />
         ) : (
@@ -564,49 +653,36 @@ function InformeGrupal() {
               </thead>
 
               <tbody>
-                {selectedPlayers.map((player) =>
-                  reportDates.map((date, dateIndex) => {
-                    const control =
-                      player.id != null
-                        ? controlByPlayerDate.get(
-                            `${player.id}|${date}`,
-                          )
-                        : undefined;
-
-                    return (
+                {reportGroups.map((group) =>
+                  group.controls.map(
+                    (control, controlIndex) => (
                       <tr
-                        key={`${player.id}-${date}`}
+                        key={control.id}
                         className={`border-t border-border ${
-                          dateIndex === 0
+                          controlIndex === 0
                             ? "bg-blue-50/60"
                             : "bg-card"
                         }`}
                       >
-                        {dateIndex === 0 && (
+                        {controlIndex === 0 && (
                           <td
-                            rowSpan={reportDates.length}
+                            rowSpan={group.controls.length}
                             className="min-w-[180px] border-l-4 border-l-[#D71920] bg-[#0B234A] px-4 py-4 align-top font-semibold text-white"
                           >
-                            {player.name}
+                            {group.player.name}
                           </td>
                         )}
 
                         <td className="whitespace-nowrap px-4 py-3">
                           <span
                             className={
-                              dateIndex === 0
+                              controlIndex === 0
                                 ? "font-semibold"
                                 : ""
                             }
                           >
-                            {fmtDate(date)}
+                            {fmtDate(control.date)}
                           </span>
-
-                          {!control && (
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              Sin control
-                            </span>
-                          )}
                         </td>
 
                         {selectedMetrics.map((key) => {
@@ -627,8 +703,8 @@ function InformeGrupal() {
                           );
                         })}
                       </tr>
-                    );
-                  }),
+                    ),
+                  ),
                 )}
               </tbody>
             </table>
