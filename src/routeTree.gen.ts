@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as JugadorasIndexRouteImport } from './routes/jugadoras.index'
+import { Route as JugadorasIdRouteImport } from './routes/jugadoras.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,30 +23,39 @@ const JugadorasIndexRoute = JugadorasIndexRouteImport.update({
   path: '/jugadoras/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JugadorasIdRoute = JugadorasIdRouteImport.update({
+  id: '/jugadoras/$id',
+  path: '/jugadoras/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/jugadoras/$id': typeof JugadorasIdRoute
   '/jugadoras/': typeof JugadorasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/jugadoras/$id': typeof JugadorasIdRoute
   '/jugadoras': typeof JugadorasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/jugadoras/$id': typeof JugadorasIdRoute
   '/jugadoras/': typeof JugadorasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/jugadoras/'
+  fullPaths: '/' | '/jugadoras/$id' | '/jugadoras/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/jugadoras'
-  id: '__root__' | '/' | '/jugadoras/'
+  to: '/' | '/jugadoras/$id' | '/jugadoras'
+  id: '__root__' | '/' | '/jugadoras/$id' | '/jugadoras/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  JugadorasIdRoute: typeof JugadorasIdRoute
   JugadorasIndexRoute: typeof JugadorasIndexRoute
 }
 
@@ -65,11 +75,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JugadorasIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/jugadoras/$id': {
+      id: '/jugadoras/$id'
+      path: '/jugadoras/$id'
+      fullPath: '/jugadoras/$id'
+      preLoaderRoute: typeof JugadorasIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  JugadorasIdRoute: JugadorasIdRoute,
   JugadorasIndexRoute: JugadorasIndexRoute,
 }
 export const routeTree = rootRouteImport
