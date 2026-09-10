@@ -47,9 +47,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           This page didn't load
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
+      <div className="mt-3 rounded-md border p-3 text-left">
+  <p className="mb-2 text-sm font-semibold">Error técnico:</p>
+  <pre className="whitespace-pre-wrap break-words text-xs text-red-600">
+    {error.message}
+  </pre>
+</div>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
