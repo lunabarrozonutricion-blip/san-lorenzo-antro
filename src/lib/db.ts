@@ -1,10 +1,11 @@
 import Dexie, { type Table } from "dexie";
 
-import type { Control, Player } from "./types";
+import type { Control, Player, WeightRecord } from "./types";
 
 export class AnthroDB extends Dexie {
   players!: Table<Player, number>;
   controls!: Table<Control, number>;
+  weightRecords!: Table<WeightRecord, number>;
 
   constructor() {
     super("sanlorenzo-antropometria");
@@ -12,6 +13,11 @@ export class AnthroDB extends Dexie {
       players: "++id, name, active",
       controls: "++id, playerId, date, [playerId+date]",
     });
+    this.version(2).stores({
+  players: "++id, name, active",
+  controls: "++id, playerId, date, [playerId+date]",
+  weightRecords: "++id, playerId, date, condition, [playerId+date]",
+});
   }
 }
 
@@ -93,7 +99,10 @@ export async function upsertControl(c: Control) {
   }
   return await d.controls.add({ ...c, createdAt: nowISO(), updatedAt: nowISO() });
 }
-
+this.version(1).stores({
+  players: "++id, name, active",
+  controls: "++id, playerId, date, [playerId+date]",
+});
 export async function upsertPlayer(p: Player) {
   const d = db();
   if (p.id) {
