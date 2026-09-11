@@ -84,3 +84,42 @@ export const SKINFOLD_KEYS = [
   "thighSkinfold",
   "calfSkinfold",
 ] as const;
+
+export type WeightCondition =
+  | "normal"
+  | "indispuesta"
+  | "seleccion"
+  | "reserva"
+  | "ausente"
+  | "otro";
+
+export interface WeightRecord {
+  id?: number;
+
+  playerId: number;
+  date: string;
+
+  // Puede quedar vacío si, por ejemplo, estuvo ausente.
+  weight: number | null;
+
+  // Contexto de la medición.
+  // "indispuesta" NO impide cargar peso.
+  condition: WeightCondition;
+
+  notes: string | null;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const WEIGHT_CONDITIONS: Array<{
+  value: WeightCondition;
+  label: string;
+}> = [
+  { value: "normal", label: "Normal" },
+  { value: "indispuesta", label: "Indispuesta" },
+  { value: "seleccion", label: "Selección" },
+  { value: "reserva", label: "Reserva" },
+  { value: "ausente", label: "Ausente" },
+  { value: "otro", label: "Otro" },
+];
