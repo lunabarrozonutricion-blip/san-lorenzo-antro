@@ -99,10 +99,28 @@ export async function upsertControl(c: Control) {
   }
   return await d.controls.add({ ...c, createdAt: nowISO(), updatedAt: nowISO() });
 }
-this.version(1).stores({
-  players: "++id, name, active",
-  controls: "++id, playerId, date, [playerId+date]",
-});
+export async function upsertWeightRecord(record: WeightRecord) {
+  const d = db();
+
+  if (record.id) {
+    await d.weightRecords.update(record.id, {
+      ...record,
+      updatedAt: nowISO(),
+    });
+
+    return record.id;
+  }
+
+  return await d.weightRecords.add({
+    ...record,
+    createdAt: nowISO(),
+    updatedAt: nowISO(),
+  });
+}
+
+export async function deleteWeightRecord(id: number) {
+  await db().weightRecords.delete(id);
+}
 export async function upsertPlayer(p: Player) {
   const d = db();
   if (p.id) {
