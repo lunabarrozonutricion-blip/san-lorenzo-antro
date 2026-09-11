@@ -20,26 +20,20 @@ export function usePlayers(): Player[] | undefined {
   }, []);
 }
 
-export function useControls(playerId?: number | null): Control[] | undefined {
+export function useControls(
+  playerId?: number | null,
+): Control[] | undefined {
   useEnsureSeed();
 
   return useLiveQuery(async () => {
     const rows =
       playerId == null
         ? await db().controls.toArray()
-        : await db().controls.where("playerId").equals(playerId).toArray();
-
-    return sortByDateDesc(rows);
-  }, [playerId]);
-}
-export function useControls(playerId?: number | null): Control[] | undefined {
-  useEnsureSeed();
-
-  return useLiveQuery(async () => {
-    const rows =
-      playerId == null
-        ? await db().controls.toArray()
-        : await db().controls.where("playerId").equals(playerId).toArray();
+        : await db()
+            .controls
+            .where("playerId")
+            .equals(playerId)
+            .toArray();
 
     return sortByDateDesc(rows);
   }, [playerId]);
@@ -66,12 +60,14 @@ export function useWeightRecords(
   }, [playerId]);
 }
 
-export function usePlayer(id?: number | null): Player | undefined {
-export function usePlayer(id?: number | null): Player | undefined {
+export function usePlayer(
+  id?: number | null,
+): Player | undefined {
   useEnsureSeed();
 
   return useLiveQuery(
-    async () => (id == null ? undefined : db().players.get(id)),
+    async () =>
+      id == null ? undefined : db().players.get(id),
     [id],
   );
 }
