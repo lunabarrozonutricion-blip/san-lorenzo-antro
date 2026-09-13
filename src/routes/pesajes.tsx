@@ -74,6 +74,27 @@ function formatDiffKg(
   return `${fmtDiff(value, 1)} kg`;
 }
 
+function differenceClass(
+  value: number | null,
+) {
+  if (value == null) {
+    return "";
+  }
+
+  const rounded =
+    Math.round(value * 10) / 10;
+
+  if (rounded >= 0.5) {
+    return "bg-red-100 text-red-700";
+  }
+
+  if (rounded <= -0.2) {
+    return "bg-emerald-100 text-emerald-700";
+  }
+
+  return "";
+}
+
 function Pesajes() {
   const players = usePlayers();
   const records = useWeightRecords();
@@ -905,10 +926,16 @@ function Pesajes() {
                       </td>
 
                       <td className="numeric px-4 py-3 text-right font-semibold">
-                        {fmtDiff(
-                          difference,
-                          1,
-                        )}
+                        <span
+                          className={`inline-block min-w-[60px] rounded-md px-2 py-1 text-center ${differenceClass(
+                            difference,
+                          )}`}
+                        >
+                          {fmtDiff(
+                            difference,
+                            1,
+                          )}
+                        </span>
                       </td>
 
                       <td className="px-4 py-2">
