@@ -1,0 +1,25 @@
+{
+  "name": "San Lorenzo Antro",
+  "short_name": "CASLA Antro",
+  "description": "Seguimiento de antropometría, pesajes y nutrición del Fútbol Femenino de San Lorenzo.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#18345f",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
