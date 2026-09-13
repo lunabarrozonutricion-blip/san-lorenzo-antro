@@ -1026,159 +1026,199 @@ function Pesajes() {
       </div>
 
       <div className="hidden print:block">
-        <div className="mb-6 border-b border-black pb-3">
-          <p className="text-sm font-semibold">
-            SAN LORENZO DE ALMAGRO
-          </p>
+        <div className="overflow-hidden rounded-xl border border-primary">
+          <div className="flex items-center justify-between gap-6 bg-primary px-6 py-4 text-primary-foreground">
+            <div className="flex items-center gap-4">
+              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg bg-white p-2">
+                <img
+                  src="/logo-san-lorenzo.png"
+                  alt="Escudo de San Lorenzo"
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
 
-          <h1 className="mt-1 text-2xl font-bold">
-            Informe de Pesajes
-          </h1>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]">
+                  Club Atlético San Lorenzo de Almagro
+                </p>
 
-          <div className="mt-3 text-sm">
-            <p>
-              <strong>
-                Fecha del pesaje:
-              </strong>{" "}
-              {fmtDate(date)}
-            </p>
+                <h1 className="mt-1 text-3xl font-bold uppercase">
+                  Informe de Pesajes
+                </h1>
 
-            <p>
-              <strong>
-                Comparación:
-              </strong>{" "}
-              {comparisonDescription}
-            </p>
+                <p className="mt-1 text-sm">
+                  Primera División · Fútbol Femenino
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right text-sm">
+              <p className="text-xs uppercase opacity-80">
+                Fecha del pesaje
+              </p>
+
+              <p className="mt-1 text-xl font-bold">
+                {fmtDate(date)}
+              </p>
+            </div>
+          </div>
+
+          <div className="h-2 bg-accent" />
+
+          <div className="bg-white px-6 py-4">
+            <div className="grid grid-cols-2 gap-4 rounded-lg border border-border bg-muted/40 p-4 text-sm">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Comparación utilizada
+                </p>
+
+                <p className="mt-1 font-semibold text-primary">
+                  {comparisonDescription}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Jugadoras incluidas
+                </p>
+
+                <p className="mt-1 font-semibold text-primary">
+                  {reportRows.length}
+                </p>
+              </div>
+            </div>
 
             {comparisonMode ===
               "date" && (
-              <p className="mt-1 text-xs">
-                Cuando una jugadora no
-                posee registro en la
-                fecha objetivo, se
-                utiliza su pesaje más
-                cercano disponible.
+              <p className="mt-3 text-xs text-muted-foreground">
+                Cuando una jugadora no posee un registro exactamente en la
+                fecha seleccionada, se utiliza su pesaje más cercano
+                disponible. La fecha realmente utilizada se informa en la
+                tabla.
               </p>
             )}
-          </div>
-        </div>
 
-        <table className="w-full border-collapse text-xs">
-          <thead>
-            <tr>
-              <th className="border border-black px-2 py-2 text-left">
-                Jugadora
-              </th>
+            <table className="mt-5 w-full border-collapse text-xs">
+              <thead>
+                <tr className="bg-primary text-primary-foreground">
+                  <th className="border border-primary px-3 py-2 text-left">
+                    Jugadora
+                  </th>
 
-              <th className="border border-black px-2 py-2 text-right">
-                Peso
-              </th>
+                  <th className="border border-primary px-3 py-2 text-right">
+                    Peso
+                  </th>
 
-              <th className="border border-black px-2 py-2 text-right">
-                Referencia
-              </th>
+                  <th className="border border-primary px-3 py-2 text-right">
+                    Referencia
+                  </th>
 
-              <th className="border border-black px-2 py-2 text-right">
-                Diferencia
-              </th>
+                  <th className="border border-primary px-3 py-2 text-right">
+                    Diferencia
+                  </th>
 
-              <th className="border border-black px-2 py-2 text-left">
-                Condición
-              </th>
+                  <th className="border border-primary px-3 py-2 text-left">
+                    Condición
+                  </th>
 
-              <th className="border border-black px-2 py-2 text-left">
-                Observación
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {reportRows.map(
-              (row) => (
-                <tr
-                  key={
-                    row.player.id
-                  }
-                >
-                  <td className="border border-black px-2 py-2 font-semibold">
-                    {
-                      row.player.name
-                    }
-                  </td>
-
-                  <td className="border border-black px-2 py-2 text-right">
-                    {formatKg(
-                      row.currentWeight,
-                    )}
-                  </td>
-
-                  <td className="border border-black px-2 py-2 text-right">
-                    <div>
-                      {formatKg(
-                        row.reference
-                          ?.weight,
-                      )}
-                    </div>
-
-                    {row.reference
-                      ?.date && (
-                      <div className="mt-1 text-[10px]">
-                        {fmtDate(
-                          row.reference
-                            .date,
-                        )}
-                        {row.usedDifferentDate
-                          ? " *"
-                          : ""}
-                      </div>
-                    )}
-                  </td>
-
-                  <td className="border border-black px-2 py-2 text-right font-semibold">
-                    {formatDiffKg(
-                      row.difference,
-                    )}
-                  </td>
-
-                  <td className="border border-black px-2 py-2">
-                    {conditionLabel(
-                      row.condition,
-                    )}
-                  </td>
-
-                  <td className="border border-black px-2 py-2">
-                    {row.notes ||
-                      "—"}
-                  </td>
+                  <th className="border border-primary px-3 py-2 text-left">
+                    Observación
+                  </th>
                 </tr>
-              ),
-            )}
-          </tbody>
-        </table>
+              </thead>
 
-        {comparisonMode ===
-          "date" &&
-          reportRows.some(
-            (row) =>
-              row.usedDifferentDate,
-          ) && (
-            <p className="mt-3 text-[10px]">
-              * La fecha utilizada no
-              coincide exactamente con
-              la fecha objetivo; se
-              utilizó el pesaje más
-              cercano disponible para
-              esa jugadora.
-            </p>
-          )}
+              <tbody>
+                {reportRows.map(
+                  (row, index) => (
+                    <tr
+                      key={
+                        row.player.id
+                      }
+                      className={
+                        index % 2 === 0
+                          ? "bg-white"
+                          : "bg-muted/40"
+                      }
+                    >
+                      <td className="border border-border px-3 py-2 font-semibold text-primary">
+                        {
+                          row.player.name
+                        }
+                      </td>
 
-        <div className="mt-6 text-xs">
-          <p>
-            Total de jugadoras incluidas:{" "}
-            <strong>
-              {reportRows.length}
-            </strong>
-          </p>
+                      <td className="border border-border px-3 py-2 text-right font-semibold">
+                        {formatKg(
+                          row.currentWeight,
+                        )}
+                      </td>
+
+                      <td className="border border-border px-3 py-2 text-right">
+                        <div className="font-semibold">
+                          {formatKg(
+                            row.reference
+                              ?.weight,
+                          )}
+                        </div>
+
+                        {row.reference
+                          ?.date && (
+                          <div className="mt-1 text-[10px] text-muted-foreground">
+                            {fmtDate(
+                              row.reference
+                                .date,
+                            )}
+                            {row.usedDifferentDate
+                              ? " *"
+                              : ""}
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="border border-border px-3 py-2 text-right font-bold">
+                        {formatDiffKg(
+                          row.difference,
+                        )}
+                      </td>
+
+                      <td className="border border-border px-3 py-2">
+                        {conditionLabel(
+                          row.condition,
+                        )}
+                      </td>
+
+                      <td className="border border-border px-3 py-2">
+                        {row.notes ||
+                          "—"}
+                      </td>
+                    </tr>
+                  ),
+                )}
+              </tbody>
+            </table>
+
+            {comparisonMode ===
+              "date" &&
+              reportRows.some(
+                (row) =>
+                  row.usedDifferentDate,
+              ) && (
+                <p className="mt-3 text-[10px] text-muted-foreground">
+                  * La fecha utilizada no coincide exactamente con la fecha
+                  objetivo. Se tomó el pesaje más cercano disponible para esa
+                  jugadora.
+                </p>
+              )}
+
+            <div className="mt-6 flex items-center justify-between border-t-2 border-accent pt-3 text-xs text-muted-foreground">
+              <p>
+                Nutrición · Primera División Fútbol Femenino
+              </p>
+
+              <p className="font-semibold text-primary">
+                Club Atlético San Lorenzo de Almagro
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </AppLayout>
