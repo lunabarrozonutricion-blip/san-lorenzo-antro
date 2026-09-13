@@ -1,5 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Save } from "lucide-react";
+import {
+  CalendarDays,
+  Clock3,
+  Save,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -8,6 +12,7 @@ import { ClientOnly } from "@/components/client-only";
 import { Button } from "@/components/ui/button";
 import {
   fmt,
+  fmtDate,
   fmtDiff,
   parseNum,
   todayISO,
@@ -51,11 +56,30 @@ function Pesajes() {
     Record<number, Draft>
   >({});
 
+  const weightDates = useMemo(() => {
+    return [
+      ...new Set(
+        (records ?? []).map((record) => record.date),
+      ),
+    ].sort((a, b) => b.localeCompare(a));
+  }, [records]);
+
+  const latestWeightDate = weightDates[0] ?? null;
+
+  const selectedDateHasRecords =
+    weightDates.includes(date);
+
   const recordsForDate = useMemo(() => {
-    const map = new Map<number, NonNullable<typeof records>[number]>();
+    const map = new Map<
+      number,
+      NonNullable<typeof records>[number]
+    >();
 
     for (const record of records ?? []) {
-      if (record.date === date && !map.has(record.playerId)) {
+      if (
+        record.date === date &&
+        !map.has(record.playerId)
+      ) {
         map.set(record.playerId, record);
       }
     }
@@ -102,7 +126,10 @@ function Pesajes() {
   }, [players, search]);
 
   const previousByPlayer = useMemo(() => {
-    const map = new Map<number, NonNullable<typeof records>[number]>();
+    const map = new Map<
+      number,
+      NonNullable<typeof records>[number]
+    >();
 
     for (const player of players ?? []) {
       if (player.id == null) continue;
@@ -161,7 +188,8 @@ function Pesajes() {
         const weight = parseNum(draft.weight);
         const notes = draft.notes.trim();
 
-        const existing = recordsForDate.get(player.id);
+        const existing =
+          recordsForDate.get(player.id);
 
         const hasData =
           weight !== null ||
@@ -179,7 +207,8 @@ function Pesajes() {
           weight,
           condition: draft.condition,
           notes: notes || null,
-          createdAt: existing?.createdAt ?? nowISO(),
+          createdAt:
+            existing?.createdAt ?? nowISO(),
           updatedAt: nowISO(),
         });
 
@@ -191,7 +220,10 @@ function Pesajes() {
       );
     } catch (error) {
       console.error(error);
-      toast.error("No se pudieron guardar los pesajes");
+
+      toast.error(
+        "No se pudieron guardar los pesajes",
+      );
     } finally {
       setSaving(false);
     }
@@ -207,6 +239,7 @@ function Pesajes() {
           disabled={saving}
         >
           <Save className="h-4 w-4" />
+
           {saving ? "Guardando..." : "Guardar"}
         </Button>
       }
@@ -221,7 +254,9 @@ function Pesajes() {
             <input
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) =>
+                setDate(e.target.value)
+              }
               className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 md:max-w-xs"
             />
           </label>
@@ -233,16 +268,83 @@ function Pesajes() {
 
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
               placeholder="Buscar..."
               className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3"
             />
           </label>
         </div>
 
-        <p className="mt-3 text-xs text-muted-foreground">
-          “Indispuesta” funciona como contexto del pesaje:
-          igualmente podés cargar su peso.
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!latestWeightDate}
+            onClick={() => {
+              if (latestWeightDate) {
+                setDate(latestWeightDate);
+              }
+            }}
+          >
+            <Clock3 className="h-4 w-4" />
+            Último pesaje
+          </Button>
+
+          {latestWeightDate && (
+            <div className="rounded-md bg-muted px-3 py-2 text-sm">
+              <span className="text-muted-foreground">
+                Último registrado:
+              </span>{" "}
+              <strong>
+                {fmtDate(latestWeightDate)}
+              </strong>
+            </div>
+          )}
+        </div>
+
+        {!selectedDateHasRecords && (
+          <div className="mt-4 rounded-md border border-border bg-muted/50 p-3 text-sm">
+            No hay pesajes cargados para{" "}
+            <strong>{fmtDate(date)}</strong>.
+            La columna “Anterior” muestra el último
+            registro previo disponible.
+          </div>
+        )}
+
+        <div className="mt-5">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+
+            <p className="panel-title text-xs text-muted-foreground">
+              Fechas con pesajes
+            </p>
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            {weightDates.map((weightDate) => (
+              <button
+                key={weightDate}
+                type="button"
+                onClick={() =>
+                  setDate(weightDate)
+                }
+                className={
+                  weightDate === date
+                    ? "rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+                    : "rounded-md border border-border bg-background px-3 py-2 text-xs font-medium transition-colors hover:bg-muted"
+                }
+              >
+                {fmtDate(weightDate)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <p className="mt-4 text-xs text-muted-foreground">
+          “Indispuesta” funciona como contexto del
+          pesaje: igualmente podés cargar su peso.
         </p>
       </div>
 
@@ -278,12 +380,15 @@ function Pesajes() {
 
           <tbody>
             {filteredPlayers.map((player) => {
-              if (player.id == null) return null;
+              if (player.id == null) {
+                return null;
+              }
 
               const draft =
                 drafts[player.id] ?? {
                   weight: "",
-                  condition: "normal" as WeightCondition,
+                  condition:
+                    "normal" as WeightCondition,
                   notes: "",
                 };
 
@@ -296,7 +401,8 @@ function Pesajes() {
               const difference =
                 currentWeight !== null &&
                 previous?.weight != null
-                  ? currentWeight - previous.weight
+                  ? currentWeight -
+                    previous.weight
                   : null;
 
               return (
@@ -314,20 +420,37 @@ function Pesajes() {
                       value={draft.weight}
                       onChange={(e) =>
                         updateDraft(player.id!, {
-                          weight: e.target.value,
+                          weight:
+                            e.target.value,
                         })
                       }
                       placeholder="kg"
-                      className="h-9 w-24 rounded-md border border-input bg-background px-2 text-right numeric"
+                      className="numeric h-9 w-24 rounded-md border border-input bg-background px-2 text-right"
                     />
                   </td>
 
-                  <td className="numeric px-4 py-3 text-right text-muted-foreground">
-                    {fmt(previous?.weight, 1)}
+                  <td className="px-4 py-3 text-right">
+                    <div className="numeric text-muted-foreground">
+                      {fmt(
+                        previous?.weight,
+                        1,
+                      )}
+                    </div>
+
+                    {previous?.date && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {fmtDate(
+                          previous.date,
+                        )}
+                      </div>
+                    )}
                   </td>
 
                   <td className="numeric px-4 py-3 text-right font-semibold">
-                    {fmtDiff(difference, 1)}
+                    {fmtDiff(
+                      difference,
+                      1,
+                    )}
                   </td>
 
                   <td className="px-4 py-2">
@@ -336,7 +459,8 @@ function Pesajes() {
                       onChange={(e) =>
                         updateDraft(player.id!, {
                           condition:
-                            e.target.value as WeightCondition,
+                            e.target
+                              .value as WeightCondition,
                         })
                       }
                       className="h-9 w-full min-w-[140px] rounded-md border border-input bg-background px-2"
@@ -344,8 +468,12 @@ function Pesajes() {
                       {WEIGHT_CONDITIONS.map(
                         (condition) => (
                           <option
-                            key={condition.value}
-                            value={condition.value}
+                            key={
+                              condition.value
+                            }
+                            value={
+                              condition.value
+                            }
                           >
                             {condition.label}
                           </option>
@@ -359,7 +487,8 @@ function Pesajes() {
                       value={draft.notes}
                       onChange={(e) =>
                         updateDraft(player.id!, {
-                          notes: e.target.value,
+                          notes:
+                            e.target.value,
                         })
                       }
                       placeholder="Opcional"
@@ -374,10 +503,12 @@ function Pesajes() {
       </div>
 
       <div className="mt-4 rounded-lg border border-border bg-muted/50 p-4 text-sm">
-        <strong>Cómo funciona:</strong> cargás todos los
-        pesos del día en esta misma pantalla. La app muestra
-        automáticamente el último peso anterior y calcula la
-        diferencia.
+        <strong>Cómo funciona:</strong>{" "}
+        seleccionás una fecha con pesajes para revisar
+        el historial, o elegís una fecha nueva para
+        cargar el control del día. La app muestra el
+        pesaje anterior con su fecha y calcula la
+        diferencia automáticamente.
       </div>
     </AppLayout>
   );
