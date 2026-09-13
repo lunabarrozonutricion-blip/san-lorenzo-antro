@@ -1,4 +1,4 @@
-const CACHE_NAME = "san-lorenzo-antro-v1";
+const CACHE_NAME = "san-lorenzo-antro-v2";
 
 const APP_SHELL = [
   "/",
@@ -40,29 +40,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  const url = new URL(request.url);
-
-  if (url.origin !== self.location.origin) {
-    return;
-  }
-
+  // Páginas / navegación
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
         .then((response) => {
           const copy = response.clone();
 
-          caches
-            .open(CACHE_NAME)
-            .then((cache) =>
-              cache.put(request, copy),
-            );
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, copy);
+          });
 
           return response;
         })
         .catch(async () => {
-          const cachedPage =
-            await caches.match(request);
+          const cachedPage = await caches.match(request);
 
           if (cachedPage) {
             return cachedPage;
@@ -75,23 +67,60 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response.ok) {
-          const copy = response.clone();
+  const destination = request.destination;
 
-          caches
-            .open(CACHE_NAME)
-            .then((cache) =>
-              cache.put(request, copy),
-            );
-        }
+  const isStaticAsset = [
+    "script",
+    "style",
+    "font",
+    "image",
+    "worker",
+  ].includes(destination);
 
-        return response;
-      })
-      .catch(() =>
-        caches.match(request),
-      ),
-  );
+  if (isStaticAsset) {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        const networkResponse = fetch(request)
+          .then((response) => {
+            if (
+              response.ok ||
+              response.type === "opaque"
+            ) {
+              const copy = response.clone();
+
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, copy);
+              });
+            }
+
+            return response;
+          });
+
+        return cachedResponse || networkResponse;
+      }),
+    );
+
+    return;
+  }
+
+  // Otros GET del mismo sitio
+  const url = new URL(request.url);
+
+  if (url.origin === self.location.origin) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, copy);
+            });
+          }
+
+          return response;
+        })
+        .catch(() => caches.match(request)),
+    );
+  }
 });
