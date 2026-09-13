@@ -1025,79 +1025,77 @@ function Pesajes() {
         </div>
       </div>
 
-      <div className="hidden print:block">
-        <div className="overflow-hidden rounded-xl border border-primary">
-          <div className="flex items-center justify-between gap-6 bg-primary px-6 py-4 text-primary-foreground">
-            <div className="flex items-center gap-4">
-              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg bg-white p-2">
-                <img
-                  src="/logo-san-lorenzo.png"
-                  alt="Escudo de San Lorenzo"
-                  className="max-h-full max-w-full object-contain"
-                />
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em]">
-                  Club Atlético San Lorenzo de Almagro
-                </p>
-
-                <h1 className="mt-1 text-3xl font-bold uppercase">
-                  Informe de Pesajes
-                </h1>
-
-                <p className="mt-1 text-sm">
-                  Primera División · Fútbol Femenino
-                </p>
-              </div>
-            </div>
-
-            <div className="text-right text-sm">
-              <p className="text-xs uppercase opacity-80">
-                Fecha del pesaje
-              </p>
-
-              <p className="mt-1 text-xl font-bold">
-                {fmtDate(date)}
-              </p>
-            </div>
+    <div className="hidden print:block">
+  <div className="overflow-hidden rounded-xl border border-primary/20 bg-white">
+    <div className="border-t-[10px] border-primary bg-white px-6 py-5">
+      <div className="flex items-start justify-between gap-6">
+        <div className="flex items-start gap-4">
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg border border-border bg-white p-2">
+            <img
+              src="/logo-san-lorenzo.png"
+              alt="Escudo de San Lorenzo"
+              className="max-h-full max-w-full object-contain"
+            />
           </div>
 
-          <div className="h-2 bg-accent" />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+              Club Atlético San Lorenzo de Almagro
+            </p>
 
-          <div className="bg-white px-6 py-4">
-            <div className="grid grid-cols-2 gap-4 rounded-lg border border-border bg-muted/40 p-4 text-sm">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Comparación utilizada
-                </p>
+            <h1 className="mt-1 text-3xl font-bold uppercase text-primary">
+              Informe de Pesajes
+            </h1>
 
-                <p className="mt-1 font-semibold text-primary">
-                  {comparisonDescription}
-                </p>
-              </div>
+            <p className="mt-1 text-sm font-semibold text-accent">
+              Primera División · Fútbol Femenino
+            </p>
+          </div>
+        </div>
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Jugadoras incluidas
-                </p>
+        <div className="min-w-[180px] rounded-xl border border-primary/20 bg-muted/20 px-4 py-3 text-right">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Fecha del pesaje
+          </p>
 
-                <p className="mt-1 font-semibold text-primary">
-                  {reportRows.length}
-                </p>
-              </div>
-            </div>
+          <p className="mt-1 text-2xl font-bold text-primary">
+            {fmtDate(date)}
+          </p>
+        </div>
+      </div>
 
-            {comparisonMode ===
-              "date" && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                Cuando una jugadora no posee un registro exactamente en la
-                fecha seleccionada, se utiliza su pesaje más cercano
-                disponible. La fecha realmente utilizada se informa en la
-                tabla.
-              </p>
-            )}
+      <div className="mt-4 h-1.5 w-full rounded-full bg-accent" />
+    </div>
 
+    <div className="bg-white px-6 py-5">
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className="rounded-xl border border-primary/15 bg-muted/20 px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Comparación utilizada
+          </p>
+
+          <p className="mt-1 font-bold text-primary">
+            {comparisonDescription}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-primary/15 bg-muted/20 px-4 py-4 text-right">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Jugadoras incluidas
+          </p>
+
+          <p className="mt-1 text-2xl font-bold text-primary">
+            {reportRows.length}
+          </p>
+        </div>
+      </div>
+
+      {comparisonMode === "date" && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Cuando una jugadora no posee un registro exactamente en la fecha seleccionada,
+          se utiliza su pesaje más cercano disponible. La fecha realmente utilizada se informa en la tabla.
+        </p>
+      )}
             <table className="mt-5 w-full border-collapse text-xs">
               <thead>
                 <tr className="bg-primary text-primary-foreground">
