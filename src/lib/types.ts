@@ -3,7 +3,7 @@ export interface Player {
   name: string;
   position?: string | null;
   birthDate?: string | null;
-  active: number; // 1 = activa, 0 = inactiva (indexable en Dexie)
+  active: number; // 1 = activa, 0 = inactiva
   createdAt: string;
   updatedAt: string;
 }
@@ -47,29 +47,124 @@ export interface MetricDef {
   key: MetricKey;
   label: string;
   unit: string;
-  group: "principal" | "pliegues" | "perimetros" | "corregidos";
+  group:
+    | "principal"
+    | "pliegues"
+    | "perimetros"
+    | "corregidos";
   derived?: boolean;
   decimals: number;
 }
 
 export const METRICS: MetricDef[] = [
-  { key: "weight", label: "Peso", unit: "kg", group: "principal", decimals: 1 },
-  { key: "sum6", label: "Sum 6 pliegues", unit: "mm", group: "principal", derived: true, decimals: 1 },
-  { key: "triceps", label: "Tríceps", unit: "mm", group: "pliegues", decimals: 1 },
-  { key: "subscapular", label: "Subescapular", unit: "mm", group: "pliegues", decimals: 1 },
-  { key: "supraespinal", label: "Supraespinal", unit: "mm", group: "pliegues", decimals: 1 },
-  { key: "abdominal", label: "Abdominal", unit: "mm", group: "pliegues", decimals: 1 },
-  { key: "thighSkinfold", label: "Muslo", unit: "mm", group: "pliegues", decimals: 1 },
-  { key: "calfSkinfold", label: "Pierna", unit: "mm", group: "pliegues", decimals: 1 },
-  { key: "armPerimeter", label: "Brazo", unit: "cm", group: "perimetros", decimals: 1 },
-  { key: "thighPerimeter", label: "Muslo", unit: "cm", group: "perimetros", decimals: 1 },
-  { key: "calfPerimeter", label: "Pantorrilla", unit: "cm", group: "perimetros", decimals: 1 },
-  { key: "armCorrected", label: "Brazo corregido", unit: "cm", group: "corregidos", derived: true, decimals: 2 },
-  { key: "thighCorrected", label: "Muslo corregido", unit: "cm", group: "corregidos", derived: true, decimals: 2 },
-  { key: "calfCorrected", label: "Pantorrilla corregida", unit: "cm", group: "corregidos", derived: true, decimals: 2 },
+  {
+    key: "weight",
+    label: "Peso",
+    unit: "kg",
+    group: "principal",
+    decimals: 1,
+  },
+  {
+    key: "sum6",
+    label: "Sum 6 pliegues",
+    unit: "mm",
+    group: "principal",
+    derived: true,
+    decimals: 1,
+  },
+  {
+    key: "triceps",
+    label: "Tríceps",
+    unit: "mm",
+    group: "pliegues",
+    decimals: 1,
+  },
+  {
+    key: "subscapular",
+    label: "Subescapular",
+    unit: "mm",
+    group: "pliegues",
+    decimals: 1,
+  },
+  {
+    key: "supraespinal",
+    label: "Supraespinal",
+    unit: "mm",
+    group: "pliegues",
+    decimals: 1,
+  },
+  {
+    key: "abdominal",
+    label: "Abdominal",
+    unit: "mm",
+    group: "pliegues",
+    decimals: 1,
+  },
+  {
+    key: "thighSkinfold",
+    label: "Muslo",
+    unit: "mm",
+    group: "pliegues",
+    decimals: 1,
+  },
+  {
+    key: "calfSkinfold",
+    label: "Pierna",
+    unit: "mm",
+    group: "pliegues",
+    decimals: 1,
+  },
+  {
+    key: "armPerimeter",
+    label: "Brazo",
+    unit: "cm",
+    group: "perimetros",
+    decimals: 1,
+  },
+  {
+    key: "thighPerimeter",
+    label: "Muslo",
+    unit: "cm",
+    group: "perimetros",
+    decimals: 1,
+  },
+  {
+    key: "calfPerimeter",
+    label: "Pantorrilla",
+    unit: "cm",
+    group: "perimetros",
+    decimals: 1,
+  },
+  {
+    key: "armCorrected",
+    label: "Brazo corregido",
+    unit: "cm",
+    group: "corregidos",
+    derived: true,
+    decimals: 2,
+  },
+  {
+    key: "thighCorrected",
+    label: "Muslo corregido",
+    unit: "cm",
+    group: "corregidos",
+    derived: true,
+    decimals: 2,
+  },
+  {
+    key: "calfCorrected",
+    label: "Pantorrilla corregida",
+    unit: "cm",
+    group: "corregidos",
+    derived: true,
+    decimals: 2,
+  },
 ];
 
-export const GROUP_LABELS: Record<MetricDef["group"], string> = {
+export const GROUP_LABELS: Record<
+  MetricDef["group"],
+  string
+> = {
   principal: "Generales",
   pliegues: "Pliegues (mm)",
   perimetros: "Perímetros (cm)",
@@ -99,11 +194,8 @@ export interface WeightRecord {
   playerId: number;
   date: string;
 
-  // Puede quedar vacío si, por ejemplo, estuvo ausente.
   weight: number | null;
 
-  // Contexto de la medición.
-  // "indispuesta" NO impide cargar peso.
   condition: WeightCondition;
 
   notes: string | null;
@@ -117,9 +209,49 @@ export const WEIGHT_CONDITIONS: Array<{
   label: string;
 }> = [
   { value: "normal", label: "Normal" },
-  { value: "indispuesta", label: "Indispuesta" },
-  { value: "seleccion", label: "Selección" },
-  { value: "reserva", label: "Reserva" },
-  { value: "ausente", label: "Ausente" },
-  { value: "otro", label: "Otro" },
+  {
+    value: "indispuesta",
+    label: "Indispuesta",
+  },
+  {
+    value: "seleccion",
+    label: "Selección",
+  },
+  {
+    value: "reserva",
+    label: "Reserva",
+  },
+  {
+    value: "ausente",
+    label: "Ausente",
+  },
+  {
+    value: "otro",
+    label: "Otro",
+  },
 ];
+
+/*
+ * OBJETIVOS ANTROPOMÉTRICOS
+ *
+ * Cada jugadora puede tener un objetivo de Sum6
+ * distinto para cada mes.
+ *
+ * Ejemplo:
+ * month = "2026-09"
+ * targetSum6 = 73.5
+ */
+export interface ObjectiveRecord {
+  id?: number;
+
+  playerId: number;
+
+  // Formato YYYY-MM.
+  month: string;
+
+  // Objetivo mensual de suma de 6 pliegues, en mm.
+  targetSum6: number;
+
+  createdAt: string;
+  updatedAt: string;
+}
