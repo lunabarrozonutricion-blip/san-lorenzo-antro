@@ -10,6 +10,7 @@ import {
   LineChart,
   Menu,
   Scale,
+  Target,
   Users,
   X,
 } from "lucide-react";
@@ -23,6 +24,7 @@ export const NAV = [
   { to: "/jugadoras", label: "Jugadoras", icon: Users },
   { to: "/control", label: "Nuevo control", icon: ClipboardPlus },
   { to: "/pesajes", label: "Pesajes", icon: Scale },
+  { to: "/objetivos", label: "Objetivos", icon: Target },
   { to: "/historial", label: "Historial", icon: History },
   { to: "/comparativa", label: "Comparativa", icon: GitCompareArrows },
   { to: "/evolucion", label: "Evolución", icon: LineChart },
