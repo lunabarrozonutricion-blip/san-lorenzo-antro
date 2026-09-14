@@ -6,7 +6,13 @@ import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
 import { Button } from "@/components/ui/button";
 import { exportXLSX } from "@/lib/backup";
-import { fmt, fmtDate, metricValue } from "@/lib/calc";
+import {
+  diff,
+  fmt,
+  fmtDate,
+  fmtDiff,
+  metricValue,
+} from "@/lib/calc";
 import { useControls, usePlayers } from "@/lib/hooks";
 import {
   GROUP_LABELS,
@@ -22,6 +28,19 @@ export const Route = createFileRoute("/plantel")({
     </ClientOnly>
   ),
 });
+
+function metricDifference(
+  current: Control,
+  previous: Control | undefined,
+  key: MetricKey,
+) {
+  if (!previous) return null;
+
+  const currentValue = metricValue(current, key);
+  const previousValue = metricValue(previous, key);
+
+  return diff(currentValue, previousValue);
+}
 
 function InformeGrupal() {
   const players = usePlayers();
@@ -216,7 +235,10 @@ function InformeGrupal() {
     const rows: Record<string, unknown>[] = [];
 
     for (const group of reportGroups) {
-      for (const control of group.controls) {
+      group.controls.forEach((control, controlIndex) => {
+        const previousControl =
+          group.controls[controlIndex + 1];
+
         const row: Record<string, unknown> = {
           Jugadora: group.player.name,
           Fecha: fmtDate(control.date),
@@ -227,12 +249,23 @@ function InformeGrupal() {
 
           if (!metric) continue;
 
-          row[`${metric.label} (${metric.unit})`] =
-            metricValue(control, key);
+          const value = metricValue(control, key);
+
+          const difference = metricDifference(
+            control,
+            previousControl,
+            key,
+          );
+
+          row[`${metric.label} (${metric.unit})`] = value;
+
+          row[
+            `Δ ${metric.label} vs anterior (${metric.unit})`
+          ] = difference ?? "";
         }
 
         rows.push(row);
-      }
+      });
     }
 
     await exportXLSX(
@@ -606,10 +639,17 @@ function InformeGrupal() {
           </p>
 
           {ready && (
-            <p className="mt-3 text-sm font-medium">
-              {reportGroups.length} jugadoras ·{" "}
-              {selectedControlIds.length} controles
-            </p>
+            <>
+              <p className="mt-3 text-sm font-medium">
+                {reportGroups.length} jugadoras ·{" "}
+                {selectedControlIds.length} controles
+              </p>
+
+              <p className="mt-2 text-xs text-muted-foreground">
+                Δ: diferencia respecto del control seleccionado
+                inmediatamente anterior de cada jugadora.
+              </p>
+            </>
           )}
         </div>
 
@@ -643,6 +683,7 @@ function InformeGrupal() {
                         className="whitespace-nowrap px-4 py-3 text-right font-semibold"
                       >
                         {metric.label}
+
                         <span className="ml-1 text-xs font-normal text-muted-foreground">
                           ({metric.unit})
                         </span>
@@ -655,55 +696,90 @@ function InformeGrupal() {
               <tbody>
                 {reportGroups.map((group) =>
                   group.controls.map(
-                    (control, controlIndex) => (
-                      <tr
-                        key={control.id}
-                        className={`border-t border-border ${
-                          controlIndex === 0
-                            ? "bg-blue-50/60"
-                            : "bg-card"
-                        }`}
-                      >
-                        {controlIndex === 0 && (
-                          <td
-                            rowSpan={group.controls.length}
-                            className="min-w-[180px] border-l-4 border-l-[#D71920] bg-[#0B234A] px-4 py-4 align-top font-semibold text-white"
-                          >
-                            {group.player.name}
-                          </td>
-                        )}
+                    (control, controlIndex) => {
+                      const previousControl =
+                        group.controls[controlIndex + 1];
 
-                        <td className="whitespace-nowrap px-4 py-3">
-                          <span
-                            className={
-                              controlIndex === 0
-                                ? "font-semibold"
-                                : ""
-                            }
-                          >
-                            {fmtDate(control.date)}
-                          </span>
-                        </td>
-
-                        {selectedMetrics.map((key) => {
-                          const metric = METRICS.find(
-                            (m) => m.key === key,
-                          )!;
-
-                          return (
+                      return (
+                        <tr
+                          key={control.id}
+                          className={`border-t border-border ${
+                            controlIndex === 0
+                              ? "bg-blue-50/60"
+                              : "bg-card"
+                          }`}
+                        >
+                          {controlIndex === 0 && (
                             <td
-                              key={key}
-                              className="numeric whitespace-nowrap px-4 py-3 text-right"
+                              rowSpan={group.controls.length}
+                              className="min-w-[180px] border-l-4 border-l-[#D71920] bg-[#0B234A] px-4 py-4 align-top font-semibold text-white"
                             >
-                              {fmt(
-                                metricValue(control, key),
-                                metric.decimals,
-                              )}
+                              {group.player.name}
                             </td>
-                          );
-                        })}
-                      </tr>
-                    ),
+                          )}
+
+                          <td className="whitespace-nowrap px-4 py-3">
+                            <span
+                              className={
+                                controlIndex === 0
+                                  ? "font-semibold"
+                                  : ""
+                              }
+                            >
+                              {fmtDate(control.date)}
+                            </span>
+                          </td>
+
+                          {selectedMetrics.map((key) => {
+                            const metric = METRICS.find(
+                              (m) => m.key === key,
+                            )!;
+
+                            const value = metricValue(
+                              control,
+                              key,
+                            );
+
+                            const difference =
+                              metricDifference(
+                                control,
+                                previousControl,
+                                key,
+                              );
+
+                            return (
+                              <td
+                                key={key}
+                                className="numeric whitespace-nowrap px-4 py-3 text-right"
+                              >
+                                <div
+                                  className={
+                                    controlIndex === 0
+                                      ? "font-semibold"
+                                      : ""
+                                  }
+                                >
+                                  {fmt(
+                                    value,
+                                    metric.decimals,
+                                  )}
+                                </div>
+
+                                {difference !== null && (
+                                  <div className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
+                                    Δ{" "}
+                                    {fmtDiff(
+                                      difference,
+                                      metric.decimals,
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    },
                   ),
                 )}
               </tbody>
