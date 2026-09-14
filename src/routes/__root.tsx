@@ -12,32 +12,120 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
+const OFFLINE_CACHE_NAME =
+  "san-lorenzo-antro-v3";
+
+async function cacheLoadedAssets() {
+  if (
+    !("caches" in window) ||
+    !navigator.onLine
+  ) {
+    return;
+  }
+
+  const cache =
+    await caches.open(
+      OFFLINE_CACHE_NAME,
+    );
+
+  const resources =
+    performance.getEntriesByType(
+      "resource",
+    ) as PerformanceResourceTiming[];
+
+  const urls = [
+    ...new Set(
+      resources
+        .map(
+          (resource) =>
+            resource.name,
+        )
+        .filter((resourceUrl) => {
+          try {
+            const url = new URL(
+              resourceUrl,
+            );
+
+            return (
+              url.origin ===
+                window.location
+                  .origin &&
+              (url.pathname.startsWith(
+                "/assets/",
+              ) ||
+                url.pathname ===
+                  "/manifest.webmanifest" ||
+                url.pathname.endsWith(
+                  ".png",
+                ) ||
+                url.pathname.endsWith(
+                  ".ico",
+                ))
+            );
+          } catch {
+            return false;
+          }
+        }),
+    ),
+  ];
+
+  await Promise.allSettled(
+    urls.map(async (url) => {
+      try {
+        const request =
+          new Request(url);
+
+        const response =
+          await fetch(request);
+
+        if (response.ok) {
+          await cache.put(
+            request,
+            response.clone(),
+          );
+        }
+      } catch {
+        // Si un recurso puntual falla,
+        // no frenar el resto de la precarga.
+      }
+    }),
+  );
+
+  console.log(
+    `${urls.length} recursos guardados para uso offline`,
+  );
+}
+
 async function preloadAppScreens() {
   if (!navigator.onLine) {
     return;
   }
 
-  const results = await Promise.allSettled([
-    import("./index"),
-    import("./jugadoras.index"),
-    import("./jugadoras.$id"),
-    import("./control"),
-    import("./historial"),
-    import("./comparativa"),
-    import("./evolucion"),
-    import("./informes"),
-    import("./plantel"),
-    import("./datos"),
-    import("./pesajes"),
-  ]);
+  const results =
+    await Promise.allSettled([
+      import("./index"),
+      import("./jugadoras.index"),
+      import("./jugadoras.$id"),
+      import("./control"),
+      import("./historial"),
+      import("./comparativa"),
+      import("./evolucion"),
+      import("./informes"),
+      import("./plantel"),
+      import("./datos"),
+      import("./pesajes"),
+    ]);
 
   const failed = results.filter(
-    (result) => result.status === "rejected",
+    (result) =>
+      result.status === "rejected",
   );
+
+  await cacheLoadedAssets();
 
   if (failed.length === 0) {
     console.log(
-      "Pantallas principales precargadas para uso offline",
+      "Pantallas principales precargadas y guardadas para uso offline",
     );
   } else {
     console.warn(
@@ -88,7 +176,8 @@ function ErrorComponent({
 
   useEffect(() => {
     reportLovableError(error, {
-      boundary: "tanstack_root_error_component",
+      boundary:
+        "tanstack_root_error_component",
     });
   }, [error]);
 
@@ -199,8 +288,10 @@ export const Route =
 
     shellComponent: RootShell,
     component: RootComponent,
-    notFoundComponent: NotFoundComponent,
-    errorComponent: ErrorComponent,
+    notFoundComponent:
+      NotFoundComponent,
+    errorComponent:
+      ErrorComponent,
   });
 
 function RootShell({
@@ -227,7 +318,12 @@ function RootComponent() {
     Route.useRouteContext();
 
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) {
+    if (
+      !(
+        "serviceWorker" in
+        navigator
+      )
+    ) {
       return;
     }
 
@@ -241,10 +337,11 @@ function RootComponent() {
           registration.scope,
         );
 
-        await navigator.serviceWorker.ready;
+        await navigator.serviceWorker
+          .ready;
 
         if (navigator.onLine) {
-          void preloadAppScreens();
+          await preloadAppScreens();
         }
       })
       .catch((error) => {
