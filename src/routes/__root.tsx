@@ -12,11 +12,47 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
+async function preloadAppScreens() {
+  if (!navigator.onLine) {
+    return;
+  }
+
+  const results = await Promise.allSettled([
+    import("./index"),
+    import("./jugadoras.index"),
+    import("./jugadoras.$id"),
+    import("./control"),
+    import("./historial"),
+    import("./comparativa"),
+    import("./evolucion"),
+    import("./informes"),
+    import("./plantel"),
+    import("./datos"),
+    import("./pesajes"),
+  ]);
+
+  const failed = results.filter(
+    (result) => result.status === "rejected",
+  );
+
+  if (failed.length === 0) {
+    console.log(
+      "Pantallas principales precargadas para uso offline",
+    );
+  } else {
+    console.warn(
+      `${failed.length} pantallas no pudieron precargarse`,
+    );
+  }
+}
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
+        <h1 className="text-7xl font-bold text-foreground">
+          404
+        </h1>
 
         <h2 className="mt-4 text-xl font-semibold text-foreground">
           Página no encontrada
@@ -199,11 +235,17 @@ function RootComponent() {
       .register("/sw.js", {
         scope: "/",
       })
-      .then((registration) => {
+      .then(async (registration) => {
         console.log(
           "Modo offline activo",
           registration.scope,
         );
+
+        await navigator.serviceWorker.ready;
+
+        if (navigator.onLine) {
+          void preloadAppScreens();
+        }
       })
       .catch((error) => {
         console.error(
@@ -211,6 +253,24 @@ function RootComponent() {
           error,
         );
       });
+  }, []);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      void preloadAppScreens();
+    };
+
+    window.addEventListener(
+      "online",
+      handleOnline,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "online",
+        handleOnline,
+      );
+    };
   }, []);
 
   return (
