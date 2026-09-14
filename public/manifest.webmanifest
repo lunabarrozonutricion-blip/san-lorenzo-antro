@@ -1,7 +1,7 @@
 {
-  "name": "San Lorenzo Antro",
-  "short_name": "CASLA Antro",
-  "description": "Seguimiento de antropometría, pesajes y nutrición del Fútbol Femenino de San Lorenzo.",
+  "name": "San Lorenzo Área Nutricional",
+  "short_name": "Área Nutricional",
+  "description": "Área Nutricional de la Primera División de Fútbol Femenino de San Lorenzo.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
