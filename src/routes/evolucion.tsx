@@ -81,13 +81,8 @@ function Evolucion() {
   const ref2025Value = useMemo(() => {
     if (!best2025) return null;
 
-    if (metricKey === "weight") {
-      return best2025.weight;
-    }
-
-    if (metricKey === "sum6") {
-      return best2025.sum6;
-    }
+    if (metricKey === "weight") return best2025.weight;
+    if (metricKey === "sum6") return best2025.sum6;
 
     return null;
   }, [best2025, metricKey]);
@@ -113,6 +108,40 @@ function Evolucion() {
       ),
     [chartData],
   );
+
+  const yDomain = useMemo<[number, number]>(() => {
+    const values = validData.map((item) => item.value);
+
+    if (showReference && ref2025Value !== null) {
+      values.push(ref2025Value);
+    }
+
+    if (values.length === 0) {
+      return [0, 1];
+    }
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+
+    const span = max - min;
+
+    const padding =
+      span > 0
+        ? Math.max(span * 0.15, metricKey === "weight" ? 0.5 : 2)
+        : metricKey === "weight"
+          ? 1
+          : 3;
+
+    return [
+      Math.floor((min - padding) * 10) / 10,
+      Math.ceil((max + padding) * 10) / 10,
+    ];
+  }, [
+    validData,
+    showReference,
+    ref2025Value,
+    metricKey,
+  ]);
 
   const first = validData[0];
   const last = validData[validData.length - 1];
@@ -210,10 +239,8 @@ function Evolucion() {
               </p>
 
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {best2025.period} ·{" "}
-                {metricKey === "weight"
-                  ? `${fmt(best2025.weight, 1)} kg`
-                  : `${fmt(best2025.sum6, 1)} mm`}
+                Activá esta opción para mostrar la referencia
+                histórica en el gráfico.
               </p>
             </div>
           </label>
@@ -279,12 +306,21 @@ function Evolucion() {
             Valores expresados en {metric.unit}
           </p>
 
-          {showReference ? (
-            <p className="mt-2 text-xs text-muted-foreground">
-              La línea roja punteada representa el mejor valor
-              histórico 2025 de {best2025?.label} (
-              {best2025?.period}).
-            </p>
+          {showReference && best2025 ? (
+            <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                Mejor registro 2025
+              </p>
+
+              <p className="mt-0.5 text-lg font-bold text-red-700">
+                {fmt(ref2025Value!, metric.decimals)}{" "}
+                {metric.unit}
+              </p>
+
+              <p className="text-xs text-muted-foreground">
+                {best2025.period}
+              </p>
+            </div>
           ) : null}
         </div>
 
@@ -295,7 +331,7 @@ function Evolucion() {
                 data={validData}
                 margin={{
                   top: 20,
-                  right: 30,
+                  right: 20,
                   bottom: 10,
                   left: 0,
                 }}
@@ -312,9 +348,10 @@ function Evolucion() {
                 />
 
                 <YAxis
-                  domain={["auto", "auto"]}
+                  domain={yDomain}
                   tick={{ fontSize: 12 }}
                   width={55}
+                  allowDataOverflow={false}
                 />
 
                 <Tooltip
@@ -339,20 +376,10 @@ function Evolucion() {
                 {showReference ? (
                   <ReferenceLine
                     y={ref2025Value!}
-                    ifOverflow="extendDomain"
-                    isFront
                     stroke="#c8102e"
-                    strokeDasharray="6 4"
-                    strokeWidth={2}
-                    label={{
-                      value: `Mejor 2025 · ${fmt(
-                        ref2025Value!,
-                        metric.decimals,
-                      )} ${metric.unit}`,
-                      position: "insideTopRight",
-                      fill: "#c8102e",
-                      fontSize: 11,
-                    }}
+                    strokeDasharray="7 5"
+                    strokeWidth={2.5}
+                    isFront
                   />
                 ) : null}
               </LineChart>
