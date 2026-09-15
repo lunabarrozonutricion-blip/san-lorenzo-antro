@@ -57,6 +57,8 @@ function Evolucion() {
     useState<MetricKey>("weight");
 
   const controls = useControls(playerId);
+  const player = usePlayer(playerId);
+  const best2025 = useMemo(() => best2025ForPlayer(player), [player]);
 
   useEffect(() => {
     if (playerId === null && players && players.length > 0) {
@@ -66,6 +68,14 @@ function Evolucion() {
 
   const metric =
     METRICS.find((m) => m.key === metricKey) ?? METRICS[0];
+
+  // Valor de referencia 2025 para la métrica actual (solo Peso y Sum6).
+  const ref2025Value = useMemo(() => {
+    if (!best2025) return null;
+    if (metricKey === "weight") return best2025.weight;
+    if (metricKey === "sum6") return best2025.sum6;
+    return null;
+  }, [best2025, metricKey]);
 
   const chartData = useMemo(() => {
     return sortByDateAsc(controls ?? []).map((control) => ({
