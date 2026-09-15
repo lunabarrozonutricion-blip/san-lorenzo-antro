@@ -230,6 +230,14 @@ function Evolucion() {
           <p className="text-sm text-muted-foreground">
             Valores expresados en {metric.unit}
           </p>
+
+          {ref2025Value !== null && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              La línea roja punteada es una referencia histórica del
+              informe 2025 ({best2025?.label} · {best2025?.period}),
+              no un control completo.
+            </p>
+          )}
         </div>
 
         {validData.length >= 2 ? (
