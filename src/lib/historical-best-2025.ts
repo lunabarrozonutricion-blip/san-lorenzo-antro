@@ -37,9 +37,7 @@ export const HISTORICAL_BEST_2025: HistoricalBest2025[] = [
   { key: "lopez belen", label: "Lopez Belen", period: "Julio Pretemporada 2025", weight: 60.1, sum6: 75 },
   { key: "salinas", label: "Salinas", period: "Optimización Agosto 2025", weight: 65.3, sum6: 69 },
   { key: "castillo", label: "Castillo", period: "Agosto 2025", weight: 57.7, sum6: 58 },
-  // NOTA: "Pereyra" NO se mapea todavía porque en el informe 2025 hay dos
-  // posibles jugadoras (Pereyra Maricel y Pereyra Solana). Agregar la
-  // entrada aquí cuando se confirme cuál corresponde.
+  { key: "pereyra", label: "Pereyra Solana", period: "Marzo 2025", weight: 70.0, sum6: 62 },
 ];
 
 /** Normaliza: minúsculas, sin tildes, sin espacios extra. */

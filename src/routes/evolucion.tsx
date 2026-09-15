@@ -4,6 +4,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -19,7 +20,8 @@ import {
   metricValue,
   sortByDateAsc,
 } from "@/lib/calc";
-import { useControls, usePlayers } from "@/lib/hooks";
+import { useControls, usePlayer, usePlayers } from "@/lib/hooks";
+import { best2025ForPlayer } from "@/lib/historical-best-2025";
 import {
   GROUP_LABELS,
   METRICS,
@@ -55,6 +57,8 @@ function Evolucion() {
     useState<MetricKey>("weight");
 
   const controls = useControls(playerId);
+  const player = usePlayer(playerId);
+  const best2025 = useMemo(() => best2025ForPlayer(player), [player]);
 
   useEffect(() => {
     if (playerId === null && players && players.length > 0) {
@@ -64,6 +68,14 @@ function Evolucion() {
 
   const metric =
     METRICS.find((m) => m.key === metricKey) ?? METRICS[0];
+
+  // Valor de referencia 2025 para la métrica actual (solo Peso y Sum6).
+  const ref2025Value = useMemo(() => {
+    if (!best2025) return null;
+    if (metricKey === "weight") return best2025.weight;
+    if (metricKey === "sum6") return best2025.sum6;
+    return null;
+  }, [best2025, metricKey]);
 
   const chartData = useMemo(() => {
     return sortByDateAsc(controls ?? []).map((control) => ({
@@ -218,6 +230,14 @@ function Evolucion() {
           <p className="text-sm text-muted-foreground">
             Valores expresados en {metric.unit}
           </p>
+
+          {ref2025Value !== null && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              La línea roja punteada es una referencia histórica del
+              informe 2025 ({best2025?.label} · {best2025?.period}),
+              no un control completo.
+            </p>
+          )}
         </div>
 
         {validData.length >= 2 ? (
@@ -267,6 +287,21 @@ function Evolucion() {
                   dot={{ r: 4 }}
                   activeDot={{ r: 6 }}
                 />
+
+                {ref2025Value !== null && (
+                  <ReferenceLine
+                    y={ref2025Value}
+                    stroke="#c8102e"
+                    strokeDasharray="6 4"
+                    strokeWidth={1.5}
+                    label={{
+                      value: `Mejor 2025 · ${best2025?.period} (${fmt(ref2025Value, metric.decimals)})`,
+                      position: "insideTopRight",
+                      fill: "#c8102e",
+                      fontSize: 11,
+                    }}
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           </div>
