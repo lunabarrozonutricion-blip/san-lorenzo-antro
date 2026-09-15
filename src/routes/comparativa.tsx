@@ -6,8 +6,9 @@ import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
 import { Diff, Value } from "@/components/metric-cells";
 import { Button } from "@/components/ui/button";
-import { diff, fmtDate, metricValue } from "@/lib/calc";
-import { useControls, usePlayers } from "@/lib/hooks";
+import { diff, fmt, fmtDate, metricValue } from "@/lib/calc";
+import { best2025ForPlayer } from "@/lib/historical-best-2025";
+import { useControls, usePlayer, usePlayers } from "@/lib/hooks";
 import { GROUP_LABELS, METRICS, type MetricKey } from "@/lib/types";
 
 export const Route = createFileRoute("/comparativa")({
@@ -38,6 +39,8 @@ function Comparativa() {
   );
 
   const controls = useControls(playerId);
+  const player = usePlayer(playerId);
+  const best2025 = useMemo(() => best2025ForPlayer(player), [player]);
 
   const [controlA, setControlA] = useState<number | null>(
     search.a ?? null,
@@ -278,7 +281,100 @@ function Comparativa() {
           })}
         </div>
       ) : null}
+
+      {playerId !== null && a ? (
+        best2025 ? (
+          <BloqueMejor2025 best={best2025} actual={a} />
+        ) : (
+          <p className="mt-4 text-sm text-muted-foreground">
+            Sin referencia 2025 cargada para esta jugadora.
+          </p>
+        )
+      ) : null}
     </AppLayout>
+  );
+}
+
+function BloqueMejor2025({
+  best,
+  actual,
+}: {
+  best: NonNullable<ReturnType<typeof best2025ForPlayer>>;
+  actual: Parameters<typeof metricValue>[0];
+}) {
+  const pesoActual = metricValue(actual, "weight");
+  const sum6Actual = metricValue(actual, "sum6");
+
+  return (
+    <div className="mt-4 overflow-hidden rounded-lg border border-border bg-card shadow-panel">
+      <div className="border-b border-border bg-muted/50 px-4 py-3">
+        <h2 className="panel-title text-xs font-semibold text-muted-foreground">
+          Comparativa con mejor 2025
+        </h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Referencia histórica ({best.label} · {best.period}). No es un
+          control completo: el informe 2025 sólo informa Peso y Sum6 por
+          período.
+        </p>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs text-muted-foreground">
+              <th className="px-4 py-2 font-medium">Variable</th>
+              <th className="px-4 py-2 text-right font-medium">
+                Mejor 2025
+              </th>
+              <th className="px-4 py-2 text-right font-medium">
+                Control actual
+              </th>
+              <th className="px-4 py-2 text-right font-medium">
+                Diferencia
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr className="border-b border-border/60">
+              <td className="px-4 py-3 font-medium">
+                Peso
+                <span className="ml-1 text-xs text-muted-foreground">
+                  (kg)
+                </span>
+              </td>
+              <td className="numeric px-4 py-3 text-right">
+                {fmt(best.weight, 1)}
+              </td>
+              <td className="numeric px-4 py-3 text-right font-semibold">
+                <Value value={pesoActual} decimals={1} />
+              </td>
+              <td className="px-4 py-3 text-right">
+                <Diff value={diff(pesoActual, best.weight)} decimals={1} />
+              </td>
+            </tr>
+
+            <tr>
+              <td className="px-4 py-3 font-medium">
+                Sum 6 pliegues
+                <span className="ml-1 text-xs text-muted-foreground">
+                  (mm)
+                </span>
+              </td>
+              <td className="numeric px-4 py-3 text-right">
+                {fmt(best.sum6, 1)}
+              </td>
+              <td className="numeric px-4 py-3 text-right font-semibold">
+                <Value value={sum6Actual} decimals={1} />
+              </td>
+              <td className="px-4 py-3 text-right">
+                <Diff value={diff(sum6Actual, best.sum6)} decimals={1} />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
