@@ -33,14 +33,14 @@ export const Route = createFileRoute("/comparativa")({
 function Comparativa() {
   const search = Route.useSearch();
   const players = usePlayers();
-  const player = usePlayer(playerId);
-  const best2025 = useMemo(() => best2025ForPlayer(player), [player]);
 
   const [playerId, setPlayerId] = useState<number | null>(
     search.player ?? null,
   );
 
   const controls = useControls(playerId);
+  const player = usePlayer(playerId);
+  const best2025 = useMemo(() => best2025ForPlayer(player), [player]);
 
   const [controlA, setControlA] = useState<number | null>(
     search.a ?? null,
