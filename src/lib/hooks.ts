@@ -1,15 +1,9 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect } from "react";
 
-import { sortByDateDesc } from "./calc";
 import { db, ensureSeed } from "./db";
-
-import type {
-  Control,
-  ObjectiveRecord,
-  Player,
-  WeightRecord,
-} from "./types";
+import { sortByDateDesc } from "./calc";
+import type { Control, Player, WeightRecord } from "./types";
 
 function useEnsureSeed() {
   useEffect(() => {
@@ -17,21 +11,12 @@ function useEnsureSeed() {
   }, []);
 }
 
-export function usePlayers():
-  | Player[]
-  | undefined {
+export function usePlayers(): Player[] | undefined {
   useEnsureSeed();
 
   return useLiveQuery(async () => {
-    const rows =
-      await db().players.toArray();
-
-    return rows.sort((a, b) =>
-      a.name.localeCompare(
-        b.name,
-        "es",
-      ),
-    );
+    const rows = await db().players.toArray();
+    return rows.sort((a, b) => a.name.localeCompare(b.name, "es"));
   }, []);
 }
 
@@ -75,37 +60,6 @@ export function useWeightRecords(
   }, [playerId]);
 }
 
-export function useObjectives(
-  playerId?: number | null,
-): ObjectiveRecord[] | undefined {
-  useEnsureSeed();
-
-  return useLiveQuery(async () => {
-    const rows =
-      playerId == null
-        ? await db().objectives.toArray()
-        : await db()
-            .objectives
-            .where("playerId")
-            .equals(playerId)
-            .toArray();
-
-    return [...rows].sort((a, b) => {
-      const byMonth =
-        b.month.localeCompare(a.month);
-
-      if (byMonth !== 0) {
-        return byMonth;
-      }
-
-      return (
-        a.playerId -
-        b.playerId
-      );
-    });
-  }, [playerId]);
-}
-
 export function usePlayer(
   id?: number | null,
 ): Player | undefined {
@@ -113,9 +67,7 @@ export function usePlayer(
 
   return useLiveQuery(
     async () =>
-      id == null
-        ? undefined
-        : db().players.get(id),
+      id == null ? undefined : db().players.get(id),
     [id],
   );
 }
@@ -124,44 +76,9 @@ export function lastControl(
   controls: Control[] | undefined,
   playerId: number,
 ): Control | undefined {
-  if (!controls) {
-    return undefined;
-  }
+  if (!controls) return undefined;
 
   return sortByDateDesc(
-    controls.filter(
-      (control) =>
-        control.playerId ===
-        playerId,
-    ),
+    controls.filter((c) => c.playerId === playerId),
   )[0];
-}
-
-export function latestObjective(
-  objectives:
-    | ObjectiveRecord[]
-    | undefined,
-  playerId: number,
-  maxMonth?: string,
-):
-  | ObjectiveRecord
-  | undefined {
-  if (!objectives) {
-    return undefined;
-  }
-
-  return [...objectives]
-    .filter(
-      (objective) =>
-        objective.playerId ===
-          playerId &&
-        (!maxMonth ||
-          objective.month <=
-            maxMonth),
-    )
-    .sort((a, b) =>
-      b.month.localeCompare(
-        a.month,
-      ),
-    )[0];
 }
