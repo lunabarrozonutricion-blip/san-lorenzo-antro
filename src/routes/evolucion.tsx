@@ -20,7 +20,8 @@ import {
   metricValue,
   sortByDateAsc,
 } from "@/lib/calc";
-import { useControls, usePlayers } from "@/lib/hooks";
+import { useControls, usePlayer, usePlayers } from "@/lib/hooks";
+import { best2025ForPlayer } from "@/lib/historical-best-2025";
 import {
   GROUP_LABELS,
   METRICS,
