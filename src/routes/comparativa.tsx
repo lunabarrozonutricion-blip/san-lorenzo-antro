@@ -6,8 +6,9 @@ import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
 import { Diff, Value } from "@/components/metric-cells";
 import { Button } from "@/components/ui/button";
-import { diff, fmtDate, metricValue } from "@/lib/calc";
-import { useControls, usePlayers } from "@/lib/hooks";
+import { diff, fmt, fmtDate, metricValue } from "@/lib/calc";
+import { best2025ForPlayer } from "@/lib/historical-best-2025";
+import { useControls, usePlayer, usePlayers } from "@/lib/hooks";
 import { GROUP_LABELS, METRICS, type MetricKey } from "@/lib/types";
 
 export const Route = createFileRoute("/comparativa")({
