@@ -279,6 +279,21 @@ function Evolucion() {
                   dot={{ r: 4 }}
                   activeDot={{ r: 6 }}
                 />
+
+                {ref2025Value !== null && (
+                  <ReferenceLine
+                    y={ref2025Value}
+                    stroke="#c8102e"
+                    strokeDasharray="6 4"
+                    strokeWidth={1.5}
+                    label={{
+                      value: `Mejor 2025 · ${best2025?.period} (${fmt(ref2025Value, metric.decimals)})`,
+                      position: "insideTopRight",
+                      fill: "#c8102e",
+                      fontSize: 11,
+                    }}
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           </div>
