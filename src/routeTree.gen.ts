@@ -10,8 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ComparativaRouteImport } from './routes/comparativa'
 import { Route as ControlRouteImport } from './routes/control'
+import { Route as DatosRouteImport } from './routes/datos'
+import { Route as EvolucionRouteImport } from './routes/evolucion'
 import { Route as HistorialRouteImport } from './routes/historial'
+import { Route as InformesRouteImport } from './routes/informes'
+import { Route as PesajesRouteImport } from './routes/pesajes'
+import { Route as PlantelRouteImport } from './routes/plantel'
 import { Route as JugadorasIndexRouteImport } from './routes/jugadoras.index'
 import { Route as JugadorasIdRouteImport } from './routes/jugadoras.$id'
 
@@ -20,14 +26,44 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ComparativaRoute = ComparativaRouteImport.update({
+  id: '/comparativa',
+  path: '/comparativa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ControlRoute = ControlRouteImport.update({
   id: '/control',
   path: '/control',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DatosRoute = DatosRouteImport.update({
+  id: '/datos',
+  path: '/datos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EvolucionRoute = EvolucionRouteImport.update({
+  id: '/evolucion',
+  path: '/evolucion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistorialRoute = HistorialRouteImport.update({
   id: '/historial',
   path: '/historial',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InformesRoute = InformesRouteImport.update({
+  id: '/informes',
+  path: '/informes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PesajesRoute = PesajesRouteImport.update({
+  id: '/pesajes',
+  path: '/pesajes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlantelRoute = PlantelRouteImport.update({
+  id: '/plantel',
+  path: '/plantel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JugadorasIndexRoute = JugadorasIndexRouteImport.update({
@@ -43,44 +79,96 @@ const JugadorasIdRoute = JugadorasIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/comparativa': typeof ComparativaRoute
   '/control': typeof ControlRoute
+  '/datos': typeof DatosRoute
+  '/evolucion': typeof EvolucionRoute
   '/historial': typeof HistorialRoute
+  '/informes': typeof InformesRoute
+  '/pesajes': typeof PesajesRoute
+  '/plantel': typeof PlantelRoute
   '/jugadoras/$id': typeof JugadorasIdRoute
   '/jugadoras/': typeof JugadorasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/comparativa': typeof ComparativaRoute
   '/control': typeof ControlRoute
+  '/datos': typeof DatosRoute
+  '/evolucion': typeof EvolucionRoute
   '/historial': typeof HistorialRoute
+  '/informes': typeof InformesRoute
+  '/pesajes': typeof PesajesRoute
+  '/plantel': typeof PlantelRoute
   '/jugadoras/$id': typeof JugadorasIdRoute
   '/jugadoras': typeof JugadorasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/comparativa': typeof ComparativaRoute
   '/control': typeof ControlRoute
+  '/datos': typeof DatosRoute
+  '/evolucion': typeof EvolucionRoute
   '/historial': typeof HistorialRoute
+  '/informes': typeof InformesRoute
+  '/pesajes': typeof PesajesRoute
+  '/plantel': typeof PlantelRoute
   '/jugadoras/$id': typeof JugadorasIdRoute
   '/jugadoras/': typeof JugadorasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/control' | '/historial' | '/jugadoras/$id' | '/jugadoras/'
+  fullPaths:
+    | '/'
+    | '/comparativa'
+    | '/control'
+    | '/datos'
+    | '/evolucion'
+    | '/historial'
+    | '/informes'
+    | '/pesajes'
+    | '/plantel'
+    | '/jugadoras/$id'
+    | '/jugadoras/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/control' | '/historial' | '/jugadoras/$id' | '/jugadoras'
+  to:
+    | '/'
+    | '/comparativa'
+    | '/control'
+    | '/datos'
+    | '/evolucion'
+    | '/historial'
+    | '/informes'
+    | '/pesajes'
+    | '/plantel'
+    | '/jugadoras/$id'
+    | '/jugadoras'
   id:
     | '__root__'
     | '/'
+    | '/comparativa'
     | '/control'
+    | '/datos'
+    | '/evolucion'
     | '/historial'
+    | '/informes'
+    | '/pesajes'
+    | '/plantel'
     | '/jugadoras/$id'
     | '/jugadoras/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ComparativaRoute: typeof ComparativaRoute
   ControlRoute: typeof ControlRoute
+  DatosRoute: typeof DatosRoute
+  EvolucionRoute: typeof EvolucionRoute
   HistorialRoute: typeof HistorialRoute
+  InformesRoute: typeof InformesRoute
+  PesajesRoute: typeof PesajesRoute
+  PlantelRoute: typeof PlantelRoute
   JugadorasIdRoute: typeof JugadorasIdRoute
   JugadorasIndexRoute: typeof JugadorasIndexRoute
 }
@@ -94,6 +182,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/comparativa': {
+      id: '/comparativa'
+      path: '/comparativa'
+      fullPath: '/comparativa'
+      preLoaderRoute: typeof ComparativaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/control': {
       id: '/control'
       path: '/control'
@@ -101,11 +196,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ControlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/datos': {
+      id: '/datos'
+      path: '/datos'
+      fullPath: '/datos'
+      preLoaderRoute: typeof DatosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/evolucion': {
+      id: '/evolucion'
+      path: '/evolucion'
+      fullPath: '/evolucion'
+      preLoaderRoute: typeof EvolucionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/historial': {
       id: '/historial'
       path: '/historial'
       fullPath: '/historial'
       preLoaderRoute: typeof HistorialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/informes': {
+      id: '/informes'
+      path: '/informes'
+      fullPath: '/informes'
+      preLoaderRoute: typeof InformesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pesajes': {
+      id: '/pesajes'
+      path: '/pesajes'
+      fullPath: '/pesajes'
+      preLoaderRoute: typeof PesajesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plantel': {
+      id: '/plantel'
+      path: '/plantel'
+      fullPath: '/plantel'
+      preLoaderRoute: typeof PlantelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/jugadoras/': {
@@ -127,8 +257,14 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ComparativaRoute: ComparativaRoute,
   ControlRoute: ControlRoute,
+  DatosRoute: DatosRoute,
+  EvolucionRoute: EvolucionRoute,
   HistorialRoute: HistorialRoute,
+  InformesRoute: InformesRoute,
+  PesajesRoute: PesajesRoute,
+  PlantelRoute: PlantelRoute,
   JugadorasIdRoute: JugadorasIdRoute,
   JugadorasIndexRoute: JugadorasIndexRoute,
 }
