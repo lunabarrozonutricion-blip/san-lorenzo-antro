@@ -56,9 +56,15 @@ function Evolucion() {
   const [metricKey, setMetricKey] =
     useState<MetricKey>("weight");
 
+  const [showBest2025, setShowBest2025] = useState(false);
+
   const controls = useControls(playerId);
   const player = usePlayer(playerId);
-  const best2025 = useMemo(() => best2025ForPlayer(player), [player]);
+
+  const best2025 = useMemo(
+    () => best2025ForPlayer(player),
+    [player],
+  );
 
   useEffect(() => {
     if (playerId === null && players && players.length > 0) {
@@ -69,13 +75,27 @@ function Evolucion() {
   const metric =
     METRICS.find((m) => m.key === metricKey) ?? METRICS[0];
 
-  // Valor de referencia 2025 para la métrica actual (solo Peso y Sum6).
+  const supportsBest2025 =
+    metricKey === "weight" || metricKey === "sum6";
+
   const ref2025Value = useMemo(() => {
     if (!best2025) return null;
-    if (metricKey === "weight") return best2025.weight;
-    if (metricKey === "sum6") return best2025.sum6;
+
+    if (metricKey === "weight") {
+      return best2025.weight;
+    }
+
+    if (metricKey === "sum6") {
+      return best2025.sum6;
+    }
+
     return null;
   }, [best2025, metricKey]);
+
+  const showReference =
+    showBest2025 &&
+    supportsBest2025 &&
+    ref2025Value !== null;
 
   const chartData = useMemo(() => {
     return sortByDateAsc(controls ?? []).map((control) => ({
@@ -121,13 +141,15 @@ function Evolucion() {
 
             <select
               value={playerId ?? ""}
-              onChange={(e) =>
+              onChange={(e) => {
                 setPlayerId(
                   e.target.value
                     ? Number(e.target.value)
                     : null,
-                )
-              }
+                );
+
+                setShowBest2025(false);
+              }}
               className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
             >
               {(players ?? []).map((player) => (
@@ -170,6 +192,32 @@ function Evolucion() {
             </select>
           </label>
         </div>
+
+        {best2025 && supportsBest2025 ? (
+          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-md border border-border bg-muted/40 p-3">
+            <input
+              type="checkbox"
+              checked={showBest2025}
+              onChange={(e) =>
+                setShowBest2025(e.target.checked)
+              }
+              className="mt-0.5 h-4 w-4 cursor-pointer"
+            />
+
+            <div>
+              <p className="text-sm font-semibold">
+                Comparar con mejor 2025
+              </p>
+
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {best2025.period} ·{" "}
+                {metricKey === "weight"
+                  ? `${fmt(best2025.weight, 1)} kg`
+                  : `${fmt(best2025.sum6, 1)} mm`}
+              </p>
+            </div>
+          </label>
+        ) : null}
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -231,13 +279,13 @@ function Evolucion() {
             Valores expresados en {metric.unit}
           </p>
 
-          {ref2025Value !== null && (
+          {showReference ? (
             <p className="mt-2 text-xs text-muted-foreground">
-              La línea roja punteada es una referencia histórica del
-              informe 2025 ({best2025?.label} · {best2025?.period}),
-              no un control completo.
+              La línea roja punteada representa el mejor valor
+              histórico 2025 de {best2025?.label} (
+              {best2025?.period}).
             </p>
-          )}
+          ) : null}
         </div>
 
         {validData.length >= 2 ? (
@@ -246,8 +294,8 @@ function Evolucion() {
               <LineChart
                 data={validData}
                 margin={{
-                  top: 10,
-                  right: 20,
+                  top: 20,
+                  right: 30,
                   bottom: 10,
                   left: 0,
                 }}
@@ -288,20 +336,25 @@ function Evolucion() {
                   activeDot={{ r: 6 }}
                 />
 
-                {ref2025Value !== null && (
+                {showReference ? (
                   <ReferenceLine
-                    y={ref2025Value}
+                    y={ref2025Value!}
+                    ifOverflow="extendDomain"
+                    isFront
                     stroke="#c8102e"
                     strokeDasharray="6 4"
-                    strokeWidth={1.5}
+                    strokeWidth={2}
                     label={{
-                      value: `Mejor 2025 · ${best2025?.period} (${fmt(ref2025Value, metric.decimals)})`,
+                      value: `Mejor 2025 · ${fmt(
+                        ref2025Value!,
+                        metric.decimals,
+                      )} ${metric.unit}`,
                       position: "insideTopRight",
                       fill: "#c8102e",
                       fontSize: 11,
                     }}
                   />
-                )}
+                ) : null}
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -311,6 +364,7 @@ function Evolucion() {
               <p className="font-semibold">
                 No hay suficientes datos
               </p>
+
               <p className="mt-1 text-sm text-muted-foreground">
                 Se necesitan al menos dos controles con esta
                 variable para mostrar la evolución.
@@ -335,6 +389,7 @@ function Evolucion() {
                   <th className="px-4 py-2 text-left">
                     Fecha
                   </th>
+
                   <th className="px-4 py-2 text-right">
                     {metric.label}
                   </th>
@@ -342,26 +397,28 @@ function Evolucion() {
               </thead>
 
               <tbody>
-                {[...validData].reverse().map((item, index) => (
-                  <tr
-                    key={`${item.date}-${index}`}
-                    className="border-t border-border"
-                  >
-                    <td className="px-4 py-2">
-                      {item.label}
-                    </td>
+                {[...validData]
+                  .reverse()
+                  .map((item, index) => (
+                    <tr
+                      key={`${item.date}-${index}`}
+                      className="border-t border-border"
+                    >
+                      <td className="px-4 py-2">
+                        {item.label}
+                      </td>
 
-                    <td className="numeric px-4 py-2 text-right font-semibold">
-                      {fmt(
-                        item.value,
-                        metric.decimals,
-                      )}{" "}
-                      <span className="font-normal text-muted-foreground">
-                        {metric.unit}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="numeric px-4 py-2 text-right font-semibold">
+                        {fmt(
+                          item.value,
+                          metric.decimals,
+                        )}{" "}
+                        <span className="font-normal text-muted-foreground">
+                          {metric.unit}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
