@@ -137,8 +137,8 @@ function NuevoControl() {
   }, [controls, date, editingId]);
 
   async function guardar() {
-    if (!playerId) return toast.error("Elegí una jugadora");
-    if (!date) return toast.error("Indicá la fecha del control");
+    if (!playerId) { toast.error("Elegí una jugadora"); return; }
+    if (!date) { toast.error("Indicá la fecha del control"); return; }
     const payload: Control = {
       id: editingId,
       playerId,
