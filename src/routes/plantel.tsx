@@ -141,12 +141,27 @@ function normalizeName(value: string) {
     .trim();
 }
 
+function nameMatches(playerName: string, referenceName: string) {
+  const playerTokens = new Set(normalizeName(playerName).split(" "));
+  const referenceTokens = normalizeName(referenceName).split(" ");
+
+  return referenceTokens.every((token) => playerTokens.has(token));
+}
+
 function historicalFor(name: string) {
-  return HISTORICAL_SUM6[normalizeName(name)] ?? null;
+  const key = Object.keys(HISTORICAL_SUM6).find((reference) =>
+    nameMatches(name, reference),
+  );
+
+  return key ? HISTORICAL_SUM6[key] : null;
 }
 
 function targetFor(name: string) {
-  return SEPTEMBER_SUM6_TARGETS[normalizeName(name)] ?? null;
+  const key = Object.keys(SEPTEMBER_SUM6_TARGETS).find((reference) =>
+    nameMatches(name, reference),
+  );
+
+  return key ? SEPTEMBER_SUM6_TARGETS[key] : null;
 }
 
 function metricDifference(
@@ -280,12 +295,11 @@ function InformeGrupal() {
   ]);
 
   const groupSummaryRows = useMemo(() => {
-    const playerMap = new Map(
-      (players ?? []).map((player) => [normalizeName(player.name), player]),
-    );
-
     return HISTORY_ORDER.map((name) => {
-      const player = playerMap.get(normalizeName(name));
+      const player = (players ?? []).find((candidate) =>
+        nameMatches(candidate.name, name),
+      );
+
       if (!player?.id) return null;
 
       if (
