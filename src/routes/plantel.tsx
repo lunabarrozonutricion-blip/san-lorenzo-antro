@@ -194,6 +194,16 @@ function bandCellClass(value: number | null) {
   return "bg-card text-muted-foreground";
 }
 
+function augustDeltaClass(value: number | null) {
+  if (value === null) return "text-muted-foreground";
+
+  if (value > 0) {
+    return "bg-rose-50 text-rose-700";
+  }
+
+  return "bg-emerald-50 text-emerald-700";
+}
+
 function chartDomain(values: number[], reference?: number | null): [number, number] {
   const all = [...values];
 
@@ -626,7 +636,7 @@ function InformeGrupal() {
                 variant="outline"
                 onClick={seleccionarTodasLasJugadoras}
               >
-                Todas
+                Seleccionar todas
               </Button>
 
               <Button
@@ -965,10 +975,10 @@ function InformeGrupal() {
               />
               <span>
                 <span className="block text-sm font-semibold">
-                  Gráficos de evolución
+                  Gráficos de evolución Sum6
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Usa las jugadoras, controles y variables seleccionados
+                  Usa todas las fechas cargadas de las jugadoras seleccionadas
                 </span>
               </span>
             </label>
@@ -1087,7 +1097,11 @@ function InformeGrupal() {
                       sub={row.septemberDate ? fmtDate(row.septemberDate) : undefined}
                       emphasize
                     />
-                    <td className="numeric whitespace-nowrap px-3 py-2.5 text-right font-semibold">
+                    <td
+                      className={`numeric whitespace-nowrap px-3 py-2.5 text-right font-semibold ${augustDeltaClass(
+                        row.vsAugust,
+                      )}`}
+                    >
                       {fmtDiff(row.vsAugust, 1)}
                     </td>
                     {showObjectives && (
@@ -1400,47 +1414,51 @@ function InformeGrupal() {
         )}
       </div>
 
-      {showCharts && ready && (
+      {showCharts && selectedPlayers.length > 0 && (
         <section className="mt-6">
           <div className="mb-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
-              Evolución
+              Evolución Sum6
             </p>
             <h2 className="mt-1 font-display text-2xl font-semibold">
               Gráficos de las jugadoras seleccionadas
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Cada gráfico usa únicamente los controles y variables que seleccionaste arriba.
+              Cada gráfico muestra todos los controles con Sum6 cargado de la jugadora,
+              independientemente de las fechas que tildaste para la tabla comparativa.
             </p>
           </div>
 
           <div className="space-y-6">
-            {reportGroups.map((group) => (
-              <div
-                key={group.player.id}
-                className="rounded-lg border border-border bg-card p-4 shadow-panel"
-                style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
-              >
-                <h3 className="font-display text-xl font-semibold">
-                  {group.player.name}
-                </h3>
+            {selectedPlayers.map((player) => {
+              if (player.id == null) return null;
 
-                <div className="mt-4 grid gap-5 xl:grid-cols-2">
-                  {selectedMetrics.map((key) => (
+              const allPlayerControls = controlsByPlayer.get(player.id) ?? [];
+
+              return (
+                <div
+                  key={player.id}
+                  className="rounded-lg border border-border bg-card p-4 shadow-panel"
+                  style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
+                >
+                  <h3 className="font-display text-xl font-semibold">
+                    {player.name}
+                  </h3>
+
+                  <div className="mt-4">
                     <EvolutionChart
-                      key={key}
-                      controls={group.controls}
-                      metricKey={key}
+                      controls={allPlayerControls}
+                      metricKey="sum6"
                       target={
-                        showObjectives && key === "sum6"
-                          ? targetFor(group.player.name)
+                        showObjectives
+                          ? targetFor(player.name)
                           : null
                       }
                     />
-                  ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
