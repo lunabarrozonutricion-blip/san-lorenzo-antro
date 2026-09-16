@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 const OFFLINE_CACHE_NAME =
-  "san-lorenzo-antro-v6";
+  "san-lorenzo-antro-v7";
 
 async function cacheLoadedAssets() {
   if (
