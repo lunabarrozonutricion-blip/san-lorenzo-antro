@@ -47,6 +47,13 @@ type HistoricalSum6 = {
   agosto: number | null;
 };
 
+type PrintSections = {
+  groupSummary: boolean;
+  playerSummary: boolean;
+  anthropometricReport: boolean;
+  charts: boolean;
+};
+
 const HISTORY_ORDER = [
   "Sanabria",
   "Pavon",
@@ -122,11 +129,13 @@ const SEPTEMBER_SUM6_TARGETS: Record<string, number> = {
   curril: 65,
   gomez: 78,
   gonzalez: 88,
+  godoy: 88,
   ledesma: 71,
   "lopez belen": 68,
   mereles: 79,
   muzio: 63,
   pafundi: 73.5,
+  rodriguez: 90,
   salinas: 75,
   vidal: 67,
   villalba: 77,
@@ -204,6 +213,16 @@ function augustDeltaClass(value: number | null) {
   return "bg-emerald-50 text-emerald-700";
 }
 
+function sectionVisibilityClass(
+  screenVisible: boolean,
+  printVisible: boolean,
+) {
+  if (screenVisible && printVisible) return "";
+  if (screenVisible && !printVisible) return "print:hidden";
+  if (!screenVisible && printVisible) return "hidden print:block";
+  return "hidden";
+}
+
 function chartDomain(values: number[], reference?: number | null): [number, number] {
   const all = [...values];
 
@@ -239,6 +258,13 @@ function InformeGrupal() {
   const [showObjectives, setShowObjectives] = useState(true);
   const [showCharts, setShowCharts] = useState(false);
   const [summaryOnlySelected, setSummaryOnlySelected] = useState(false);
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
+  const [printSections, setPrintSections] = useState<PrintSections>({
+    groupSummary: true,
+    playerSummary: false,
+    anthropometricReport: false,
+    charts: true,
+  });
 
   const filteredPlayers = useMemo(() => {
     const text = search.trim().toLowerCase();
@@ -524,6 +550,32 @@ function InformeGrupal() {
     }
 
     setSelectedControlIds(ids);
+  }
+
+  function togglePrintSection(key: keyof PrintSections) {
+    setPrintSections((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  }
+
+  function imprimirSeleccion() {
+    if (!Object.values(printSections).some(Boolean)) return;
+
+    const previousTitle = document.title;
+    document.title = "Informe antropométrico · San Lorenzo";
+
+    const restoreTitle = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restoreTitle);
+    };
+
+    window.addEventListener("afterprint", restoreTitle);
+    setPrintDialogOpen(false);
+
+    window.setTimeout(() => {
+      window.print();
+    }, 150);
   }
 
   async function exportarExcel() {
@@ -1003,14 +1055,7 @@ function InformeGrupal() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={() => window.print()}
-            disabled={
-              !showGroupSummary &&
-              !ready &&
-              selectedPlayers.length === 0
-            }
-          >
+          <Button onClick={() => setPrintDialogOpen(true)}>
             <Printer className="h-4 w-4" />
             Exportar PDF / Imprimir
           </Button>
@@ -1024,11 +1069,83 @@ function InformeGrupal() {
             Exportar Excel
           </Button>
         </div>
+
+        {printDialogOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+            <div className="w-full max-w-lg rounded-xl border border-border bg-card p-5 shadow-2xl">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
+                  Preparar impresión
+                </p>
+                <h2 className="mt-1 font-display text-2xl font-semibold">
+                  ¿Qué querés incluir?
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Tildá solamente las secciones que querés llevar al PDF o imprimir.
+                </p>
+              </div>
+
+              <div className="mt-5 space-y-2">
+                <PrintOption
+                  label="Comparativa grupal"
+                  description="Tabla Inicio–Septiembre + porcentajes por rango"
+                  checked={printSections.groupSummary}
+                  onChange={() => togglePrintSection("groupSummary")}
+                />
+                <PrintOption
+                  label="Resumen por jugadora"
+                  description="Último Sum6, anterior, objetivo y diferencias"
+                  checked={printSections.playerSummary}
+                  disabled={selectedPlayers.length === 0}
+                  onChange={() => togglePrintSection("playerSummary")}
+                />
+                <PrintOption
+                  label="Informe antropométrico grupal"
+                  description="Tabla de controles y variables seleccionadas"
+                  checked={printSections.anthropometricReport}
+                  disabled={!ready}
+                  onChange={() => togglePrintSection("anthropometricReport")}
+                />
+                <PrintOption
+                  label="Gráficos de evolución Sum6"
+                  description="Todas las fechas de las jugadoras seleccionadas"
+                  checked={printSections.charts}
+                  disabled={selectedPlayers.length === 0}
+                  onChange={() => togglePrintSection("charts")}
+                />
+              </div>
+
+              <div className="mt-5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                Para que no aparezcan la URL ni los textos del navegador, en la ventana de impresión abrí 
+                <strong>Más configuraciones</strong> y desactivá <strong>Encabezados y pies de página</strong>.
+              </div>
+
+              <div className="mt-5 flex flex-wrap justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setPrintDialogOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={imprimirSeleccion}
+                  disabled={!Object.values(printSections).some(Boolean)}
+                >
+                  <Printer className="h-4 w-4" />
+                  Imprimir selección
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {showGroupSummary && (
+      {
         <section
-          className="mt-6 overflow-hidden rounded-lg border border-border bg-card shadow-panel"
+          className={`mt-6 overflow-hidden rounded-lg border border-border bg-card shadow-panel ${sectionVisibilityClass(
+            showGroupSummary,
+            printSections.groupSummary,
+          )}`}
           style={{ breakInside: "avoid" }}
         >
           <div className="border-b border-border p-5">
@@ -1118,33 +1235,34 @@ function InformeGrupal() {
                 ))}
               </tbody>
 
-              <tfoot className="border-t-2 border-border bg-muted/40 text-xs font-semibold">
-                <BandCountRow
-                  label="Verde <70"
-                  counts={bandCounts}
-                  band="green"
-                  extraColumns={showObjectives ? 3 : 1}
-                />
-                <BandCountRow
-                  label="Amarillo 70–90"
-                  counts={bandCounts}
-                  band="yellow"
-                  extraColumns={showObjectives ? 3 : 1}
-                />
-                <BandCountRow
-                  label="Rojo >90"
-                  counts={bandCounts}
-                  band="red"
-                  extraColumns={showObjectives ? 3 : 1}
-                />
-              </tfoot>
             </table>
           </div>
+
+          <div className="border-t border-border p-5">
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
+                Distribución del plantel
+              </p>
+              <h3 className="mt-1 font-display text-xl font-semibold">
+                Porcentaje por rango de Sum6
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Los porcentajes se calculan sobre las jugadoras con medición disponible en cada período.
+              </p>
+            </div>
+
+            <BandDistributionChart counts={bandCounts} />
+          </div>
         </section>
-      )}
+      }
 
       {selectedPlayers.length > 0 && (
-        <section className="mt-6">
+        <section
+          className={`mt-6 ${sectionVisibilityClass(
+            true,
+            printSections.playerSummary,
+          )}`}
+        >
           <div className="mb-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
               Últimas mediciones
@@ -1250,7 +1368,12 @@ function InformeGrupal() {
         </section>
       )}
 
-      <div className="mt-6 overflow-hidden rounded-lg border border-border bg-card shadow-panel">
+      <div
+        className={`mt-6 overflow-hidden rounded-lg border border-border bg-card shadow-panel ${sectionVisibilityClass(
+          true,
+          printSections.anthropometricReport,
+        )}`}
+      >
         <div className="border-b border-border p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
             San Lorenzo de Almagro
@@ -1414,8 +1537,13 @@ function InformeGrupal() {
         )}
       </div>
 
-      {showCharts && selectedPlayers.length > 0 && (
-        <section className="mt-6">
+      {selectedPlayers.length > 0 && (
+        <section
+          className={`mt-6 ${sectionVisibilityClass(
+            showCharts,
+            printSections.charts,
+          )}`}
+        >
           <div className="mb-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
               Evolución Sum6
@@ -1466,6 +1594,42 @@ function InformeGrupal() {
   );
 }
 
+function PrintOption({
+  label,
+  description,
+  checked,
+  disabled = false,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <label
+      className={`flex items-start gap-3 rounded-md border p-3 ${
+        disabled
+          ? "cursor-not-allowed border-border bg-muted/30 opacity-55"
+          : "cursor-pointer border-border hover:bg-muted/40"
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={onChange}
+        className="mt-0.5 h-4 w-4"
+      />
+      <span>
+        <span className="block text-sm font-semibold">{label}</span>
+        <span className="text-xs text-muted-foreground">{description}</span>
+      </span>
+    </label>
+  );
+}
+
 function BandCell({
   value,
   sub,
@@ -1491,33 +1655,78 @@ function BandCell({
   );
 }
 
-function BandCountRow({
-  label,
+function BandDistributionChart({
   counts,
-  band,
-  extraColumns,
 }: {
-  label: string;
   counts: Record<
     "inicio" | "abril" | "junio" | "julio" | "agosto" | "september",
     { green: number; yellow: number; red: number }
   >;
-  band: "green" | "yellow" | "red";
-  extraColumns: number;
 }) {
+  const periods = [
+    ["inicio", "Inicio"],
+    ["abril", "Abril"],
+    ["junio", "Junio"],
+    ["julio", "Julio"],
+    ["agosto", "Agosto"],
+    ["september", "Septiembre"],
+  ] as const;
+
   return (
-    <tr>
-      <td className="px-3 py-2 text-left">{label}</td>
-      <td className="px-3 py-2 text-right">{counts.inicio[band]}</td>
-      <td className="px-3 py-2 text-right">{counts.abril[band]}</td>
-      <td className="px-3 py-2 text-right">{counts.junio[band]}</td>
-      <td className="px-3 py-2 text-right">{counts.julio[band]}</td>
-      <td className="px-3 py-2 text-right">{counts.agosto[band]}</td>
-      <td className="px-3 py-2 text-right">{counts.september[band]}</td>
-      {Array.from({ length: extraColumns }).map((_, index) => (
-        <td key={index} />
-      ))}
-    </tr>
+    <div className="space-y-4">
+      {periods.map(([key, label]) => {
+        const values = counts[key];
+        const total = values.green + values.yellow + values.red;
+
+        const green = total > 0 ? (values.green / total) * 100 : 0;
+        const yellow = total > 0 ? (values.yellow / total) * 100 : 0;
+        const red = total > 0 ? (values.red / total) * 100 : 0;
+
+        return (
+          <div key={key} className="grid gap-2 md:grid-cols-[110px_1fr] md:items-center">
+            <p className="text-sm font-semibold">{label}</p>
+
+            <div>
+              <div className="flex h-5 w-full overflow-hidden rounded-full bg-muted">
+                {green > 0 && (
+                  <div
+                    className="h-full bg-emerald-400"
+                    style={{ width: `${green}%` }}
+                    title={`Verde ${green.toFixed(1)}%`}
+                  />
+                )}
+                {yellow > 0 && (
+                  <div
+                    className="h-full bg-amber-300"
+                    style={{ width: `${yellow}%` }}
+                    title={`Amarillo ${yellow.toFixed(1)}%`}
+                  />
+                )}
+                {red > 0 && (
+                  <div
+                    className="h-full bg-rose-400"
+                    style={{ width: `${red}%` }}
+                    title={`Rojo ${red.toFixed(1)}%`}
+                  />
+                )}
+              </div>
+
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-semibold">
+                <span className="text-emerald-700">
+                  Verde {green.toFixed(0)}%
+                </span>
+                <span className="text-amber-700">
+                  Amarillo {yellow.toFixed(0)}%
+                </span>
+                <span className="text-rose-700">
+                  Rojo {red.toFixed(0)}%
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
