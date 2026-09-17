@@ -1,4 +1,4 @@
-const CACHE_NAME = "san-lorenzo-antro-v7"
+const CACHE_NAME = "san-lorenzo-antro-v8"
 
 const APP_SHELL = [
   "/",
