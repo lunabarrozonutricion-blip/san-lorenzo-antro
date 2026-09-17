@@ -6,9 +6,14 @@ import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
 import { Diff, Value } from "@/components/metric-cells";
 import { Button } from "@/components/ui/button";
-import { diff, fmtDate, metricValue } from "@/lib/calc";
+import { diff, fmt, fmtDate, metricValue } from "@/lib/calc";
 import { deletePlayer } from "@/lib/db";
-import { useControls, usePlayer } from "@/lib/hooks";
+import {
+  useControls,
+  useObjectivePeriods,
+  usePlayer,
+} from "@/lib/hooks";
+import { targetForPlayer } from "@/lib/objectives";
 import { METRICS } from "@/lib/types";
 
 export const Route = createFileRoute("/jugadoras/$id")({
@@ -32,10 +37,42 @@ function Ficha() {
   const playerId = Number(id);
   const player = usePlayer(playerId);
   const controls = useControls(playerId);
+  const objectivePeriods = useObjectivePeriods();
   const navigate = useNavigate();
 
   const last = controls?.[0];
   const prev = controls?.[1];
+
+  const latestSum6Control = controls?.find(
+    (control) =>
+      metricValue(control, "sum6") !== null,
+  );
+
+  const latestSum6 = latestSum6Control
+    ? metricValue(latestSum6Control, "sum6")
+    : null;
+
+  const currentObjectivePeriod =
+    objectivePeriods && objectivePeriods.length > 0
+      ? objectivePeriods[objectivePeriods.length - 1]
+      : undefined;
+
+  const currentTarget =
+    targetForPlayer(currentObjectivePeriod, player);
+
+  const deltaTarget =
+    latestSum6 !== null && currentTarget !== null
+      ? latestSum6 - currentTarget
+      : null;
+
+  const objectiveHistory =
+    (objectivePeriods ?? [])
+      .map((period) => ({
+        period,
+        target: targetForPlayer(period, player),
+      }))
+      .filter((item) => item.target !== null)
+      .reverse();
 
   async function eliminar() {
     if (!confirm(`¿Eliminar a ${player?.name} y todos sus controles? Esta acción no se puede deshacer.`)) return;
@@ -83,6 +120,88 @@ function Ficha() {
             Historial
           </Link>
         </Button>
+        <Button asChild size="sm" variant="outline">
+          <Link to="/objetivos">
+            Objetivos
+          </Link>
+        </Button>
+      </div>
+
+      <div className="mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="panel-title text-xs text-muted-foreground">
+              Objetivo actual
+            </p>
+
+            <p className="mt-1 font-display text-xl font-semibold">
+              {currentObjectivePeriod?.label ?? "Sin período"}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-md bg-muted/50 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Objetivo Sum6
+              </p>
+              <p className="numeric mt-1 text-sm font-semibold">
+                {currentTarget !== null
+                  ? `${fmt(currentTarget, 1)} mm`
+                  : "—"}
+              </p>
+            </div>
+
+            <div className="rounded-md bg-muted/50 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Último Sum6
+              </p>
+              <p className="numeric mt-1 text-sm font-semibold">
+                {latestSum6 !== null
+                  ? `${fmt(latestSum6, 1)} mm`
+                  : "—"}
+              </p>
+            </div>
+
+            <div className="rounded-md bg-muted/50 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Δ vs objetivo
+              </p>
+              <p
+                className={`numeric mt-1 text-sm font-semibold ${
+                  deltaTarget === null
+                    ? ""
+                    : deltaTarget <= 0
+                      ? "text-emerald-700"
+                      : "text-rose-700"
+                }`}
+              >
+                {deltaTarget !== null
+                  ? `${deltaTarget > 0 ? "+" : ""}${fmt(deltaTarget, 1)} mm`
+                  : "—"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {objectiveHistory.length > 0 && (
+          <div className="mt-4 border-t border-border pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Historial de objetivos
+            </p>
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              {objectiveHistory.map(({ period, target }) => (
+                <span
+                  key={period.key}
+                  className="rounded-full border border-border bg-background px-3 py-1 text-xs"
+                >
+                  <strong>{period.label}:</strong>{" "}
+                  {fmt(target, 1)} mm
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="mt-4 rounded-lg border border-border bg-card shadow-panel">
