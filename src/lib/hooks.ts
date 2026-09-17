@@ -3,7 +3,13 @@ import { useEffect } from "react";
 
 import { db, ensureSeed } from "./db";
 import { sortByDateDesc } from "./calc";
-import type { Control, Player, WeightRecord } from "./types";
+import { ensureObjectiveSeed } from "./objectives";
+import type {
+  Control,
+  ObjectivePeriod,
+  Player,
+  WeightRecord,
+} from "./types";
 
 function useEnsureSeed() {
   useEffect(() => {
@@ -58,6 +64,23 @@ export function useWeightRecords(
       b.date.localeCompare(a.date),
     );
   }, [playerId]);
+}
+
+export function useObjectivePeriods():
+  | ObjectivePeriod[]
+  | undefined {
+  useEnsureSeed();
+
+  return useLiveQuery(async () => {
+    await ensureObjectiveSeed();
+
+    const rows =
+      await db().objectivePeriods.toArray();
+
+    return [...rows].sort((a, b) =>
+      a.key.localeCompare(b.key),
+    );
+  }, []);
 }
 
 export function usePlayer(
