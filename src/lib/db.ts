@@ -1,23 +1,39 @@
 import Dexie, { type Table } from "dexie";
 
-import type { Control, Player, WeightRecord } from "./types";
+import type {
+  Control,
+  ObjectivePeriod,
+  Player,
+  WeightRecord,
+} from "./types";
 
 export class AnthroDB extends Dexie {
   players!: Table<Player, number>;
   controls!: Table<Control, number>;
   weightRecords!: Table<WeightRecord, number>;
+  objectivePeriods!: Table<ObjectivePeriod, number>;
 
   constructor() {
     super("sanlorenzo-antropometria");
+
     this.version(1).stores({
       players: "++id, name, active",
       controls: "++id, playerId, date, [playerId+date]",
     });
+
     this.version(2).stores({
-  players: "++id, name, active",
-  controls: "++id, playerId, date, [playerId+date]",
-  weightRecords: "++id, playerId, date, condition, [playerId+date]",
-});
+      players: "++id, name, active",
+      controls: "++id, playerId, date, [playerId+date]",
+      weightRecords: "++id, playerId, date, condition, [playerId+date]",
+    });
+
+    // Migración aditiva: conserva jugadoras, controles y pesajes existentes.
+    this.version(3).stores({
+      players: "++id, name, active",
+      controls: "++id, playerId, date, [playerId+date]",
+      weightRecords: "++id, playerId, date, condition, [playerId+date]",
+      objectivePeriods: "++id, &key, year, month",
+    });
   }
 }
 
@@ -28,7 +44,9 @@ export function db(): AnthroDB {
   if (typeof window === "undefined") {
     throw new Error("La base local sólo está disponible en el navegador");
   }
+
   if (!_db) _db = new AnthroDB();
+
   return _db;
 }
 
@@ -36,7 +54,11 @@ export function nowISO() {
   return new Date().toISOString();
 }
 
-function emptyControl(playerId: number, date: string, v: Partial<Control>): Control {
+function emptyControl(
+  playerId: number,
+  date: string,
+  v: Partial<Control>,
+): Control {
   return {
     playerId,
     date,
@@ -62,9 +84,12 @@ let seeded = false;
 /** Datos de ejemplo mínimos, sólo si la base está vacía. */
 export async function ensureSeed() {
   if (seeded) return;
+
   seeded = true;
+
   const d = db();
   const count = await d.players.count();
+
   if (count > 0) return;
 
   const players: Player[] = [
@@ -72,6 +97,7 @@ export async function ensureSeed() {
     { name: "Martina Gómez", position: "Mediocampista", birthDate: "1999-09-03", active: 1, createdAt: nowISO(), updatedAt: nowISO() },
     { name: "Lucía Fernández", position: "Defensora", birthDate: "2003-01-25", active: 1, createdAt: nowISO(), updatedAt: nowISO() },
   ];
+
   const ids = await d.players.bulkAdd(players, { allKeys: true });
 
   const samples: Array<[number, string, Partial<Control>]> = [
@@ -84,7 +110,11 @@ export async function ensureSeed() {
     [2, "2026-08-20", { weight: 55.8, triceps: 12.4, subscapular: 9.1, supraespinal: 7.0, abdominal: 12.0, thighSkinfold: 17.4, calfSkinfold: 10.2, armPerimeter: 25.6, thighPerimeter: 50.8, calfPerimeter: 33.4 }],
   ];
 
-  await d.controls.bulkAdd(samples.map(([i, date, v]) => emptyControl(ids[i] as number, date, v)));
+  await d.controls.bulkAdd(
+    samples.map(([i, date, v]) =>
+      emptyControl(ids[i] as number, date, v),
+    ),
+  );
 }
 
 export async function deleteControl(id: number) {
@@ -93,12 +123,23 @@ export async function deleteControl(id: number) {
 
 export async function upsertControl(c: Control) {
   const d = db();
+
   if (c.id) {
-    await d.controls.update(c.id, { ...c, updatedAt: nowISO() });
+    await d.controls.update(c.id, {
+      ...c,
+      updatedAt: nowISO(),
+    });
+
     return c.id;
   }
-  return await d.controls.add({ ...c, createdAt: nowISO(), updatedAt: nowISO() });
+
+  return await d.controls.add({
+    ...c,
+    createdAt: nowISO(),
+    updatedAt: nowISO(),
+  });
 }
+
 export async function upsertWeightRecord(record: WeightRecord) {
   const d = db();
 
@@ -121,19 +162,50 @@ export async function upsertWeightRecord(record: WeightRecord) {
 export async function deleteWeightRecord(id: number) {
   await db().weightRecords.delete(id);
 }
+
 export async function upsertPlayer(p: Player) {
   const d = db();
+
   if (p.id) {
-    await d.players.update(p.id, { ...p, updatedAt: nowISO() });
+    await d.players.update(p.id, {
+      ...p,
+      updatedAt: nowISO(),
+    });
+
     return p.id;
   }
-  return await d.players.add({ ...p, createdAt: nowISO(), updatedAt: nowISO() });
+
+  return await d.players.add({
+    ...p,
+    createdAt: nowISO(),
+    updatedAt: nowISO(),
+  });
 }
 
 export async function deletePlayer(id: number) {
   const d = db();
+
   await d.transaction("rw", d.players, d.controls, async () => {
     await d.controls.where("playerId").equals(id).delete();
     await d.players.delete(id);
+  });
+}
+
+export async function upsertObjectivePeriod(period: ObjectivePeriod) {
+  const d = db();
+
+  if (period.id) {
+    await d.objectivePeriods.update(period.id, {
+      ...period,
+      updatedAt: nowISO(),
+    });
+
+    return period.id;
+  }
+
+  return await d.objectivePeriods.add({
+    ...period,
+    createdAt: nowISO(),
+    updatedAt: nowISO(),
   });
 }
