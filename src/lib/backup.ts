@@ -2,6 +2,7 @@ import { db, nowISO } from "./db";
 import {
   METRICS,
   type Control,
+  type ObjectivePeriod,
   type Player,
   type WeightRecord,
 } from "./types";
@@ -9,39 +10,53 @@ import { fmtDate, metricValue } from "./calc";
 
 export interface BackupFile {
   app: "seguimiento-antropometrico-casla";
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   exportedAt: string;
   players: Player[];
   controls: Control[];
   weightRecords?: WeightRecord[];
+  objectivePeriods?: ObjectivePeriod[];
 }
 
 export async function readAll() {
   const d = db();
 
-  const [players, controls, weightRecords] = await Promise.all([
+  const [
+    players,
+    controls,
+    weightRecords,
+    objectivePeriods,
+  ] = await Promise.all([
     d.players.toArray(),
     d.controls.toArray(),
     d.weightRecords.toArray(),
+    d.objectivePeriods.toArray(),
   ]);
 
   return {
     players,
     controls,
     weightRecords,
+    objectivePeriods,
   };
 }
 
 export async function buildBackup(): Promise<BackupFile> {
-  const { players, controls, weightRecords } = await readAll();
+  const {
+    players,
+    controls,
+    weightRecords,
+    objectivePeriods,
+  } = await readAll();
 
   return {
     app: "seguimiento-antropometrico-casla",
-    version: 2,
+    version: 3,
     exportedAt: nowISO(),
     players,
     controls,
     weightRecords,
+    objectivePeriods,
   };
 }
 
@@ -178,6 +193,9 @@ export async function importBackup(
   const incomingWeights =
     parsed.weightRecords ?? [];
 
+  const incomingObjectives =
+    parsed.objectivePeriods ?? [];
+
   const d = db();
 
   await d.transaction(
@@ -185,10 +203,12 @@ export async function importBackup(
     d.players,
     d.controls,
     d.weightRecords,
+    d.objectivePeriods,
     async () => {
       if (mode === "replace") {
         await d.controls.clear();
         await d.weightRecords.clear();
+        await d.objectivePeriods.clear();
         await d.players.clear();
 
         await d.players.bulkAdd(parsed.players);
@@ -197,6 +217,12 @@ export async function importBackup(
         if (incomingWeights.length > 0) {
           await d.weightRecords.bulkAdd(
             incomingWeights,
+          );
+        }
+
+        if (incomingObjectives.length > 0) {
+          await d.objectivePeriods.bulkAdd(
+            incomingObjectives,
           );
         }
 
@@ -294,6 +320,55 @@ export async function importBackup(
           updatedAt: nowISO(),
         });
       }
+
+      for (const period of incomingObjectives) {
+        const remappedTargets = period.targets
+          .map((target) => {
+            const playerId =
+              idMap.get(target.playerId);
+
+            if (!playerId) return null;
+
+            return {
+              ...target,
+              playerId,
+            };
+          })
+          .filter(
+            (
+              target,
+            ): target is NonNullable<typeof target> =>
+              target !== null,
+          );
+
+        const existingPeriod =
+          await d.objectivePeriods
+            .where("key")
+            .equals(period.key)
+            .first();
+
+        const nextPeriod = {
+          ...period,
+          targets: remappedTargets,
+          updatedAt: nowISO(),
+        };
+
+        if (existingPeriod?.id) {
+          await d.objectivePeriods.update(
+            existingPeriod.id,
+            nextPeriod,
+          );
+        } else {
+          const { id: _omit, ...rest } =
+            nextPeriod;
+
+          await d.objectivePeriods.add({
+            ...rest,
+            createdAt:
+              rest.createdAt ?? nowISO(),
+          });
+        }
+      }
     },
   );
 
@@ -302,6 +377,8 @@ export async function importBackup(
     controls: parsed.controls.length,
     weightRecords:
       incomingWeights.length,
+    objectivePeriods:
+      incomingObjectives.length,
   };
 }
 
@@ -313,9 +390,11 @@ export async function wipeAll() {
     d.players,
     d.controls,
     d.weightRecords,
+    d.objectivePeriods,
     async () => {
       await d.controls.clear();
       await d.weightRecords.clear();
+      await d.objectivePeriods.clear();
       await d.players.clear();
     },
   );
