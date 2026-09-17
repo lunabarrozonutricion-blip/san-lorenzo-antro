@@ -27,6 +27,23 @@ export interface Control {
   updatedAt: string;
 }
 
+export interface ObjectiveTarget {
+  playerId: number;
+  playerName: string;
+  target: number | null;
+}
+
+export interface ObjectivePeriod {
+  id?: number;
+  key: string; // yyyy-mm
+  label: string;
+  year: number;
+  month: number;
+  targets: ObjectiveTarget[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type MetricKey =
   | "weight"
   | "sum6"
