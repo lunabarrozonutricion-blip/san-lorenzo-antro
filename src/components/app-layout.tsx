@@ -1,401 +1,185 @@
-import { db, nowISO } from "./db";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  METRICS,
-  type Control,
-  type ObjectivePeriod,
-  type Player,
-  type WeightRecord,
-} from "./types";
-import { fmtDate, metricValue } from "./calc";
+  BarChart3,
+  ClipboardPlus,
+  Database,
+  FileText,
+  GitCompareArrows,
+  History,
+  Home,
+  LineChart,
+  Menu,
+  Scale,
+  Target,
+  Users,
+  X,
+} from "lucide-react";
+import { useState, type ReactNode } from "react";
 
-export interface BackupFile {
-  app: "seguimiento-antropometrico-casla";
-  version: 1 | 2 | 3;
-  exportedAt: string;
-  players: Player[];
-  controls: Control[];
-  weightRecords?: WeightRecord[];
-  objectivePeriods?: ObjectivePeriod[];
-}
+import { OfflineBadge } from "./offline-badge";
+import { cn } from "@/lib/utils";
 
-export async function readAll() {
-  const d = db();
+export const NAV = [
+  { to: "/", label: "Inicio", icon: Home },
+  { to: "/jugadoras", label: "Jugadoras", icon: Users },
+  { to: "/control", label: "Nuevo control", icon: ClipboardPlus },
+  { to: "/pesajes", label: "Pesajes", icon: Scale },
+  { to: "/historial", label: "Historial", icon: History },
+  { to: "/comparativa", label: "Comparativa", icon: GitCompareArrows },
+  { to: "/evolucion", label: "Evolución", icon: LineChart },
+  { to: "/objetivos", label: "Objetivos", icon: Target },
+  { to: "/informes", label: "Informes", icon: FileText },
+  { to: "/plantel", label: "Plantel completo", icon: BarChart3 },
+  { to: "/datos", label: "Importar / Exportar", icon: Database },
+] as const;
 
-  const [
-    players,
-    controls,
-    weightRecords,
-    objectivePeriods,
-  ] = await Promise.all([
-    d.players.toArray(),
-    d.controls.toArray(),
-    d.weightRecords.toArray(),
-    d.objectivePeriods.toArray(),
-  ]);
-
-  return {
-    players,
-    controls,
-    weightRecords,
-    objectivePeriods,
-  };
-}
-
-export async function buildBackup(): Promise<BackupFile> {
-  const {
-    players,
-    controls,
-    weightRecords,
-    objectivePeriods,
-  } = await readAll();
-
-  return {
-    app: "seguimiento-antropometrico-casla",
-    version: 3,
-    exportedAt: nowISO(),
-    players,
-    controls,
-    weightRecords,
-    objectivePeriods,
-  };
-}
-
-export function download(filename: string, blob: Blob) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-
-  a.href = url;
-  a.download = filename;
-  a.click();
-
-  URL.revokeObjectURL(url);
-}
-
-export function stamp() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-export async function exportJSON() {
-  const backup = await buildBackup();
-
-  download(
-    `antropometria-backup-${stamp()}.json`,
-    new Blob([JSON.stringify(backup, null, 2)], {
-      type: "application/json",
-    }),
+function Crest() {
+  return (
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-sidebar-primary font-display text-sm font-bold text-sidebar-primary-foreground">
+      CASLA
+    </div>
   );
 }
 
-/** Filas planas: una por control, con derivados calculados. */
-export async function flatRows() {
-  const { players, controls } = await readAll();
+function NavList({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = useRouterState({
+    select: (s) => s.location.pathname,
+  });
 
-  const byId = new Map(
-    players.map((p) => [p.id!, p]),
-  );
+  return (
+    <nav className="flex flex-col gap-1">
+      {NAV.map((item) => {
+        const active =
+          item.to === "/"
+            ? pathname === "/"
+            : pathname.startsWith(item.to);
 
-  return controls
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map((c) => {
-      const row: Record<
-        string,
-        string | number | null
-      > = {
-        Jugadora:
-          byId.get(c.playerId)?.name ?? "—",
-        Fecha: fmtDate(c.date),
-      };
+        const Icon = item.icon;
 
-      for (const m of METRICS) {
-        row[`${m.label} (${m.unit})`] =
-          metricValue(c, m.key);
-      }
-
-      row["Observaciones"] = c.notes ?? "";
-
-      return row;
-    });
-}
-
-export async function exportCSV() {
-  const rows = await flatRows();
-
-  if (rows.length === 0) return;
-
-  const headers = Object.keys(rows[0]);
-
-  const esc = (v: unknown) =>
-    `"${String(v ?? "").replace(/"/g, '""')}"`;
-
-  const csv = [
-    headers.map(esc).join(";"),
-    ...rows.map((r) =>
-      headers.map((h) => esc(r[h])).join(";"),
-    ),
-  ].join("\n");
-
-  download(
-    `antropometria-${stamp()}.csv`,
-    new Blob(["\uFEFF" + csv], {
-      type: "text/csv;charset=utf-8",
-    }),
+        return (
+          <Link
+            key={item.to}
+            to={item.to}
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              active &&
+                "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_3px_0_0_0_var(--sidebar-primary)]",
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 
-export async function exportXLSX(
-  rows?: Record<string, unknown>[],
-  filename?: string,
-) {
-  const XLSX = await import("xlsx");
+export function AppLayout({
+  title,
+  subtitle,
+  actions,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
 
-  const data = rows ?? (await flatRows());
+  return (
+    <div className="min-h-screen bg-background">
+      <aside className="no-print fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar p-4 lg:flex">
+        <div className="flex items-center gap-3">
+          <Crest />
 
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
+          <div className="leading-tight">
+            <p className="panel-title text-xs text-sidebar-foreground/60">
+              San Lorenzo
+            </p>
 
-  XLSX.utils.book_append_sheet(
-    wb,
-    ws,
-    "Antropometría",
-  );
+            <p className="font-display text-sm font-semibold text-sidebar-foreground">
+              Fútbol Femenino
+            </p>
+          </div>
+        </div>
 
-  const out = XLSX.write(wb, {
-    bookType: "xlsx",
-    type: "array",
-  }) as ArrayBuffer;
+        <div className="mt-6 flex-1">
+          <NavList />
+        </div>
 
-  download(
-    filename ??
-      `antropometria-${stamp()}.xlsx`,
-    new Blob([out], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    }),
-  );
-}
+        <OfflineBadge variant="sidebar" />
+      </aside>
 
-export async function importBackup(
-  file: File,
-  mode: "replace" | "merge",
-) {
-  const text = await file.text();
-  const parsed = JSON.parse(text) as BackupFile;
+      {open && (
+        <div className="no-print fixed inset-0 z-50 lg:hidden">
+          <div
+            className="absolute inset-0 bg-foreground/50"
+            onClick={() => setOpen(false)}
+          />
 
-  if (
-    !parsed ||
-    !Array.isArray(parsed.players) ||
-    !Array.isArray(parsed.controls)
-  ) {
-    throw new Error(
-      "El archivo no tiene el formato de backup esperado.",
-    );
-  }
+          <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-sidebar p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Crest />
 
-  const incomingWeights =
-    parsed.weightRecords ?? [];
+                <p className="font-display text-sm font-semibold text-sidebar-foreground">
+                  Fútbol Femenino
+                </p>
+              </div>
 
-  const incomingObjectives =
-    parsed.objectivePeriods ?? [];
+              <button
+                aria-label="Cerrar menú"
+                onClick={() => setOpen(false)}
+                className="rounded-md p-2 text-sidebar-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-  const d = db();
+            <div className="mt-6 flex-1 overflow-y-auto">
+              <NavList onNavigate={() => setOpen(false)} />
+            </div>
 
-  await d.transaction(
-    "rw",
-    d.players,
-    d.controls,
-    d.weightRecords,
-    d.objectivePeriods,
-    async () => {
-      if (mode === "replace") {
-        await d.controls.clear();
-        await d.weightRecords.clear();
-        await d.objectivePeriods.clear();
-        await d.players.clear();
+            <OfflineBadge variant="sidebar" />
+          </div>
+        </div>
+      )}
 
-        await d.players.bulkAdd(parsed.players);
-        await d.controls.bulkAdd(parsed.controls);
+      <div className="lg:pl-64">
+        <header className="no-print sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
+          <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
+            <button
+              aria-label="Abrir menú"
+              onClick={() => setOpen(true)}
+              className="rounded-md border border-border p-2 lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
 
-        if (incomingWeights.length > 0) {
-          await d.weightRecords.bulkAdd(
-            incomingWeights,
-          );
-        }
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate font-display text-lg font-semibold uppercase tracking-wide sm:text-xl">
+                {title}
+              </h1>
 
-        if (incomingObjectives.length > 0) {
-          await d.objectivePeriods.bulkAdd(
-            incomingObjectives,
-          );
-        }
+              <p className="truncate text-xs text-muted-foreground">
+                {subtitle ??
+                  "Seguimiento Antropométrico – Primera División Fútbol Femenino"}
+              </p>
+            </div>
 
-        return;
-      }
+            <div className="flex shrink-0 items-center gap-2">
+              {actions}
+            </div>
+          </div>
+        </header>
 
-      const existing =
-        await d.players.toArray();
-
-      const byName = new Map(
-        existing.map((p) => [
-          p.name.toLowerCase(),
-          p.id!,
-        ]),
-      );
-
-      const idMap = new Map<
-        number,
-        number
-      >();
-
-      for (const p of parsed.players) {
-        const key = p.name.toLowerCase();
-
-        let id = byName.get(key);
-
-        if (!id) {
-          const { id: _omit, ...rest } = p;
-
-          id = (await d.players.add({
-            ...rest,
-            createdAt:
-              rest.createdAt ?? nowISO(),
-            updatedAt: nowISO(),
-          })) as number;
-
-          byName.set(key, id);
-        }
-
-        if (p.id) {
-          idMap.set(p.id, id);
-        }
-      }
-
-      for (const c of parsed.controls) {
-        const playerId =
-          idMap.get(c.playerId);
-
-        if (!playerId) continue;
-
-        const dup = await d.controls
-          .where("[playerId+date]")
-          .equals([playerId, c.date])
-          .first();
-
-        if (dup) continue;
-
-        const { id: _omit, ...rest } = c;
-
-        await d.controls.add({
-          ...rest,
-          playerId,
-          createdAt:
-            rest.createdAt ?? nowISO(),
-          updatedAt: nowISO(),
-        });
-      }
-
-      for (const record of incomingWeights) {
-        const playerId =
-          idMap.get(record.playerId);
-
-        if (!playerId) continue;
-
-        const dup = await d.weightRecords
-          .where("[playerId+date]")
-          .equals([
-            playerId,
-            record.date,
-          ])
-          .first();
-
-        if (dup) continue;
-
-        const {
-          id: _omit,
-          ...rest
-        } = record;
-
-        await d.weightRecords.add({
-          ...rest,
-          playerId,
-          createdAt:
-            rest.createdAt ?? nowISO(),
-          updatedAt: nowISO(),
-        });
-      }
-
-      for (const period of incomingObjectives) {
-        const remappedTargets = period.targets
-          .map((target) => {
-            const playerId =
-              idMap.get(target.playerId);
-
-            if (!playerId) return null;
-
-            return {
-              ...target,
-              playerId,
-            };
-          })
-          .filter(
-            (
-              target,
-            ): target is NonNullable<typeof target> =>
-              target !== null,
-          );
-
-        const existingPeriod =
-          await d.objectivePeriods
-            .where("key")
-            .equals(period.key)
-            .first();
-
-        const nextPeriod = {
-          ...period,
-          targets: remappedTargets,
-          updatedAt: nowISO(),
-        };
-
-        if (existingPeriod?.id) {
-          await d.objectivePeriods.update(
-            existingPeriod.id,
-            nextPeriod,
-          );
-        } else {
-          const { id: _omit, ...rest } =
-            nextPeriod;
-
-          await d.objectivePeriods.add({
-            ...rest,
-            createdAt:
-              rest.createdAt ?? nowISO(),
-          });
-        }
-      }
-    },
-  );
-
-  return {
-    players: parsed.players.length,
-    controls: parsed.controls.length,
-    weightRecords:
-      incomingWeights.length,
-    objectivePeriods:
-      incomingObjectives.length,
-  };
-}
-
-export async function wipeAll() {
-  const d = db();
-
-  await d.transaction(
-    "rw",
-    d.players,
-    d.controls,
-    d.weightRecords,
-    d.objectivePeriods,
-    async () => {
-      await d.controls.clear();
-      await d.weightRecords.clear();
-      await d.objectivePeriods.clear();
-      await d.players.clear();
-    },
+        <main className="print-area px-4 py-5 pb-24 sm:px-6 lg:pb-8">
+          {children}
+        </main>
+      </div>
+    </div>
   );
 }
