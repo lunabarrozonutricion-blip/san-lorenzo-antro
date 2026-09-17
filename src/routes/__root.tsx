@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 const OFFLINE_CACHE_NAME =
-  "san-lorenzo-antro-v8";
+  "san-lorenzo-antro-v9";
 
 async function cacheLoadedAssets() {
   if (
@@ -110,6 +110,7 @@ async function preloadAppScreens() {
       import("./historial"),
       import("./comparativa"),
       import("./evolucion"),
+      import("./objetivos"),
       import("./informes"),
       import("./plantel"),
       import("./datos"),
