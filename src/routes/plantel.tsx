@@ -24,6 +24,7 @@ import {
   metricValue,
 } from "@/lib/calc";
 import { useControls, usePlayers } from "@/lib/hooks";
+import { best2025ForPlayer } from "@/lib/historical-best-2025";
 import {
   GROUP_LABELS,
   METRICS,
@@ -223,11 +224,16 @@ function sectionVisibilityClass(
   return "hidden";
 }
 
-function chartDomain(values: number[], reference?: number | null): [number, number] {
+function chartDomain(
+  values: number[],
+  references: Array<number | null | undefined> = [],
+): [number, number] {
   const all = [...values];
 
-  if (reference !== null && reference !== undefined) {
-    all.push(reference);
+  for (const reference of references) {
+    if (reference !== null && reference !== undefined) {
+      all.push(reference);
+    }
   }
 
   if (all.length === 0) return [0, 1];
@@ -1057,7 +1063,7 @@ function InformeGrupal() {
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => setPrintDialogOpen(true)}>
             <Printer className="h-4 w-4" />
-            Exportar PDF / Imprimir
+            Elegir qué imprimir
           </Button>
 
           <Button
@@ -1562,6 +1568,7 @@ function InformeGrupal() {
               if (player.id == null) return null;
 
               const allPlayerControls = controlsByPlayer.get(player.id) ?? [];
+              const best2025 = best2025ForPlayer(player);
 
               return (
                 <div
@@ -1582,6 +1589,8 @@ function InformeGrupal() {
                           ? targetFor(player.name)
                           : null
                       }
+                      best2025Value={best2025?.sum6 ?? null}
+                      best2025Period={best2025?.period}
                     />
                   </div>
                 </div>
@@ -1754,10 +1763,14 @@ function EvolutionChart({
   controls,
   metricKey,
   target,
+  best2025Value,
+  best2025Period,
 }: {
   controls: Control[];
   metricKey: MetricKey;
   target: number | null;
+  best2025Value: number | null;
+  best2025Period?: string;
 }) {
   const metric = METRICS.find((item) => item.key === metricKey)!;
 
@@ -1774,7 +1787,7 @@ function EvolutionChart({
 
   const domain = chartDomain(
     data.map((item) => item.value),
-    target,
+    [target, best2025Value],
   );
 
   return (
@@ -1787,11 +1800,20 @@ function EvolutionChart({
           </p>
         </div>
 
-        {target !== null && (
-          <p className="text-xs font-semibold text-red-700">
-            Objetivo {fmt(target, 1)} mm
-          </p>
-        )}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {best2025Value !== null && (
+            <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">
+              Mejor 2025 {fmt(best2025Value, 1)} mm
+              {best2025Period ? ` · ${best2025Period}` : ""}
+            </span>
+          )}
+
+          {target !== null && (
+            <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
+              Objetivo {fmt(target, 1)} mm
+            </span>
+          )}
+        </div>
       </div>
 
       {data.length >= 2 ? (
@@ -1826,6 +1848,16 @@ function EvolutionChart({
                 dot={{ r: 3.5 }}
                 activeDot={{ r: 5 }}
               />
+              {best2025Value !== null && (
+                <ReferenceLine
+                  y={best2025Value}
+                  stroke="#0B234A"
+                  strokeDasharray="3 4"
+                  strokeWidth={2.25}
+                  isFront
+                />
+              )}
+
               {target !== null && (
                 <ReferenceLine
                   y={target}
