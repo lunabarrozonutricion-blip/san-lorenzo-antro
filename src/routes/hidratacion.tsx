@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   Droplets,
   Plus,
+  Printer,
   Save,
   Trash2,
 } from "lucide-react";
@@ -58,6 +59,11 @@ const HYDRATION_OBSERVATIONS = [
 
 type ObservationValue =
   (typeof HYDRATION_OBSERVATIONS)[number]["value"];
+
+type PrintMode =
+  | "values"
+  | "both"
+  | "chart";
 
 type DraftEntry = {
   playerId: number | null;
@@ -297,6 +303,9 @@ function HydrationPage() {
 
   const [saving, setSaving] =
     useState(false);
+
+  const [printMode, setPrintMode] =
+    useState<PrintMode>("both");
 
   useEffect(() => {
     if (
@@ -633,17 +642,375 @@ function HydrationPage() {
       title="Test de hidratación"
       subtitle="Registro por fecha, contexto y jugadora"
       actions={
-        <Button
-          onClick={
-            createNewTest
-          }
-        >
-          <Plus className="h-4 w-4" />
-          Nuevo test
-        </Button>
+        <>
+          <div className="hidden items-center gap-2 sm:flex">
+            <select
+              aria-label="Qué imprimir"
+              value={printMode}
+              onChange={(event) =>
+                setPrintMode(
+                  event.target.value as PrintMode,
+                )
+              }
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="both">
+                Valores + gráfico
+              </option>
+
+              <option value="values">
+                Solo valores
+              </option>
+
+              <option value="chart">
+                Solo gráfico
+              </option>
+            </select>
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!draft}
+              onClick={() =>
+                window.print()
+              }
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir
+            </Button>
+          </div>
+
+          <Button
+            onClick={
+              createNewTest
+            }
+          >
+            <Plus className="h-4 w-4" />
+            Nuevo test
+          </Button>
+        </>
       }
     >
-      <div className="grid gap-5 xl:grid-cols-[290px_1fr]">
+      <style>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 12mm;
+          }
+
+          .hydration-print {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .hydration-print table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          .hydration-print th,
+          .hydration-print td {
+            border: 1px solid #d1d5db;
+            padding: 6px 8px;
+            font-size: 10px;
+            vertical-align: top;
+          }
+
+          .hydration-print th {
+            background: #f3f4f6 !important;
+            font-weight: 700;
+          }
+
+          .hydration-print-section {
+            break-inside: avoid;
+          }
+        }
+      `}</style>
+
+      {draft && (
+        <div className="hydration-print hidden print:block">
+          <div className="border-b border-black pb-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em]">
+              San Lorenzo · Fútbol Femenino
+            </p>
+
+            <h1 className="mt-1 text-2xl font-bold">
+              Test de hidratación
+            </h1>
+
+            <div className="mt-2 grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+              <p>
+                <strong>Fecha:</strong>{" "}
+                {fmtDate(draft.date)}
+              </p>
+
+              <p>
+                <strong>Rival:</strong>{" "}
+                {draft.rival.trim() || "—"}
+              </p>
+
+              <p>
+                <strong>N.º de fecha:</strong>{" "}
+                {draft.round.trim() || "—"}
+              </p>
+
+              <p>
+                <strong>Tipo de día:</strong>{" "}
+                {dayTypeLabel(draft.dayType)}
+              </p>
+
+              <p className="col-span-2">
+                <strong>Contexto:</strong>{" "}
+                {contextLabel(
+                  draft.context,
+                  draft.customContext,
+                )}
+              </p>
+            </div>
+          </div>
+
+          {printMode !== "chart" && (
+            <section className="hydration-print-section mt-5">
+              <div className="mb-3 flex items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold">
+                    Valores
+                  </h2>
+
+                  <p className="text-xs text-gray-600">
+                    Clasificación: ≤1020 bien hidratada · ≥1021 deshidratada
+                  </p>
+                </div>
+
+                <p className="text-xs">
+                  <strong>
+                    {summary.measured}
+                  </strong>{" "}
+                  mediciones ·{" "}
+                  <strong>
+                    {summary.noData}
+                  </strong>{" "}
+                  sin valor
+                </p>
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th className="text-left">
+                      Jugadora
+                    </th>
+
+                    <th className="w-[80px] text-center">
+                      Valor
+                    </th>
+
+                    <th className="w-[120px] text-center">
+                      Estado
+                    </th>
+
+                    <th className="w-[140px] text-left">
+                      Observación
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {draft.entries.map(
+                    (entry, index) => {
+                      const value =
+                        parseHydrationValue(
+                          entry.value,
+                        );
+
+                      return (
+                        <tr
+                          key={`print-${entry.playerId ?? "historic"}-${entry.playerName}-${index}`}
+                        >
+                          <td>
+                            {entry.playerName}
+                          </td>
+
+                          <td className="text-center">
+                            {value ?? "—"}
+                          </td>
+
+                          <td className="text-center">
+                            {hydrationStatus(
+                              value,
+                            )}
+                          </td>
+
+                          <td>
+                            {savedObservation(
+                              entry,
+                            ) ?? "—"}
+                          </td>
+                        </tr>
+                      );
+                    },
+                  )}
+                </tbody>
+              </table>
+            </section>
+          )}
+
+          {printMode !== "values" && (
+            <section className="hydration-print-section mt-6">
+              <h2 className="text-lg font-bold">
+                Estado de hidratación
+              </h2>
+
+              <p className="mt-1 text-xs text-gray-600">
+                Porcentajes calculados solo sobre las jugadoras con medición.
+              </p>
+
+              {summary.measured > 0 ? (
+                <div className="mt-5 space-y-5">
+                  <div>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <strong>
+                        Bien hidratadas
+                      </strong>
+
+                      <span>
+                        {summary.hydratedPercent.toFixed(
+                          1,
+                        )}
+                        % · {summary.hydrated} de{" "}
+                        {summary.measured}
+                      </span>
+                    </div>
+
+                    <div className="h-8 overflow-hidden rounded border border-emerald-700">
+                      <div
+                        className="flex h-full items-center justify-end bg-emerald-500 px-2 text-xs font-bold text-white"
+                        style={{
+                          width: `${summary.hydratedPercent}%`,
+                        }}
+                      >
+                        {summary.hydratedPercent >=
+                        12
+                          ? `${summary.hydratedPercent.toFixed(
+                              1,
+                            )}%`
+                          : ""}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <strong>
+                        Deshidratadas
+                      </strong>
+
+                      <span>
+                        {summary.dehydratedPercent.toFixed(
+                          1,
+                        )}
+                        % · {summary.dehydrated} de{" "}
+                        {summary.measured}
+                      </span>
+                    </div>
+
+                    <div className="h-8 overflow-hidden rounded border border-rose-700">
+                      <div
+                        className="flex h-full items-center justify-end bg-rose-500 px-2 text-xs font-bold text-white"
+                        style={{
+                          width: `${summary.dehydratedPercent}%`,
+                        }}
+                      >
+                        {summary.dehydratedPercent >=
+                        12
+                          ? `${summary.dehydratedPercent.toFixed(
+                              1,
+                            )}%`
+                          : ""}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3 border-t pt-4 text-center">
+                    <div>
+                      <p className="text-2xl font-bold">
+                        {summary.hydrated}
+                      </p>
+
+                      <p className="text-xs">
+                        Bien hidratadas
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-2xl font-bold">
+                        {summary.dehydrated}
+                      </p>
+
+                      <p className="text-xs">
+                        Deshidratadas
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-2xl font-bold">
+                        {summary.noData}
+                      </p>
+
+                      <p className="text-xs">
+                        Sin medición
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-5 text-sm">
+                  No hay valores cargados para calcular porcentajes.
+                </p>
+              )}
+            </section>
+          )}
+        </div>
+      )}
+
+      <div className="no-print mb-4 flex gap-2 sm:hidden">
+        <select
+          aria-label="Qué imprimir"
+          value={printMode}
+          onChange={(event) =>
+            setPrintMode(
+              event.target.value as PrintMode,
+            )
+          }
+          className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="both">
+            Valores + gráfico
+          </option>
+
+          <option value="values">
+            Solo valores
+          </option>
+
+          <option value="chart">
+            Solo gráfico
+          </option>
+        </select>
+
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!draft}
+          onClick={() =>
+            window.print()
+          }
+        >
+          <Printer className="h-4 w-4" />
+          Imprimir
+        </Button>
+      </div>
+
+      <div className="no-print grid gap-5 xl:grid-cols-[290px_1fr]">
         <aside className="rounded-lg border border-border bg-card p-4 shadow-panel">
           <div className="flex items-center gap-2">
             <Droplets className="h-5 w-5 text-primary" />
