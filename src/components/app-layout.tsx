@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+  Activity,
   BarChart3,
   ClipboardPlus,
   Database,
@@ -28,6 +29,11 @@ export const NAV = [
   { to: "/comparativa", label: "Comparativa", icon: GitCompareArrows },
   { to: "/evolucion", label: "Evolución", icon: LineChart },
   { to: "/objetivos", label: "Objetivos", icon: Target },
+  {
+    to: "/seguimiento",
+    label: "Seguimiento grupal",
+    icon: Activity,
+  },
   { to: "/informes", label: "Informes", icon: FileText },
   { to: "/plantel", label: "Plantel completo", icon: BarChart3 },
   { to: "/datos", label: "Importar / Exportar", icon: Database },
