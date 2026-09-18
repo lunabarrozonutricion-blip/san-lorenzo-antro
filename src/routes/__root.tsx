@@ -116,6 +116,7 @@ async function preloadAppScreens() {
       import("./plantel"),
       import("./datos"),
       import("./pesajes"),
+      import("./hidratacion"),
     ]);
 
   const failed = results.filter(
