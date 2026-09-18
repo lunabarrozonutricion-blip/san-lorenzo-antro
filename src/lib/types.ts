@@ -44,6 +44,137 @@ export interface ObjectivePeriod {
   updatedAt: string;
 }
 
+/* ---------------------------
+   TEST DE HIDRATACIÓN
+---------------------------- */
+
+export type HydrationDayType =
+  | "pre_partido"
+  | "partido"
+  | "sin_especificar";
+
+export type HydrationContext =
+  | "pre_entreno"
+  | "pre_desayuno"
+  | "post_desayuno"
+  | "post_cena"
+  | "otro";
+
+export interface HydrationEntry {
+  /*
+   * Puede quedar en null para registros históricos
+   * de jugadoras que ya no estén en el plantel actual
+   * o cuyo nombre no se pueda vincular automáticamente.
+   */
+  playerId: number | null;
+
+  /*
+   * Guardamos también el nombre tal como estaba
+   * al momento del test para no perder el histórico.
+   */
+  playerName: string;
+
+  /*
+   * Valor del test.
+   * Ejemplo: 1016, 1022, etc.
+   */
+  value: number | null;
+
+  /*
+   * Ejemplos:
+   * Indispuesta, Reserva, No citada, Cx, Qx, etc.
+   */
+  observation: string | null;
+}
+
+export interface HydrationTest {
+  id?: number;
+
+  date: string; // yyyy-mm-dd
+
+  /*
+   * Fecha/jornada del torneo:
+   * Fecha 1, Fecha 2, etc.
+   */
+  round: number | null;
+
+  rival: string | null;
+
+  /*
+   * Día pre partido / Día de partido.
+   * Los históricos pueden quedar sin especificar.
+   */
+  dayType: HydrationDayType;
+
+  /*
+   * Pre entreno, pre desayuno,
+   * post desayuno, post cena u otro.
+   */
+  context: HydrationContext;
+
+  /*
+   * Solo se usa cuando context === "otro".
+   */
+  customContext: string | null;
+
+  /*
+   * Resultados de todas las jugadoras
+   * incluidas en ese test.
+   */
+  entries: HydrationEntry[];
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const HYDRATION_DAY_TYPES: Array<{
+  value: HydrationDayType;
+  label: string;
+}> = [
+  {
+    value: "pre_partido",
+    label: "Día pre partido",
+  },
+  {
+    value: "partido",
+    label: "Día de partido",
+  },
+  {
+    value: "sin_especificar",
+    label: "Sin especificar",
+  },
+];
+
+export const HYDRATION_CONTEXTS: Array<{
+  value: HydrationContext;
+  label: string;
+}> = [
+  {
+    value: "pre_entreno",
+    label: "Pre entreno",
+  },
+  {
+    value: "pre_desayuno",
+    label: "Pre desayuno",
+  },
+  {
+    value: "post_desayuno",
+    label: "Post desayuno",
+  },
+  {
+    value: "post_cena",
+    label: "Post cena",
+  },
+  {
+    value: "otro",
+    label: "Otro",
+  },
+];
+
+/* ---------------------------
+   ANTROPOMETRÍA
+---------------------------- */
+
 export type MetricKey =
   | "weight"
   | "sum6"
@@ -64,33 +195,129 @@ export interface MetricDef {
   key: MetricKey;
   label: string;
   unit: string;
-  group: "principal" | "pliegues" | "perimetros" | "corregidos";
+  group:
+    | "principal"
+    | "pliegues"
+    | "perimetros"
+    | "corregidos";
   derived?: boolean;
   decimals: number;
 }
 
 export const METRICS: MetricDef[] = [
-  { key: "weight", label: "Peso", unit: "kg", group: "principal", decimals: 1 },
-  { key: "sum6", label: "Sum 6 pliegues", unit: "mm", group: "principal", derived: true, decimals: 1 },
-  { key: "triceps", label: "Tríceps", unit: "mm", group: "pliegues", decimals: 1 },
-  { key: "subscapular", label: "Subescapular", unit: "mm", group: "pliegues", decimals: 1 },
-  { key: "supraespinal", label: "Supraespinal", unit: "mm", group: "pliegues", decimals: 1 },
-  { key: "abdominal", label: "Abdominal", unit: "mm", group: "pliegues", decimals: 1 },
-  { key: "thighSkinfold", label: "Muslo", unit: "mm", group: "pliegues", decimals: 1 },
-  { key: "calfSkinfold", label: "Pierna", unit: "mm", group: "pliegues", decimals: 1 },
-  { key: "armPerimeter", label: "Brazo", unit: "cm", group: "perimetros", decimals: 1 },
-  { key: "thighPerimeter", label: "Muslo", unit: "cm", group: "perimetros", decimals: 1 },
-  { key: "calfPerimeter", label: "Pantorrilla", unit: "cm", group: "perimetros", decimals: 1 },
-  { key: "armCorrected", label: "Brazo corregido", unit: "cm", group: "corregidos", derived: true, decimals: 2 },
-  { key: "thighCorrected", label: "Muslo corregido", unit: "cm", group: "corregidos", derived: true, decimals: 2 },
-  { key: "calfCorrected", label: "Pantorrilla corregida", unit: "cm", group: "corregidos", derived: true, decimals: 2 },
+  {
+    key: "weight",
+    label: "Peso",
+    unit: "kg",
+    group: "principal",
+    decimals: 1,
+  },
+  {
+    key: "sum6",
+    label: "Sum 6 pliegues",
+    unit: "mm",
+    group: "principal",
+    derived: true,
+    decimals: 1,
+  },
+  {
+    key: "triceps",
+    label: "Tríceps",
+    unit: "mm",
+    group: "pliegues",
+    decimals: 1,
+  },
+  {
+    key: "subscapular",
+    label: "Subescapular",
+    unit: "mm",
+    group: "pliegues",
+    decimals: 1,
+  },
+  {
+    key: "supraespinal",
+    label: "Supraespinal",
+    unit: "mm",
+    group: "pliegues",
+    decimals: 1,
+  },
+  {
+    key: "abdominal",
+    label: "Abdominal",
+    unit: "mm",
+    group: "pliegues",
+    decimals: 1,
+  },
+  {
+    key: "thighSkinfold",
+    label: "Muslo",
+    unit: "mm",
+    group: "pliegues",
+    decimals: 1,
+  },
+  {
+    key: "calfSkinfold",
+    label: "Pierna",
+    unit: "mm",
+    group: "pliegues",
+    decimals: 1,
+  },
+  {
+    key: "armPerimeter",
+    label: "Brazo",
+    unit: "cm",
+    group: "perimetros",
+    decimals: 1,
+  },
+  {
+    key: "thighPerimeter",
+    label: "Muslo",
+    unit: "cm",
+    group: "perimetros",
+    decimals: 1,
+  },
+  {
+    key: "calfPerimeter",
+    label: "Pantorrilla",
+    unit: "cm",
+    group: "perimetros",
+    decimals: 1,
+  },
+  {
+    key: "armCorrected",
+    label: "Brazo corregido",
+    unit: "cm",
+    group: "corregidos",
+    derived: true,
+    decimals: 2,
+  },
+  {
+    key: "thighCorrected",
+    label: "Muslo corregido",
+    unit: "cm",
+    group: "corregidos",
+    derived: true,
+    decimals: 2,
+  },
+  {
+    key: "calfCorrected",
+    label: "Pantorrilla corregida",
+    unit: "cm",
+    group: "corregidos",
+    derived: true,
+    decimals: 2,
+  },
 ];
 
-export const GROUP_LABELS: Record<MetricDef["group"], string> = {
+export const GROUP_LABELS: Record<
+  MetricDef["group"],
+  string
+> = {
   principal: "Generales",
   pliegues: "Pliegues (mm)",
   perimetros: "Perímetros (cm)",
-  corregidos: "Perímetros corregidos (cm)",
+  corregidos:
+    "Perímetros corregidos (cm)",
 };
 
 export const SKINFOLD_KEYS = [
@@ -101,6 +328,10 @@ export const SKINFOLD_KEYS = [
   "thighSkinfold",
   "calfSkinfold",
 ] as const;
+
+/* ---------------------------
+   PESAJES
+---------------------------- */
 
 export type WeightCondition =
   | "normal"
@@ -133,10 +364,28 @@ export const WEIGHT_CONDITIONS: Array<{
   value: WeightCondition;
   label: string;
 }> = [
-  { value: "normal", label: "Normal" },
-  { value: "indispuesta", label: "Indispuesta" },
-  { value: "seleccion", label: "Selección" },
-  { value: "reserva", label: "Reserva" },
-  { value: "ausente", label: "Ausente" },
-  { value: "otro", label: "Otro" },
+  {
+    value: "normal",
+    label: "Normal",
+  },
+  {
+    value: "indispuesta",
+    label: "Indispuesta",
+  },
+  {
+    value: "seleccion",
+    label: "Selección",
+  },
+  {
+    value: "reserva",
+    label: "Reserva",
+  },
+  {
+    value: "ausente",
+    label: "Ausente",
+  },
+  {
+    value: "otro",
+    label: "Otro",
+  },
 ];
