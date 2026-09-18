@@ -1,4 +1,4 @@
-const CACHE_NAME = "san-lorenzo-antro-v8"
+const CACHE_NAME = "san-lorenzo-antro-v9"
 
 const APP_SHELL = [
   "/",
@@ -17,6 +17,7 @@ const OFFLINE_ROUTES = [
   "/historial",
   "/comparativa",
   "/evolucion",
+  "/objetivos",
   "/informes",
   "/plantel",
   "/datos",
