@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
+import { Button } from "@/components/ui/button";
 import {
   diff,
   fmt,
@@ -25,6 +26,8 @@ export const Route = createFileRoute("/seguimiento")({
   ),
 });
 
+type ViewLimit = 6 | 12 | "all";
+
 function SeguimientoGrupal() {
   const players = usePlayers();
   const controls = useControls();
@@ -33,6 +36,11 @@ function SeguimientoGrupal() {
 
   const [search, setSearch] =
     useState("");
+
+  const [
+    viewLimit,
+    setViewLimit,
+  ] = useState<ViewLimit>(6);
 
   const latestObjectivePeriod =
     useMemo(() => {
@@ -151,6 +159,46 @@ function SeguimientoGrupal() {
         );
     }, [players, search]);
 
+  const visibleControlsByPlayer =
+    useMemo(() => {
+      const map =
+        new Map<number, Control[]>();
+
+      for (
+        const player of
+        filteredPlayers
+      ) {
+        if (
+          player.id == null
+        ) {
+          continue;
+        }
+
+        const allControls =
+          controlsByPlayer.get(
+            player.id,
+          ) ?? [];
+
+        const visible =
+          viewLimit === "all"
+            ? allControls
+            : allControls.slice(
+                -viewLimit,
+              );
+
+        map.set(
+          player.id,
+          visible,
+        );
+      }
+
+      return map;
+    }, [
+      filteredPlayers,
+      controlsByPlayer,
+      viewLimit,
+    ]);
+
   const maxControls =
     useMemo(() => {
       let max = 0;
@@ -166,7 +214,7 @@ function SeguimientoGrupal() {
         }
 
         const count =
-          controlsByPlayer.get(
+          visibleControlsByPlayer.get(
             player.id,
           )?.length ?? 0;
 
@@ -179,7 +227,7 @@ function SeguimientoGrupal() {
       return max;
     }, [
       filteredPlayers,
-      controlsByPlayer,
+      visibleControlsByPlayer,
     ]);
 
   const totalMeasurements =
@@ -280,19 +328,85 @@ function SeguimientoGrupal() {
 
         <section className="overflow-hidden rounded-lg border border-border bg-card shadow-panel">
           <div className="border-b border-border p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
-              Sum 6 pliegues
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
+                  Sum 6 pliegues
+                </p>
 
-            <h2 className="mt-1 font-display text-xl font-semibold">
-              Controles acumulados
-            </h2>
+                <h2 className="mt-1 font-display text-xl font-semibold">
+                  Controles acumulados
+                </h2>
 
-            <p className="mt-1 text-xs text-muted-foreground">
-              Los controles se ordenan del más antiguo al
-              más reciente. Cada celda muestra fecha,
-              Sum6 y cambio respecto del control anterior.
-            </p>
+                <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
+                  Los controles se ordenan del más antiguo
+                  al más reciente. Cada celda muestra fecha,
+                  Sum6 y cambio respecto del control anterior.
+                </p>
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-semibold text-muted-foreground">
+                  Controles a mostrar
+                </p>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={
+                      viewLimit === 6
+                        ? "default"
+                        : "outline"
+                    }
+                    onClick={() =>
+                      setViewLimit(6)
+                    }
+                  >
+                    Últimos 6
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant={
+                      viewLimit === 12
+                        ? "default"
+                        : "outline"
+                    }
+                    onClick={() =>
+                      setViewLimit(12)
+                    }
+                  >
+                    Últimos 12
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant={
+                      viewLimit === "all"
+                        ? "default"
+                        : "outline"
+                    }
+                    onClick={() =>
+                      setViewLimit(
+                        "all",
+                      )
+                    }
+                  >
+                    Todos
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {viewLimit !== "all" && (
+              <p className="mt-3 text-[11px] text-muted-foreground">
+                Se muestran como máximo los últimos{" "}
+                {viewLimit} controles de cada jugadora.
+                El Δ del primer control visible sigue
+                comparándose con su medición anterior,
+                aunque esa medición no esté visible.
+              </p>
+            )}
           </div>
 
           {filteredPlayers.length ===
@@ -347,10 +461,19 @@ function SeguimientoGrupal() {
                         return null;
                       }
 
-                      const playerControls =
+                      const allPlayerControls =
                         controlsByPlayer.get(
                           player.id,
                         ) ?? [];
+
+                      const playerControls =
+                        visibleControlsByPlayer.get(
+                          player.id,
+                        ) ?? [];
+
+                      const firstVisibleIndex =
+                        allPlayerControls.length -
+                        playerControls.length;
 
                       const target =
                         targetByPlayerId.get(
@@ -358,7 +481,7 @@ function SeguimientoGrupal() {
                         ) ?? null;
 
                       const latest =
-                        playerControls.at(
+                        allPlayerControls.at(
                           -1,
                         );
 
@@ -406,14 +529,6 @@ function SeguimientoGrupal() {
                                   index
                                 ];
 
-                              const previous =
-                                index > 0
-                                  ? playerControls[
-                                      index -
-                                        1
-                                    ]
-                                  : undefined;
-
                               if (
                                 !control
                               ) {
@@ -428,6 +543,19 @@ function SeguimientoGrupal() {
                                   </td>
                                 );
                               }
+
+                              const absoluteIndex =
+                                firstVisibleIndex +
+                                index;
+
+                              const previous =
+                                absoluteIndex >
+                                0
+                                  ? allPlayerControls[
+                                      absoluteIndex -
+                                        1
+                                    ]
+                                  : undefined;
 
                               const value =
                                 metricValue(
