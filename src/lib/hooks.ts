@@ -71,9 +71,11 @@ export function useObjectivePeriods():
   | undefined {
   useEnsureSeed();
 
-  return useLiveQuery(async () => {
-    await ensureObjectiveSeed();
+  useEffect(() => {
+    void ensureObjectiveSeed();
+  }, []);
 
+  return useLiveQuery(async () => {
     const rows =
       await db().objectivePeriods.toArray();
 
