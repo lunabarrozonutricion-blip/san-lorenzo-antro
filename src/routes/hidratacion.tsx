@@ -46,11 +46,25 @@ export const Route = createFileRoute("/hidratacion")({
   ),
 });
 
+const HYDRATION_OBSERVATIONS = [
+  { value: "", label: "Sin observación" },
+  { value: "Indispuesta", label: "Indispuesta" },
+  { value: "No citada", label: "No citada" },
+  { value: "Ausente", label: "Ausente" },
+  { value: "Lesión", label: "Lesión" },
+  { value: "Reserva", label: "Reserva" },
+  { value: "Otros", label: "Otros" },
+] as const;
+
+type ObservationValue =
+  (typeof HYDRATION_OBSERVATIONS)[number]["value"];
+
 type DraftEntry = {
   playerId: number | null;
   playerName: string;
   value: string;
-  observation: string;
+  observation: ObservationValue;
+  customObservation: string;
 };
 
 type Draft = {
@@ -134,6 +148,64 @@ function contextLabel(
   );
 }
 
+function observationDraft(
+  observation?: string | null,
+): {
+  observation: ObservationValue;
+  customObservation: string;
+} {
+  const raw =
+    observation?.trim() ?? "";
+
+  if (!raw) {
+    return {
+      observation: "",
+      customObservation: "",
+    };
+  }
+
+  const exact =
+    HYDRATION_OBSERVATIONS.find(
+      (item) =>
+        item.value !== "" &&
+        item.value !== "Otros" &&
+        item.value.toLowerCase() ===
+          raw.toLowerCase(),
+    );
+
+  if (exact) {
+    return {
+      observation:
+        exact.value as ObservationValue,
+      customObservation: "",
+    };
+  }
+
+  return {
+    observation: "Otros",
+    customObservation: raw,
+  };
+}
+
+function savedObservation(
+  entry: DraftEntry,
+): string | null {
+  if (!entry.observation) {
+    return null;
+  }
+
+  if (
+    entry.observation === "Otros"
+  ) {
+    return (
+      entry.customObservation.trim() ||
+      null
+    );
+  }
+
+  return entry.observation;
+}
+
 function entriesFromPlayers(
   players: Player[] | undefined,
 ): DraftEntry[] {
@@ -149,6 +221,7 @@ function entriesFromPlayers(
       playerName: player.name,
       value: "",
       observation: "",
+      customObservation: "",
     }));
 }
 
@@ -179,9 +252,9 @@ function draftFromTest(
             : String(
                 entry.value,
               ),
-        observation:
-          entry.observation ??
-          "",
+        ...observationDraft(
+          entry.observation,
+        ),
       }),
     ),
     createdAt: test.createdAt,
@@ -345,10 +418,26 @@ function HydrationPage() {
       }
     }
 
+    const measured =
+      hydrated + dehydrated;
+
+    const hydratedPercent =
+      measured > 0
+        ? (hydrated / measured) * 100
+        : 0;
+
+    const dehydratedPercent =
+      measured > 0
+        ? (dehydrated / measured) * 100
+        : 0;
+
     return {
       hydrated,
       dehydrated,
       noData,
+      measured,
+      hydratedPercent,
+      dehydratedPercent,
     };
   }, [draft]);
 
@@ -448,9 +537,9 @@ function HydrationPage() {
               entry.value,
             ),
           observation:
-            entry.observation
-              .trim() ||
-            null,
+            savedObservation(
+              entry,
+            ),
         }),
       );
 
@@ -950,7 +1039,7 @@ function HydrationPage() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[780px] text-sm">
+                  <table className="w-full min-w-[860px] text-sm">
                     <thead className="bg-muted/80">
                       <tr>
                         <th className="px-4 py-3 text-left font-semibold">
@@ -965,7 +1054,7 @@ function HydrationPage() {
                           Clasificación
                         </th>
 
-                        <th className="px-4 py-3 text-left font-semibold">
+                        <th className="w-[250px] px-4 py-3 text-left font-semibold">
                           Observación
                         </th>
                       </tr>
@@ -1037,26 +1126,78 @@ function HydrationPage() {
                               </td>
 
                               <td className="px-4 py-3">
-                                <input
-                                  value={
-                                    entry.observation
-                                  }
-                                  onChange={(
-                                    event,
-                                  ) =>
-                                    updateEntry(
-                                      index,
-                                      {
-                                        observation:
-                                          event
-                                            .target
-                                            .value,
-                                      },
-                                    )
-                                  }
-                                  placeholder="Indispuesta, reserva, no citada..."
-                                  className="h-9 w-full rounded-md border border-input bg-background px-3"
-                                />
+                                <div className="space-y-2">
+                                  <select
+                                    value={
+                                      entry.observation
+                                    }
+                                    onChange={(
+                                      event,
+                                    ) =>
+                                      updateEntry(
+                                        index,
+                                        {
+                                          observation:
+                                            event
+                                              .target
+                                              .value as ObservationValue,
+                                          customObservation:
+                                            event
+                                              .target
+                                              .value ===
+                                            "Otros"
+                                              ? entry.customObservation
+                                              : "",
+                                        },
+                                      )
+                                    }
+                                    className="h-9 w-full rounded-md border border-input bg-background px-3"
+                                  >
+                                    {HYDRATION_OBSERVATIONS.map(
+                                      (
+                                        item,
+                                      ) => (
+                                        <option
+                                          key={
+                                            item.value ||
+                                            "none"
+                                          }
+                                          value={
+                                            item.value
+                                          }
+                                        >
+                                          {
+                                            item.label
+                                          }
+                                        </option>
+                                      ),
+                                    )}
+                                  </select>
+
+                                  {entry.observation ===
+                                    "Otros" && (
+                                    <input
+                                      value={
+                                        entry.customObservation
+                                      }
+                                      onChange={(
+                                        event,
+                                      ) =>
+                                        updateEntry(
+                                          index,
+                                          {
+                                            customObservation:
+                                              event
+                                                .target
+                                                .value,
+                                          },
+                                        )
+                                      }
+                                      placeholder="Especificar observación..."
+                                      className="h-9 w-full rounded-md border border-input bg-background px-3"
+                                    />
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           );
@@ -1065,6 +1206,111 @@ function HydrationPage() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-5 shadow-panel">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
+                    Distribución
+                  </p>
+
+                  <h3 className="mt-1 font-display text-xl font-semibold">
+                    Estado de hidratación
+                  </h3>
+
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    El porcentaje se calcula únicamente sobre las jugadoras con un valor registrado.
+                    Las jugadoras sin medición no entran en el porcentaje.
+                  </p>
+                </div>
+
+                {summary.measured > 0 ? (
+                  <>
+                    <div className="mt-5 overflow-hidden rounded-full bg-muted">
+                      <div className="flex h-8 w-full">
+                        {summary.hydratedPercent >
+                          0 && (
+                          <div
+                            className="flex h-full items-center justify-center bg-emerald-500 px-2 text-xs font-bold text-white"
+                            style={{
+                              width: `${summary.hydratedPercent}%`,
+                            }}
+                          >
+                            {summary.hydratedPercent >=
+                              12
+                              ? `${summary.hydratedPercent.toFixed(
+                                  1,
+                                )}%`
+                              : ""}
+                          </div>
+                        )}
+
+                        {summary.dehydratedPercent >
+                          0 && (
+                          <div
+                            className="flex h-full items-center justify-center bg-rose-500 px-2 text-xs font-bold text-white"
+                            style={{
+                              width: `${summary.dehydratedPercent}%`,
+                            }}
+                          >
+                            {summary.dehydratedPercent >=
+                              12
+                              ? `${summary.dehydratedPercent.toFixed(
+                                  1,
+                                )}%`
+                              : ""}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-md border border-border bg-emerald-50 px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                          Bien hidratadas
+                        </p>
+
+                        <div className="mt-1 flex items-end justify-between gap-3">
+                          <p className="numeric text-2xl font-bold text-emerald-700">
+                            {summary.hydratedPercent.toFixed(
+                              1,
+                            )}
+                            %
+                          </p>
+
+                          <p className="text-sm font-semibold text-emerald-700">
+                            {summary.hydrated} de{" "}
+                            {summary.measured}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-md border border-border bg-rose-50 px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">
+                          Deshidratadas
+                        </p>
+
+                        <div className="mt-1 flex items-end justify-between gap-3">
+                          <p className="numeric text-2xl font-bold text-rose-700">
+                            {summary.dehydratedPercent.toFixed(
+                              1,
+                            )}
+                            %
+                          </p>
+
+                          <p className="text-sm font-semibold text-rose-700">
+                            {summary.dehydrated} de{" "}
+                            {summary.measured}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-5 rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+                    Todavía no hay valores cargados para calcular porcentajes.
+                  </div>
+                )}
               </div>
             </>
           ) : (
