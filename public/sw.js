@@ -1,4 +1,4 @@
-const CACHE_NAME = "san-lorenzo-antro-v11"
+const CACHE_NAME = "san-lorenzo-antro-v12"
 
 const APP_SHELL = [
   "/",
@@ -23,6 +23,7 @@ const OFFLINE_ROUTES = [
   "/plantel",
   "/datos",
   "/pesajes",
+  "/hidratacion",
 ];
 
 function isCacheable(response) {
