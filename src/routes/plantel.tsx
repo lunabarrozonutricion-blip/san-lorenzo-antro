@@ -489,13 +489,21 @@ function InformeGrupal() {
   const objectivePeriods =
     useObjectivePeriods();
 
-  const septemberObjectivePeriod =
+  const latestObjectivePeriod =
     useMemo(() => {
+      if (
+        !objectivePeriods ||
+        objectivePeriods.length === 0
+      ) {
+        return null;
+      }
+
       return (
-        objectivePeriods?.find(
-          (period) =>
-            period.key === "2026-09",
-        ) ?? null
+        [...objectivePeriods]
+          .sort((a, b) =>
+            a.key.localeCompare(b.key),
+          )
+          .at(-1) ?? null
       );
     }, [objectivePeriods]);
 
@@ -508,7 +516,7 @@ function InformeGrupal() {
 
       for (
         const target of
-        septemberObjectivePeriod
+        latestObjectivePeriod
           ?.targets ?? []
       ) {
         map.set(
@@ -519,12 +527,12 @@ function InformeGrupal() {
 
       return map;
     }, [
-      septemberObjectivePeriod,
+      latestObjectivePeriod,
     ]);
 
   const objectivePeriodLabel =
-    septemberObjectivePeriod?.label ??
-    "Septiembre 2026";
+    latestObjectivePeriod?.label ??
+    "Sin período";
 
   const [search, setSearch] =
     useState("");
@@ -2181,7 +2189,7 @@ function InformeGrupal() {
                 {showObjectives && (
                   <>
                     <th className="px-3 py-3 text-right font-semibold">
-                      Objetivo Sep
+                      {`Objetivo ${objectivePeriodLabel}`}
                     </th>
 
                     <th className="px-3 py-3 text-right font-semibold">
