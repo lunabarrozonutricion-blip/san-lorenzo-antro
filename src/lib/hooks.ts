@@ -3,9 +3,11 @@ import { useEffect } from "react";
 
 import { db, ensureSeed } from "./db";
 import { sortByDateDesc } from "./calc";
+import { ensureHydrationSeed } from "./hydration";
 import { ensureObjectiveSeed } from "./objectives";
 import type {
   Control,
+  HydrationTest,
   ObjectivePeriod,
   Player,
   WeightRecord,
@@ -22,7 +24,13 @@ export function usePlayers(): Player[] | undefined {
 
   return useLiveQuery(async () => {
     const rows = await db().players.toArray();
-    return rows.sort((a, b) => a.name.localeCompare(b.name, "es"));
+
+    return rows.sort((a, b) =>
+      a.name.localeCompare(
+        b.name,
+        "es",
+      ),
+    );
   }, []);
 }
 
@@ -85,6 +93,46 @@ export function useObjectivePeriods():
   }, []);
 }
 
+/* ---------------------------
+   TESTS DE HIDRATACIÓN
+---------------------------- */
+
+export function useHydrationTests():
+  | HydrationTest[]
+  | undefined {
+  useEnsureSeed();
+
+  /*
+   * Carga las fechas históricas del Excel
+   * una sola vez. Si ya existen, no las duplica.
+   */
+  useEffect(() => {
+    void (async () => {
+      await ensureSeed();
+      await ensureHydrationSeed();
+    })();
+  }, []);
+
+  return useLiveQuery(async () => {
+    const rows =
+      await db().hydrationTests.toArray();
+
+    return [...rows].sort((a, b) => {
+      const byDate =
+        b.date.localeCompare(a.date);
+
+      if (byDate !== 0) {
+        return byDate;
+      }
+
+      return (
+        (b.round ?? 0) -
+        (a.round ?? 0)
+      );
+    });
+  }, []);
+}
+
 export function usePlayer(
   id?: number | null,
 ): Player | undefined {
@@ -92,7 +140,9 @@ export function usePlayer(
 
   return useLiveQuery(
     async () =>
-      id == null ? undefined : db().players.get(id),
+      id == null
+        ? undefined
+        : db().players.get(id),
     [id],
   );
 }
@@ -104,6 +154,9 @@ export function lastControl(
   if (!controls) return undefined;
 
   return sortByDateDesc(
-    controls.filter((c) => c.playerId === playerId),
+    controls.filter(
+      (c) =>
+        c.playerId === playerId,
+    ),
   )[0];
 }
