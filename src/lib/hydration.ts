@@ -353,36 +353,140 @@ const HYDRATION_HISTORY: readonly RawTest[] = [
     ],
   },
 ];
-
 export async function ensureHydrationSeed() {
   const d = db();
-  const players = await d.players.toArray();
+  const players =
+    await d.players.toArray();
 
-  for (const seed of HYDRATION_HISTORY) {
-    const sameDate = await d.hydrationTests
-      .where("date")
-      .equals(seed.date)
-      .toArray();
+  /*
+   * Usamos una transacción para evitar que
+   * dos cargas simultáneas creen dos copias
+   * del mismo histórico.
+   */
+  await d.transaction(
+    "rw",
+    d.hydrationTests,
+    async () => {
+      for (
+        const seed of
+        HYDRATION_HISTORY
+      ) {
+        const sameDate =
+          await d.hydrationTests
+            .where("date")
+            .equals(seed.date)
+            .toArray();
 
-    if (sameDate.some((test) => test.round === seed.round)) continue;
+        /*
+         * Buscamos solamente las copias
+         * correspondientes al histórico
+         * inicial que importamos del Excel.
+         */
+        const existingSeedTests =
+          sameDate
+            .filter(
+              (test) =>
+                test.round ===
+                  seed.round &&
+                test.rival ===
+                  seed.rival &&
+                test.context ===
+                  "pre_entreno" &&
+                test.dayType ===
+                  "sin_especificar",
+            )
+            .sort(
+              (a, b) =>
+                (a.id ?? 0) -
+                (b.id ?? 0),
+            );
 
-    const test: HydrationTest = {
-      date: seed.date,
-      round: seed.round,
-      rival: seed.rival,
-      dayType: "sin_especificar",
-      context: "pre_entreno",
-      customContext: null,
-      entries: seed.entries.map(([playerName, value, observation]) => ({
-        playerId: resolvePlayerId(playerName, players),
-        playerName,
-        value,
-        observation: observation ?? null,
-      })),
-      createdAt: nowISO(),
-      updatedAt: nowISO(),
-    };
+        /*
+         * Si por el error anterior quedaron
+         * dos o más copias, conservamos una
+         * sola y eliminamos las repetidas.
+         */
+        if (
+          existingSeedTests.length >
+          1
+        ) {
+          const duplicateIds =
+            existingSeedTests
+              .slice(1)
+              .map(
+                (test) =>
+                  test.id,
+              )
+              .filter(
+                (
+                  id,
+                ): id is number =>
+                  id != null,
+              );
 
-    await d.hydrationTests.add(test);
-  }
+          if (
+            duplicateIds.length >
+            0
+          ) {
+            await d.hydrationTests.bulkDelete(
+              duplicateIds,
+            );
+          }
+        }
+
+        /*
+         * Si ya existe al menos una copia,
+         * no volvemos a crearla.
+         */
+        if (
+          existingSeedTests.length >
+          0
+        ) {
+          continue;
+        }
+
+        const test: HydrationTest =
+          {
+            date: seed.date,
+            round: seed.round,
+            rival: seed.rival,
+            dayType:
+              "sin_especificar",
+            context:
+              "pre_entreno",
+            customContext: null,
+
+            entries:
+              seed.entries.map(
+                ([
+                  playerName,
+                  value,
+                  observation,
+                ]) => ({
+                  playerId:
+                    resolvePlayerId(
+                      playerName,
+                      players,
+                    ),
+                  playerName,
+                  value,
+                  observation:
+                    observation ??
+                    null,
+                }),
+              ),
+
+            createdAt:
+              nowISO(),
+            updatedAt:
+              nowISO(),
+          };
+
+        await d.hydrationTests.add(
+          test,
+        );
+      }
+    },
+  );
 }
+
