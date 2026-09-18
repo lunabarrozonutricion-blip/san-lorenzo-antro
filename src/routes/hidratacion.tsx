@@ -117,12 +117,12 @@ function statusClass(
   value: number | null,
 ) {
   if (value == null) {
-    return "bg-muted text-muted-foreground";
+    return "border border-border bg-muted text-muted-foreground";
   }
 
   return value <= 1020
-    ? "bg-emerald-50 text-emerald-700"
-    : "bg-rose-50 text-rose-700";
+    ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+    : "border border-rose-200 bg-rose-50 text-rose-700";
 }
 
 function dayTypeLabel(
@@ -730,13 +730,23 @@ function HydrationPage() {
       {draft && (
         <div className="hydration-print hidden print:block">
           <div className="border-b border-black pb-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em]">
-              San Lorenzo · Fútbol Femenino
-            </p>
+            <div className="flex items-start gap-3">
+              <img
+                src="/logo-san-lorenzo.png"
+                alt="San Lorenzo"
+                className="h-14 w-14 object-contain"
+              />
 
-            <h1 className="mt-1 text-2xl font-bold">
-              Test de hidratación
-            </h1>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]">
+                  San Lorenzo · Fútbol Femenino
+                </p>
+
+                <h1 className="mt-1 text-2xl font-bold">
+                  Test de hidratación
+                </h1>
+              </div>
+            </div>
 
             <div className="mt-2 grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
               <p>
@@ -1103,28 +1113,37 @@ function HydrationPage() {
           {draft ? (
             <>
               <div className="rounded-lg border border-border bg-card p-5 shadow-panel">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
-                      {creating
-                        ? "Nuevo test"
-                        : "Test registrado"}
-                    </p>
+                <div className="rounded-xl border border-[#0B234A]/10 bg-gradient-to-r from-[#0B234A]/5 via-background to-[#C8102E]/5 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <img
+                        src="/logo-san-lorenzo.png"
+                        alt="San Lorenzo"
+                        className="mt-1 h-12 w-12 rounded-full border border-border bg-white object-contain p-1"
+                      />
 
-                    <h2 className="mt-1 font-display text-2xl font-semibold">
-                      {draft.rival.trim()
-                        ? `vs ${draft.rival}`
-                        : creating
-                          ? "Nuevo test de hidratación"
-                          : "Test de hidratación"}
-                    </h2>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
+                          {creating
+                            ? "Nuevo test"
+                            : "Test registrado"}
+                        </p>
 
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      La clasificación se calcula automáticamente:
-                      hasta 1020 inclusive = bien hidratada;
-                      desde 1021 = deshidratada.
-                    </p>
-                  </div>
+                        <h2 className="mt-1 font-display text-2xl font-semibold">
+                          {draft.rival.trim()
+                            ? `vs ${draft.rival}`
+                            : creating
+                              ? "Nuevo test de hidratación"
+                              : "Test de hidratación"}
+                        </h2>
+
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          La clasificación se calcula automáticamente:
+                          hasta 1020 inclusive = bien hidratada;
+                          desde 1021 = deshidratada.
+                        </p>
+                      </div>
+                    </div>
 
                   <div className="flex flex-wrap gap-2">
                     {!creating &&
@@ -1155,6 +1174,8 @@ function HydrationPage() {
                         : "Guardar test"}
                     </Button>
                   </div>
+                </div>
+
                 </div>
 
                 <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -1351,6 +1372,7 @@ function HydrationPage() {
                     value={
                       summary.hydrated
                     }
+                    tone="ok"
                   />
 
                   <SummaryCard
@@ -1358,6 +1380,7 @@ function HydrationPage() {
                     value={
                       summary.dehydrated
                     }
+                    tone="alert"
                   />
 
                   <SummaryCard
@@ -1365,6 +1388,7 @@ function HydrationPage() {
                     value={
                       summary.noData
                     }
+                    tone="muted"
                   />
                 </div>
               </div>
@@ -1702,13 +1726,29 @@ function HydrationPage() {
 function SummaryCard({
   label,
   value,
+  tone = "muted",
 }: {
   label: string;
   value: number;
+  tone?: "ok" | "alert" | "muted";
 }) {
+  const styles =
+    tone === "ok"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : tone === "alert"
+        ? "border-rose-200 bg-rose-50 text-rose-700"
+        : "border-border bg-muted/30 text-foreground";
+
+  const subtitle =
+    tone === "ok"
+      ? "text-emerald-700/80"
+      : tone === "alert"
+        ? "text-rose-700/80"
+        : "text-muted-foreground";
+
   return (
-    <div className="rounded-md border border-border bg-muted/30 px-3 py-3">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className={`rounded-md border px-3 py-3 ${styles}`}>
+      <p className={`text-[10px] font-semibold uppercase tracking-wide ${subtitle}`}>
         {label}
       </p>
 
