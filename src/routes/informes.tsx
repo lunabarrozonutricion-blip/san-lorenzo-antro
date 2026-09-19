@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
+import { PlayerNav } from "@/components/player-nav";
 import { Button } from "@/components/ui/button";
 import { exportXLSX } from "@/lib/backup";
 import { fmt, fmtDate, metricValue } from "@/lib/calc";
@@ -35,22 +36,36 @@ function Informes() {
   const search = Route.useSearch();
   const players = usePlayers();
 
-  const [playerId, setPlayerId] = useState<number | null>(
-    search.player ?? null,
-  );
+  const [playerId, setPlayerId] =
+    useState<number | null>(
+      search.player ?? null,
+    );
 
-  const controls = useControls(playerId);
+  const controls =
+    useControls(playerId);
 
-  const [selectedMetrics, setSelectedMetrics] = useState<MetricKey[]>([
+  const [
+    selectedMetrics,
+    setSelectedMetrics,
+  ] = useState<MetricKey[]>([
     "weight",
     "sum6",
   ]);
 
-  const [selectedControls, setSelectedControls] = useState<number[]>([]);
+  const [
+    selectedControls,
+    setSelectedControls,
+  ] = useState<number[]>([]);
 
   useEffect(() => {
-    if (playerId === null && players && players.length > 0) {
-      setPlayerId(players[0].id!);
+    if (
+      playerId === null &&
+      players &&
+      players.length > 0
+    ) {
+      setPlayerId(
+        players[0].id!,
+      );
     }
   }, [players, playerId]);
 
@@ -59,134 +74,276 @@ function Informes() {
 
     setSelectedControls(
       controls
-        .filter((control) => control.id != null)
-        .map((control) => control.id!),
+        .filter(
+          (control) =>
+            control.id != null,
+        )
+        .map(
+          (control) =>
+            control.id!,
+        ),
     );
   }, [controls]);
 
-  const player = players?.find((p) => p.id === playerId);
+  const player =
+    players?.find(
+      (p) =>
+        p.id === playerId,
+    );
 
-  const reportControls = useMemo(() => {
-    return (controls ?? [])
-      .filter(
-        (control) =>
-          control.id != null &&
-          selectedControls.includes(control.id),
+  const reportControls =
+    useMemo(() => {
+      return (
+        controls ?? []
       )
-      .sort((a, b) => b.date.localeCompare(a.date));
-  }, [controls, selectedControls]);
-
-  const months = useMemo(() => {
-    const map = new Map<string, string>();
-
-    for (const control of controls ?? []) {
-      const key = control.date.slice(0, 7);
-
-      if (!map.has(key)) {
-        const [year, month] = key.split("-").map(Number);
-
-        const label = new Intl.DateTimeFormat("es-AR", {
-          month: "long",
-          year: "numeric",
-        }).format(new Date(year, month - 1, 1));
-
-        map.set(
-          key,
-          label.charAt(0).toUpperCase() + label.slice(1),
+        .filter(
+          (control) =>
+            control.id != null &&
+            selectedControls.includes(
+              control.id,
+            ),
+        )
+        .sort((a, b) =>
+          b.date.localeCompare(
+            a.date,
+          ),
         );
+    }, [
+      controls,
+      selectedControls,
+    ]);
+
+  const months =
+    useMemo(() => {
+      const map =
+        new Map<
+          string,
+          string
+        >();
+
+      for (
+        const control of
+        controls ?? []
+      ) {
+        const key =
+          control.date.slice(
+            0,
+            7,
+          );
+
+        if (!map.has(key)) {
+          const [
+            year,
+            month,
+          ] = key
+            .split("-")
+            .map(Number);
+
+          const label =
+            new Intl.DateTimeFormat(
+              "es-AR",
+              {
+                month: "long",
+                year: "numeric",
+              },
+            ).format(
+              new Date(
+                year,
+                month - 1,
+                1,
+              ),
+            );
+
+          map.set(
+            key,
+            label
+              .charAt(0)
+              .toUpperCase() +
+              label.slice(1),
+          );
+        }
       }
-    }
 
-    return [...map.entries()].sort((a, b) =>
-      b[0].localeCompare(a[0]),
-    );
-  }, [controls]);
+      return [
+        ...map.entries(),
+      ].sort((a, b) =>
+        b[0].localeCompare(
+          a[0],
+        ),
+      );
+    }, [controls]);
 
-  function toggleMetric(key: MetricKey) {
-    setSelectedMetrics((current) =>
-      current.includes(key)
-        ? current.filter((item) => item !== key)
-        : [...current, key],
+  function toggleMetric(
+    key: MetricKey,
+  ) {
+    setSelectedMetrics(
+      (current) =>
+        current.includes(key)
+          ? current.filter(
+              (item) =>
+                item !== key,
+            )
+          : [
+              ...current,
+              key,
+            ],
     );
   }
 
-  function toggleControl(id: number) {
-    setSelectedControls((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id],
+  function toggleControl(
+    id: number,
+  ) {
+    setSelectedControls(
+      (current) =>
+        current.includes(id)
+          ? current.filter(
+              (item) =>
+                item !== id,
+            )
+          : [
+              ...current,
+              id,
+            ],
     );
   }
 
-  function selectMonth(month: string) {
+  function selectMonth(
+    month: string,
+  ) {
     const ids =
       controls
         ?.filter(
           (control) =>
-            control.date.startsWith(month) &&
+            control.date.startsWith(
+              month,
+            ) &&
             control.id != null,
         )
-        .map((control) => control.id!) ?? [];
+        .map(
+          (control) =>
+            control.id!,
+        ) ?? [];
 
-    const allSelected = ids.every((id) =>
-      selectedControls.includes(id),
-    );
+    const allSelected =
+      ids.every((id) =>
+        selectedControls.includes(
+          id,
+        ),
+      );
 
     if (allSelected) {
-      setSelectedControls((current) =>
-        current.filter((id) => !ids.includes(id)),
+      setSelectedControls(
+        (current) =>
+          current.filter(
+            (id) =>
+              !ids.includes(id),
+          ),
       );
     } else {
-      setSelectedControls((current) => [
-        ...new Set([...current, ...ids]),
-      ]);
+      setSelectedControls(
+        (current) => [
+          ...new Set([
+            ...current,
+            ...ids,
+          ]),
+        ],
+      );
     }
   }
 
   function presetPesoSum6() {
-    setSelectedMetrics(["weight", "sum6"]);
+    setSelectedMetrics([
+      "weight",
+      "sum6",
+    ]);
   }
 
   function presetCompleta() {
-    setSelectedMetrics(METRICS.map((m) => m.key));
+    setSelectedMetrics(
+      METRICS.map(
+        (m) => m.key,
+      ),
+    );
   }
 
   function presetPerimetros() {
     setSelectedMetrics(
       METRICS.filter(
         (m) =>
-          m.group === "perimetros" ||
-          m.group === "corregidos",
+          m.group ===
+            "perimetros" ||
+          m.group ===
+            "corregidos",
       ).map((m) => m.key),
     );
   }
 
   async function exportarExcel() {
-    if (!player || reportControls.length === 0) return;
+    if (
+      !player ||
+      reportControls.length ===
+        0
+    ) {
+      return;
+    }
 
-    const rows = reportControls.map((control) => {
-      const row: Record<string, unknown> = {
-        Jugadora: player.name,
-        Fecha: fmtDate(control.date),
-      };
+    const rows =
+      reportControls.map(
+        (control) => {
+          const row: Record<
+            string,
+            unknown
+          > = {
+            Jugadora:
+              player.name,
+            Fecha: fmtDate(
+              control.date,
+            ),
+          };
 
-      for (const key of selectedMetrics) {
-        const metric = METRICS.find((m) => m.key === key);
-        if (!metric) continue;
+          for (
+            const key of
+            selectedMetrics
+          ) {
+            const metric =
+              METRICS.find(
+                (m) =>
+                  m.key === key,
+              );
 
-        row[`${metric.label} (${metric.unit})`] =
-          metricValue(control, key);
-      }
+            if (!metric) {
+              continue;
+            }
 
-      return row;
-    });
+            row[
+              `${metric.label} (${metric.unit})`
+            ] =
+              metricValue(
+                control,
+                key,
+              );
+          }
 
-    const safeName = player.name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .toLowerCase();
+          return row;
+        },
+      );
+
+    const safeName =
+      player.name
+        .normalize("NFD")
+        .replace(
+          /[\u0300-\u036f]/g,
+          "",
+        )
+        .replace(
+          /[^a-zA-Z0-9]+/g,
+          "-",
+        )
+        .replace(
+          /^-|-$/g,
+          "",
+        )
+        .toLowerCase();
 
     await exportXLSX(
       rows,
@@ -203,9 +360,21 @@ function Informes() {
 
   return (
     <AppLayout
-      title="Informes"
+      title={
+        player
+          ? `Informe · ${player.name}`
+          : "Informe"
+      }
       subtitle="Armá un informe personalizado por jugadora"
     >
+      <PlayerNav
+        playerId={playerId}
+        playerName={
+          player?.name
+        }
+        current="informe"
+      />
+
       <div className="no-print space-y-4">
         <div className="rounded-lg border border-border bg-card p-4 shadow-panel">
           <label className="text-sm">
@@ -214,21 +383,41 @@ function Informes() {
             </span>
 
             <select
-              value={playerId ?? ""}
+              value={
+                playerId ?? ""
+              }
               onChange={(e) =>
                 setPlayerId(
                   e.target.value
-                    ? Number(e.target.value)
+                    ? Number(
+                        e.target
+                          .value,
+                      )
                     : null,
                 )
               }
               className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm md:max-w-md"
             >
-              {(players ?? []).map((player) => (
-                <option key={player.id} value={player.id}>
-                  {player.name}
-                </option>
-              ))}
+              {(
+                players ?? []
+              ).map(
+                (
+                  player,
+                ) => (
+                  <option
+                    key={
+                      player.id
+                    }
+                    value={
+                      player.id
+                    }
+                  >
+                    {
+                      player.name
+                    }
+                  </option>
+                ),
+              )}
             </select>
           </label>
         </div>
@@ -242,7 +431,9 @@ function Informes() {
             <Button
               size="sm"
               variant="outline"
-              onClick={presetPesoSum6}
+              onClick={
+                presetPesoSum6
+              }
             >
               Solo Peso + Sum6P
             </Button>
@@ -250,7 +441,9 @@ function Informes() {
             <Button
               size="sm"
               variant="outline"
-              onClick={presetCompleta}
+              onClick={
+                presetCompleta
+              }
             >
               Antropometría completa
             </Button>
@@ -258,7 +451,9 @@ function Informes() {
             <Button
               size="sm"
               variant="outline"
-              onClick={presetPerimetros}
+              onClick={
+                presetPerimetros
+              }
             >
               Perímetros + corregidos
             </Button>
@@ -268,7 +463,10 @@ function Informes() {
               variant="outline"
               onClick={() =>
                 setSelectedMetrics(
-                  METRICS.map((m) => m.key),
+                  METRICS.map(
+                    (m) =>
+                      m.key,
+                  ),
                 )
               }
             >
@@ -278,49 +476,79 @@ function Informes() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setSelectedMetrics([])}
+              onClick={() =>
+                setSelectedMetrics(
+                  [],
+                )
+              }
             >
               Deseleccionar todo
             </Button>
           </div>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-4">
-            {groups.map((group) => (
-              <div key={group}>
-                <p className="mb-2 text-xs font-semibold text-muted-foreground">
-                  {GROUP_LABELS[group]}
-                </p>
+            {groups.map(
+              (group) => (
+                <div
+                  key={group}
+                >
+                  <p className="mb-2 text-xs font-semibold text-muted-foreground">
+                    {
+                      GROUP_LABELS[
+                        group
+                      ]
+                    }
+                  </p>
 
-                <div className="space-y-2">
-                  {METRICS.filter(
-                    (metric) => metric.group === group,
-                  ).map((metric) => (
-                    <label
-                      key={metric.key}
-                      className="flex cursor-pointer items-center gap-2 text-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedMetrics.includes(
-                          metric.key,
-                        )}
-                        onChange={() =>
-                          toggleMetric(metric.key)
-                        }
-                        className="h-4 w-4"
-                      />
+                  <div className="space-y-2">
+                    {METRICS.filter(
+                      (
+                        metric,
+                      ) =>
+                        metric.group ===
+                        group,
+                    ).map(
+                      (
+                        metric,
+                      ) => (
+                        <label
+                          key={
+                            metric.key
+                          }
+                          className="flex cursor-pointer items-center gap-2 text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedMetrics.includes(
+                              metric.key,
+                            )}
+                            onChange={() =>
+                              toggleMetric(
+                                metric.key,
+                              )
+                            }
+                            className="h-4 w-4"
+                          />
 
-                      <span>
-                        {metric.label}{" "}
-                        <span className="text-xs text-muted-foreground">
-                          ({metric.unit})
-                        </span>
-                      </span>
-                    </label>
-                  ))}
+                          <span>
+                            {
+                              metric.label
+                            }{" "}
+                            <span className="text-xs text-muted-foreground">
+                              (
+                              {
+                                metric.unit
+                              }
+                              )
+                            </span>
+                          </span>
+                        </label>
+                      ),
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ),
+            )}
           </div>
         </div>
 
@@ -332,8 +560,13 @@ function Informes() {
               </p>
 
               <p className="mt-1 text-sm">
-                {selectedControls.length} de{" "}
-                {controls?.length ?? 0} seleccionados
+                {
+                  selectedControls.length
+                }{" "}
+                de{" "}
+                {controls?.length ??
+                  0}{" "}
+                seleccionados
               </p>
             </div>
 
@@ -343,9 +576,23 @@ function Informes() {
                 variant="outline"
                 onClick={() =>
                   setSelectedControls(
-                    (controls ?? [])
-                      .filter((c) => c.id != null)
-                      .map((c) => c.id!),
+                    (
+                      controls ??
+                      []
+                    )
+                      .filter(
+                        (
+                          c,
+                        ) =>
+                          c.id !=
+                          null,
+                      )
+                      .map(
+                        (
+                          c,
+                        ) =>
+                          c.id!,
+                      ),
                   )
                 }
               >
@@ -355,85 +602,144 @@ function Informes() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setSelectedControls([])}
+                onClick={() =>
+                  setSelectedControls(
+                    [],
+                  )
+                }
               >
                 Ninguno
               </Button>
             </div>
           </div>
 
-          {months.length > 0 && (
+          {months.length >
+            0 && (
             <div className="mt-4">
               <p className="mb-2 text-xs font-semibold text-muted-foreground">
                 Selección rápida por mes
               </p>
 
               <div className="flex flex-wrap gap-2">
-                {months.map(([month, label]) => {
-                  const monthIds =
-                    controls
-                      ?.filter(
-                        (c) =>
-                          c.date.startsWith(month) &&
-                          c.id != null,
-                      )
-                      .map((c) => c.id!) ?? [];
+                {months.map(
+                  ([
+                    month,
+                    label,
+                  ]) => {
+                    const monthIds =
+                      controls
+                        ?.filter(
+                          (
+                            c,
+                          ) =>
+                            c.date.startsWith(
+                              month,
+                            ) &&
+                            c.id !=
+                              null,
+                        )
+                        .map(
+                          (
+                            c,
+                          ) =>
+                            c.id!,
+                        ) ??
+                      [];
 
-                  const active =
-                    monthIds.length > 0 &&
-                    monthIds.every((id) =>
-                      selectedControls.includes(id),
+                    const active =
+                      monthIds.length >
+                        0 &&
+                      monthIds.every(
+                        (
+                          id,
+                        ) =>
+                          selectedControls.includes(
+                            id,
+                          ),
+                      );
+
+                    return (
+                      <Button
+                        key={
+                          month
+                        }
+                        size="sm"
+                        variant={
+                          active
+                            ? "default"
+                            : "outline"
+                        }
+                        onClick={() =>
+                          selectMonth(
+                            month,
+                          )
+                        }
+                      >
+                        {
+                          label
+                        }
+                      </Button>
                     );
-
-                  return (
-                    <Button
-                      key={month}
-                      size="sm"
-                      variant={
-                        active ? "default" : "outline"
-                      }
-                      onClick={() => selectMonth(month)}
-                    >
-                      {label}
-                    </Button>
-                  );
-                })}
+                  },
+                )}
               </div>
             </div>
           )}
 
           <div className="mt-4 grid max-h-[300px] gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
-            {(controls ?? []).map((control) => (
-              <label
-                key={control.id}
-                className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  checked={
-                    control.id != null &&
-                    selectedControls.includes(control.id)
+            {(
+              controls ?? []
+            ).map(
+              (
+                control,
+              ) => (
+                <label
+                  key={
+                    control.id
                   }
-                  onChange={() => {
-                    if (control.id != null) {
-                      toggleControl(control.id);
+                  className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={
+                      control.id !=
+                        null &&
+                      selectedControls.includes(
+                        control.id,
+                      )
                     }
-                  }}
-                  className="h-4 w-4"
-                />
+                    onChange={() => {
+                      if (
+                        control.id !=
+                        null
+                      ) {
+                        toggleControl(
+                          control.id,
+                        );
+                      }
+                    }}
+                    className="h-4 w-4"
+                  />
 
-                {fmtDate(control.date)}
-              </label>
-            ))}
+                  {fmtDate(
+                    control.date,
+                  )}
+                </label>
+              ),
+            )}
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={() => window.print()}
+            onClick={() =>
+              window.print()
+            }
             disabled={
-              selectedMetrics.length === 0 ||
-              reportControls.length === 0
+              selectedMetrics.length ===
+                0 ||
+              reportControls.length ===
+                0
             }
           >
             <Printer className="h-4 w-4" />
@@ -442,10 +748,14 @@ function Informes() {
 
           <Button
             variant="outline"
-            onClick={() => void exportarExcel()}
+            onClick={() =>
+              void exportarExcel()
+            }
             disabled={
-              selectedMetrics.length === 0 ||
-              reportControls.length === 0
+              selectedMetrics.length ===
+                0 ||
+              reportControls.length ===
+                0
             }
           >
             <FileSpreadsheet className="h-4 w-4" />
@@ -465,7 +775,8 @@ function Informes() {
           </h2>
 
           <p className="mt-1 text-lg font-medium">
-            {player?.name ?? "—"}
+            {player?.name ??
+              "—"}
           </p>
 
           <p className="mt-1 text-sm text-muted-foreground">
@@ -473,15 +784,15 @@ function Informes() {
           </p>
         </div>
 
-        {selectedMetrics.length === 0 ? (
+        {selectedMetrics.length ===
+        0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
-            Seleccioná al menos una variable para generar el
-            informe.
+            Seleccioná al menos una variable para generar el informe.
           </div>
-        ) : reportControls.length === 0 ? (
+        ) : reportControls.length ===
+          0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
-            Seleccioná al menos un control para generar el
-            informe.
+            Seleccioná al menos un control para generar el informe.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -492,55 +803,93 @@ function Informes() {
                     Fecha
                   </th>
 
-                  {selectedMetrics.map((key) => {
-                    const metric = METRICS.find(
-                      (m) => m.key === key,
-                    );
+                  {selectedMetrics.map(
+                    (key) => {
+                      const metric =
+                        METRICS.find(
+                          (
+                            m,
+                          ) =>
+                            m.key ===
+                            key,
+                        );
 
-                    return (
-                      <th
-                        key={key}
-                        className="whitespace-nowrap px-3 py-3 text-right font-semibold"
-                      >
-                        {metric?.label}
-                        <span className="ml-1 text-xs font-normal text-muted-foreground">
-                          ({metric?.unit})
-                        </span>
-                      </th>
-                    );
-                  })}
+                      return (
+                        <th
+                          key={
+                            key
+                          }
+                          className="whitespace-nowrap px-3 py-3 text-right font-semibold"
+                        >
+                          {
+                            metric?.label
+                          }
+
+                          <span className="ml-1 text-xs font-normal text-muted-foreground">
+                            (
+                            {
+                              metric?.unit
+                            }
+                            )
+                          </span>
+                        </th>
+                      );
+                    },
+                  )}
                 </tr>
               </thead>
 
               <tbody>
-                {reportControls.map((control) => (
-                  <tr
-                    key={control.id}
-                    className="border-t border-border"
-                  >
-                    <td className="sticky left-0 whitespace-nowrap bg-card px-3 py-3 font-medium">
-                      {fmtDate(control.date)}
-                    </td>
+                {reportControls.map(
+                  (
+                    control,
+                  ) => (
+                    <tr
+                      key={
+                        control.id
+                      }
+                      className="border-t border-border"
+                    >
+                      <td className="sticky left-0 whitespace-nowrap bg-card px-3 py-3 font-medium">
+                        {fmtDate(
+                          control.date,
+                        )}
+                      </td>
 
-                    {selectedMetrics.map((key) => {
-                      const metric = METRICS.find(
-                        (m) => m.key === key,
-                      )!;
+                      {selectedMetrics.map(
+                        (
+                          key,
+                        ) => {
+                          const metric =
+                            METRICS.find(
+                              (
+                                m,
+                              ) =>
+                                m.key ===
+                                key,
+                            )!;
 
-                      return (
-                        <td
-                          key={key}
-                          className="numeric whitespace-nowrap px-3 py-3 text-right"
-                        >
-                          {fmt(
-                            metricValue(control, key),
-                            metric.decimals,
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                          return (
+                            <td
+                              key={
+                                key
+                              }
+                              className="numeric whitespace-nowrap px-3 py-3 text-right"
+                            >
+                              {fmt(
+                                metricValue(
+                                  control,
+                                  key,
+                                ),
+                                metric.decimals,
+                              )}
+                            </td>
+                          );
+                        },
+                      )}
+                    </tr>
+                  ),
+                )}
               </tbody>
             </table>
           </div>
