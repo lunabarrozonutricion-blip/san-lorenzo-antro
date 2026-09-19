@@ -1,15 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Activity,
   BarChart3,
   ClipboardPlus,
   Database,
   Droplets,
-  FileText,
-  GitCompareArrows,
-  History,
   Home,
-  LineChart,
   Menu,
   Scale,
   Target,
@@ -22,27 +17,46 @@ import { OfflineBadge } from "./offline-badge";
 import { cn } from "@/lib/utils";
 
 export const NAV = [
-  { to: "/", label: "Inicio", icon: Home },
-  { to: "/jugadoras", label: "Jugadoras", icon: Users },
-  { to: "/control", label: "Nuevo control", icon: ClipboardPlus },
-  { to: "/pesajes", label: "Pesajes", icon: Scale },
+  {
+    to: "/",
+    label: "Inicio",
+    icon: Home,
+  },
+  {
+    to: "/jugadoras",
+    label: "Jugadoras",
+    icon: Users,
+  },
+  {
+    to: "/control",
+    label: "Nuevo control",
+    icon: ClipboardPlus,
+  },
+  {
+    to: "/pesajes",
+    label: "Pesajes",
+    icon: Scale,
+  },
   {
     to: "/hidratacion",
     label: "Test de hidratación",
     icon: Droplets,
   },
-  { to: "/historial", label: "Historial", icon: History },
-  { to: "/comparativa", label: "Comparativa", icon: GitCompareArrows },
-  { to: "/evolucion", label: "Evolución", icon: LineChart },
-  { to: "/objetivos", label: "Objetivos", icon: Target },
   {
-    to: "/seguimiento",
-    label: "Seguimiento grupal",
-    icon: Activity,
+    to: "/objetivos",
+    label: "Objetivos del plantel",
+    icon: Target,
   },
-  { to: "/informes", label: "Informes", icon: FileText },
-  { to: "/plantel", label: "Plantel completo", icon: BarChart3 },
-  { to: "/datos", label: "Importar / Exportar", icon: Database },
+  {
+    to: "/plantel",
+    label: "Plantel completo",
+    icon: BarChart3,
+  },
+  {
+    to: "/datos",
+    label: "Importar / Exportar",
+    icon: Database,
+  },
 ] as const;
 
 function Crest() {
@@ -53,9 +67,14 @@ function Crest() {
   );
 }
 
-function NavList({ onNavigate }: { onNavigate?: () => void }) {
+function NavList({
+  onNavigate,
+}: {
+  onNavigate?: () => void;
+}) {
   const pathname = useRouterState({
-    select: (s) => s.location.pathname,
+    select: (s) =>
+      s.location.pathname,
   });
 
   return (
@@ -64,7 +83,9 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
         const active =
           item.to === "/"
             ? pathname === "/"
-            : pathname.startsWith(item.to);
+            : pathname.startsWith(
+                item.to,
+              );
 
         const Icon = item.icon;
 
@@ -99,7 +120,8 @@ export function AppLayout({
   actions?: ReactNode;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] =
+    useState(false);
 
   return (
     <div className="min-h-screen bg-background">
@@ -129,7 +151,9 @@ export function AppLayout({
         <div className="no-print fixed inset-0 z-50 lg:hidden">
           <div
             className="absolute inset-0 bg-foreground/50"
-            onClick={() => setOpen(false)}
+            onClick={() =>
+              setOpen(false)
+            }
           />
 
           <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-sidebar p-4">
@@ -144,7 +168,9 @@ export function AppLayout({
 
               <button
                 aria-label="Cerrar menú"
-                onClick={() => setOpen(false)}
+                onClick={() =>
+                  setOpen(false)
+                }
                 className="rounded-md p-2 text-sidebar-foreground"
               >
                 <X className="h-5 w-5" />
@@ -152,7 +178,11 @@ export function AppLayout({
             </div>
 
             <div className="mt-6 flex-1 overflow-y-auto">
-              <NavList onNavigate={() => setOpen(false)} />
+              <NavList
+                onNavigate={() =>
+                  setOpen(false)
+                }
+              />
             </div>
 
             <OfflineBadge variant="sidebar" />
@@ -165,7 +195,9 @@ export function AppLayout({
           <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
             <button
               aria-label="Abrir menú"
-              onClick={() => setOpen(true)}
+              onClick={() =>
+                setOpen(true)
+              }
               className="rounded-md border border-border p-2 lg:hidden"
             >
               <Menu className="h-5 w-5" />
