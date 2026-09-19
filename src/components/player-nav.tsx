@@ -4,6 +4,7 @@ import {
   FileText,
   History,
   LineChart,
+  Target,
   UserRound,
 } from "lucide-react";
 
@@ -14,14 +15,18 @@ type PlayerSection =
   | "control"
   | "evolucion"
   | "informe"
-  | "historial";
+  | "historial"
+  | "objetivos";
 
 export function PlayerNav({
   playerId,
   playerName,
   current,
 }: {
-  playerId: number | null | undefined;
+  playerId:
+    | number
+    | null
+    | undefined;
   playerName?: string;
   current: PlayerSection;
 }) {
@@ -31,18 +36,6 @@ export function PlayerNav({
 
   return (
     <div className="no-print mb-4 rounded-lg border border-border bg-card p-3 shadow-panel">
-      {playerName && (
-        <div className="mb-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Jugadora
-          </p>
-
-          <p className="font-display text-sm font-semibold">
-            {playerName}
-          </p>
-        </div>
-      )}
-
       <div className="flex flex-wrap gap-2">
         <Button
           asChild
@@ -56,7 +49,9 @@ export function PlayerNav({
           <Link
             to="/jugadoras/$id"
             params={{
-              id: String(playerId),
+              id: String(
+                playerId,
+              ),
             }}
           >
             <UserRound className="h-4 w-4" />
@@ -76,7 +71,8 @@ export function PlayerNav({
           <Link
             to="/control"
             search={{
-              player: playerId,
+              player:
+                playerId,
               id: undefined,
             }}
           >
@@ -89,7 +85,8 @@ export function PlayerNav({
           asChild
           size="sm"
           variant={
-            current === "evolucion"
+            current ===
+            "evolucion"
               ? "default"
               : "outline"
           }
@@ -97,7 +94,8 @@ export function PlayerNav({
           <Link
             to="/evolucion"
             search={{
-              player: playerId,
+              player:
+                playerId,
             }}
           >
             <LineChart className="h-4 w-4" />
@@ -109,7 +107,8 @@ export function PlayerNav({
           asChild
           size="sm"
           variant={
-            current === "informe"
+            current ===
+            "informe"
               ? "default"
               : "outline"
           }
@@ -117,7 +116,8 @@ export function PlayerNav({
           <Link
             to="/informes"
             search={{
-              player: playerId,
+              player:
+                playerId,
             }}
           >
             <FileText className="h-4 w-4" />
@@ -129,7 +129,8 @@ export function PlayerNav({
           asChild
           size="sm"
           variant={
-            current === "historial"
+            current ===
+            "historial"
               ? "default"
               : "outline"
           }
@@ -137,11 +138,34 @@ export function PlayerNav({
           <Link
             to="/historial"
             search={{
-              player: playerId,
+              player:
+                playerId,
             }}
           >
             <History className="h-4 w-4" />
             Historial
+          </Link>
+        </Button>
+
+        <Button
+          asChild
+          size="sm"
+          variant={
+            current ===
+            "objetivos"
+              ? "default"
+              : "outline"
+          }
+        >
+          <Link
+            to="/objetivos-jugadora"
+            search={{
+              player:
+                playerId,
+            }}
+          >
+            <Target className="h-4 w-4" />
+            Objetivos
           </Link>
         </Button>
       </div>
