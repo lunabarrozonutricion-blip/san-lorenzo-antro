@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 
 import {
   fmt,
+  fmtDate,
   parseNum,
   todayISO,
 } from "@/lib/calc";
@@ -75,6 +76,14 @@ export const Route = createFileRoute(
    TIPOS DEL FORMULARIO
 ============================================================ */
 
+/*
+ * Internamente seguimos conservando
+ * capacidad para 5 tomas porque
+ * Antropogims puede traerlas.
+ *
+ * En la carga manual mostramos
+ * solamente las primeras 3.
+ */
 type SeriesStrings = [
   string,
   string,
@@ -150,7 +159,23 @@ function buildMeasures(
   return result;
 }
 
-function ageAtDate(
+/*
+ * EDAD DECIMAL
+ *
+ * Se calcula entre:
+ *
+ * fecha de nacimiento
+ *       ↓
+ * fecha de la evaluación
+ *
+ * Ejemplo:
+ * 20,3 años
+ *
+ * Esto también permite que las
+ * antropometrías históricas tengan
+ * la edad correcta de ese momento.
+ */
+function decimalAgeAtDate(
   birthDate:
     | string
     | null
@@ -164,45 +189,92 @@ function ageAtDate(
     return null;
   }
 
+  const birthParts =
+    birthDate
+      .split("-")
+      .map(Number);
+
+  const evaluationParts =
+    evaluationDate
+      .split("-")
+      .map(Number);
+
+  if (
+    birthParts.length !== 3 ||
+    evaluationParts.length !== 3
+  ) {
+    return null;
+  }
+
   const [
     birthYear,
     birthMonth,
     birthDay,
-  ] = birthDate
-    .split("-")
-    .map(Number);
+  ] = birthParts;
 
   const [
-    year,
-    month,
-    day,
-  ] = evaluationDate
-    .split("-")
-    .map(Number);
+    evaluationYear,
+    evaluationMonth,
+    evaluationDay,
+  ] = evaluationParts;
 
   if (
     !birthYear ||
     !birthMonth ||
     !birthDay ||
-    !year ||
-    !month ||
-    !day
+    !evaluationYear ||
+    !evaluationMonth ||
+    !evaluationDay
   ) {
     return null;
   }
 
-  let age =
-    year - birthYear;
+  /*
+   * UTC evita que cambios de horario
+   * del navegador alteren la cantidad
+   * de días.
+   */
+  const birth =
+    Date.UTC(
+      birthYear,
+      birthMonth - 1,
+      birthDay,
+    );
+
+  const evaluation =
+    Date.UTC(
+      evaluationYear,
+      evaluationMonth - 1,
+      evaluationDay,
+    );
 
   if (
-    month < birthMonth ||
-    (month === birthMonth &&
-      day < birthDay)
+    evaluation < birth
   ) {
-    age -= 1;
+    return null;
   }
 
-  return age;
+  const millisecondsPerDay =
+    1000 * 60 * 60 * 24;
+
+  const days =
+    (evaluation - birth) /
+    millisecondsPerDay;
+
+  /*
+   * Duración media del año gregoriano.
+   *
+   * Guardamos más precisión internamente
+   * y mostramos solamente 1 decimal.
+   */
+  const years =
+    days / 365.2425;
+
+  return (
+    Math.round(
+      years * 1000,
+    ) / 1000
+  );
 }
 
 function optionalInteger(
@@ -313,8 +385,11 @@ function NuevaAntropometria() {
       [measurements],
     );
 
+  /*
+   * Edad decimal automática.
+   */
   const age =
-    ageAtDate(
+    decimalAgeAtDate(
       player?.birthDate,
       date,
     );
@@ -458,10 +533,19 @@ function NuevaAntropometria() {
 
         sex,
 
+        /*
+         * La fecha de nacimiento
+         * proviene de la ficha.
+         */
         birthDate:
           player.birthDate ??
           null,
 
+        /*
+         * Guardamos la edad decimal
+         * correspondiente exactamente
+         * a esta evaluación.
+         */
         ageYears: age,
 
         measures,
@@ -473,7 +557,7 @@ function NuevaAntropometria() {
 
         /*
          * db.ts vuelve a calcular
-         * todos los resultados.
+         * los resultados al guardar.
          */
         results: null,
 
@@ -510,7 +594,8 @@ function NuevaAntropometria() {
       await navigate({
         to: "/componentes",
         search: {
-          player: playerId,
+          player:
+            playerId,
         },
       });
     } catch (error) {
@@ -552,7 +637,9 @@ function NuevaAntropometria() {
     >
       <PlayerNav
         playerId={playerId}
-        playerName={player.name}
+        playerName={
+          player.name
+        }
         current="componentes"
       />
 
@@ -574,9 +661,12 @@ function NuevaAntropometria() {
             <Input
               type="date"
               value={date}
-              onChange={(event) =>
+              onChange={(
+                event,
+              ) =>
                 setDate(
-                  event.target.value,
+                  event.target
+                    .value,
                 )
               }
               className="mt-1"
@@ -594,9 +684,12 @@ function NuevaAntropometria() {
               value={
                 measurementNumber
               }
-              onChange={(event) =>
+              onChange={(
+                event,
+              ) =>
                 setMeasurementNumber(
-                  event.target.value,
+                  event.target
+                    .value,
                 )
               }
               placeholder="Opcional"
@@ -611,7 +704,9 @@ function NuevaAntropometria() {
 
             <select
               value={sex}
-              onChange={(event) =>
+              onChange={(
+                event,
+              ) =>
                 setSex(
                   event.target
                     .value as AnthropometrySex,
@@ -635,14 +730,25 @@ function NuevaAntropometria() {
 
           <div className="text-sm">
             <span className="font-medium">
-              Edad
+              Edad decimal
             </span>
 
-            <div className="mt-1 flex h-10 items-center rounded-md border border-input bg-muted/40 px-3">
+            <div className="mt-1 flex h-10 items-center rounded-md border border-input bg-muted/40 px-3 font-medium">
               {age != null
-                ? `${age} años`
+                ? `${fmt(
+                    age,
+                    1,
+                  )} años`
                 : "—"}
             </div>
+
+            <p className="mt-1 text-xs text-muted-foreground">
+              {player.birthDate
+                ? `Nacimiento: ${fmtDate(
+                    player.birthDate,
+                  )}`
+                : "La jugadora no tiene fecha de nacimiento cargada."}
+            </p>
           </div>
 
           <label className="text-sm">
@@ -652,9 +758,12 @@ function NuevaAntropometria() {
 
             <Input
               value={sport}
-              onChange={(event) =>
+              onChange={(
+                event,
+              ) =>
                 setSport(
-                  event.target.value,
+                  event.target
+                    .value,
                 )
               }
               className="mt-1"
@@ -670,9 +779,12 @@ function NuevaAntropometria() {
               value={
                 physicalActivity
               }
-              onChange={(event) =>
+              onChange={(
+                event,
+              ) =>
                 setPhysicalActivity(
-                  event.target.value,
+                  event.target
+                    .value,
                 )
               }
               placeholder="Opcional"
@@ -686,10 +798,15 @@ function NuevaAntropometria() {
             </span>
 
             <Input
-              value={activityType}
-              onChange={(event) =>
+              value={
+                activityType
+              }
+              onChange={(
+                event,
+              ) =>
                 setActivityType(
-                  event.target.value,
+                  event.target
+                    .value,
                 )
               }
               className="mt-1"
@@ -706,9 +823,12 @@ function NuevaAntropometria() {
               value={
                 boneReference
               }
-              onChange={(event) =>
+              onChange={(
+                event,
+              ) =>
                 setBoneReference(
-                  event.target.value,
+                  event.target
+                    .value,
                 )
               }
               placeholder="kg · opcional"
@@ -746,15 +866,50 @@ function NuevaAntropometria() {
                 </p>
 
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Podés cargar entre
-                  una y cinco tomas.
-                  La app utiliza la
-                  mediana.
+                  Podés cargar hasta
+                  tres tomas. Con una
+                  sola medición ya es
+                  suficiente; si
+                  repetís, la app usa
+                  la mediana.
                 </p>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[850px] text-sm">
+                <table className="w-full min-w-[620px] table-fixed text-sm">
+                  <colgroup>
+                    <col
+                      style={{
+                        width:
+                          "34%",
+                      }}
+                    />
+                    <col
+                      style={{
+                        width:
+                          "14%",
+                      }}
+                    />
+                    <col
+                      style={{
+                        width:
+                          "14%",
+                      }}
+                    />
+                    <col
+                      style={{
+                        width:
+                          "14%",
+                      }}
+                    />
+                    <col
+                      style={{
+                        width:
+                          "24%",
+                      }}
+                    />
+                  </colgroup>
+
                   <thead className="bg-muted/60">
                     <tr>
                       <th className="px-3 py-2 text-left">
@@ -771,14 +926,6 @@ function NuevaAntropometria() {
 
                       <th className="px-2 py-2 text-center">
                         3
-                      </th>
-
-                      <th className="px-2 py-2 text-center">
-                        4
-                      </th>
-
-                      <th className="px-2 py-2 text-center">
-                        5
                       </th>
 
                       <th className="px-3 py-2 text-right">
@@ -827,38 +974,43 @@ function NuevaAntropometria() {
                             {measurements[
                               definition
                                 .key
-                            ].map(
-                              (
-                                value,
-                                index,
-                              ) => (
-                                <td
-                                  key={
-                                    index
-                                  }
-                                  className="px-1.5 py-2"
-                                >
-                                  <Input
-                                    inputMode="decimal"
-                                    value={
-                                      value
+                            ]
+                              .slice(
+                                0,
+                                3,
+                              )
+                              .map(
+                                (
+                                  value,
+                                  index,
+                                ) => (
+                                  <td
+                                    key={
+                                      index
                                     }
-                                    onChange={(
-                                      event,
-                                    ) =>
-                                      updateSeries(
-                                        definition.key,
-                                        index,
-                                        event
-                                          .target
-                                          .value,
-                                      )
-                                    }
-                                    className="h-9 min-w-[76px] text-center"
-                                  />
-                                </td>
-                              ),
-                            )}
+                                    className="px-1.5 py-2"
+                                  >
+                                    <Input
+                                      inputMode="decimal"
+                                      value={
+                                        value
+                                      }
+                                      onChange={(
+                                        event,
+                                      ) =>
+                                        updateSeries(
+                                          definition.key,
+                                          index,
+                                          event
+                                            .target
+                                            .value,
+                                        )
+                                      }
+                                      className="h-9 w-full text-center"
+                                    />
+                                  </td>
+                                ),
+                              )}
 
                             <td className="numeric whitespace-nowrap px-3 py-2 text-right font-semibold">
                               {measure.median !=
@@ -904,7 +1056,8 @@ function NuevaAntropometria() {
           </div>
         </div>
 
-        {missing.length > 0 && (
+        {missing.length >
+          0 && (
           <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
             Faltan{" "}
             <strong>
@@ -912,9 +1065,10 @@ function NuevaAntropometria() {
             </strong>{" "}
             mediciones necesarias
             para completar Kerr.
-            Podés seguir cargando los
-            valores y la vista previa
-            se irá actualizando.
+            Podés seguir cargando
+            los valores y la vista
+            previa se irá
+            actualizando.
           </div>
         )}
 
@@ -922,7 +1076,8 @@ function NuevaAntropometria() {
           <ResultCard
             label="Sum6"
             value={
-              preview.sum6 != null
+              preview.sum6 !=
+              null
                 ? `${fmt(
                     preview.sum6,
                     1,
@@ -1015,9 +1170,12 @@ function NuevaAntropometria() {
 
           <textarea
             value={notes}
-            onChange={(event) =>
+            onChange={(
+              event,
+            ) =>
               setNotes(
-                event.target.value,
+                event.target
+                  .value,
               )
             }
             rows={3}
@@ -1043,7 +1201,8 @@ function NuevaAntropometria() {
             }
             disabled={
               saving ||
-              missing.length > 0
+              missing.length >
+                0
             }
           >
             <Save className="h-4 w-4" />
