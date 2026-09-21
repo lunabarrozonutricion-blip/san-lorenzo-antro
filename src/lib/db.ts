@@ -1,5 +1,10 @@
 import Dexie, { type Table } from "dexie";
 
+import {
+  calculateFiveComponents,
+  controlDataFromFullAnthropometry,
+} from "./kerr";
+
 import type {
   Control,
   FullAnthropometry,
@@ -16,10 +21,6 @@ export class AnthroDB extends Dexie {
   objectivePeriods!: Table<ObjectivePeriod, number>;
   hydrationTests!: Table<HydrationTest, number>;
 
-  /*
-   * Evaluaciones antropométricas completas:
-   * Kerr / 5 componentes / Antropogims.
-   */
   fullAnthropometries!: Table<
     FullAnthropometry,
     number
@@ -42,8 +43,6 @@ export class AnthroDB extends Dexie {
         "++id, playerId, date, condition, [playerId+date]",
     });
 
-    // Migración aditiva:
-    // conserva jugadoras, controles y pesajes existentes.
     this.version(3).stores({
       players: "++id, name, active",
       controls:
@@ -54,9 +53,6 @@ export class AnthroDB extends Dexie {
         "++id, &key, year, month",
     });
 
-    // Migración aditiva:
-    // agrega tests de hidratación sin modificar
-    // ninguna información existente.
     this.version(4).stores({
       players: "++id, name, active",
       controls:
@@ -70,17 +66,8 @@ export class AnthroDB extends Dexie {
     });
 
     /*
-     * Migración aditiva:
-     * agrega antropometrías completas.
-     *
-     * NO modifica las tablas anteriores.
-     *
-     * El índice compuesto [playerId+date]
-     * nos permite:
-     * - encontrar la evaluación de una jugadora
-     *   en una fecha determinada;
-     * - evitar duplicaciones accidentales;
-     * - vincularla luego con el control habitual.
+     * Versión 5:
+     * antropometrías completas / Kerr / Antropogims.
      */
     this.version(5).stores({
       players: "++id, name, active",
@@ -100,7 +87,9 @@ export class AnthroDB extends Dexie {
 
 let _db: AnthroDB | null = null;
 
-/** Dexie solo existe en el navegador; se crea de forma perezosa. */
+/**
+ * Dexie solo existe en el navegador.
+ */
 export function db(): AnthroDB {
   if (typeof window === "undefined") {
     throw new Error(
@@ -108,7 +97,9 @@ export function db(): AnthroDB {
     );
   }
 
-  if (!_db) _db = new AnthroDB();
+  if (!_db) {
+    _db = new AnthroDB();
+  }
 
   return _db;
 }
@@ -116,6 +107,10 @@ export function db(): AnthroDB {
 export function nowISO() {
   return new Date().toISOString();
 }
+
+/* ============================================================
+   CONTROL HABITUAL
+============================================================ */
 
 function emptyControl(
   playerId: number,
@@ -125,34 +120,49 @@ function emptyControl(
   return {
     playerId,
     date,
+
     weight: null,
+
     triceps: null,
     subscapular: null,
     supraespinal: null,
     abdominal: null,
     thighSkinfold: null,
     calfSkinfold: null,
+
     armPerimeter: null,
     thighPerimeter: null,
     calfPerimeter: null,
+
     notes: null,
+
     createdAt: nowISO(),
     updatedAt: nowISO(),
+
     ...v,
   };
 }
 
+/* ============================================================
+   DATOS DE EJEMPLO
+============================================================ */
+
 let seeded = false;
 
-/** Datos de ejemplo mínimos, sólo si la base está vacía. */
 export async function ensureSeed() {
   if (seeded) return;
 
   seeded = true;
 
   const d = db();
-  const count = await d.players.count();
 
+  const count =
+    await d.players.count();
+
+  /*
+   * Si ya hay jugadoras reales,
+   * jamás agregamos datos de ejemplo.
+   */
   if (count > 0) return;
 
   const players: Player[] = [
@@ -182,15 +192,20 @@ export async function ensureSeed() {
     },
   ];
 
-  const ids = await d.players.bulkAdd(
-    players,
-    {
-      allKeys: true,
-    },
-  );
+  const ids =
+    await d.players.bulkAdd(
+      players,
+      {
+        allKeys: true,
+      },
+    );
 
   const samples: Array<
-    [number, string, Partial<Control>]
+    [
+      number,
+      string,
+      Partial<Control>,
+    ]
   > = [
     [
       0,
@@ -320,6 +335,10 @@ export async function ensureSeed() {
   );
 }
 
+/* ============================================================
+   CONTROLES
+============================================================ */
+
 export async function deleteControl(
   id: number,
 ) {
@@ -332,10 +351,13 @@ export async function upsertControl(
   const d = db();
 
   if (c.id) {
-    await d.controls.update(c.id, {
-      ...c,
-      updatedAt: nowISO(),
-    });
+    await d.controls.update(
+      c.id,
+      {
+        ...c,
+        updatedAt: nowISO(),
+      },
+    );
 
     return c.id;
   }
@@ -346,6 +368,10 @@ export async function upsertControl(
     updatedAt: nowISO(),
   });
 }
+
+/* ============================================================
+   PESAJES
+============================================================ */
 
 export async function upsertWeightRecord(
   record: WeightRecord,
@@ -374,8 +400,14 @@ export async function upsertWeightRecord(
 export async function deleteWeightRecord(
   id: number,
 ) {
-  await db().weightRecords.delete(id);
+  await db()
+    .weightRecords
+    .delete(id);
 }
+
+/* ============================================================
+   JUGADORAS
+============================================================ */
 
 export async function upsertPlayer(
   p: Player,
@@ -383,10 +415,13 @@ export async function upsertPlayer(
   const d = db();
 
   if (p.id) {
-    await d.players.update(p.id, {
-      ...p,
-      updatedAt: nowISO(),
-    });
+    await d.players.update(
+      p.id,
+      {
+        ...p,
+        updatedAt: nowISO(),
+      },
+    );
 
     return p.id;
   }
@@ -403,14 +438,6 @@ export async function deletePlayer(
 ) {
   const d = db();
 
-  /*
-   * Si alguna vez se elimina definitivamente
-   * una jugadora, también eliminamos sus
-   * controles y sus evaluaciones completas.
-   *
-   * Esto NO afecta a las jugadoras inactivas.
-   * Solamente ocurre al borrar una jugadora.
-   */
   await d.transaction(
     "rw",
     d.players,
@@ -431,6 +458,10 @@ export async function deletePlayer(
     },
   );
 }
+
+/* ============================================================
+   OBJETIVOS
+============================================================ */
 
 export async function upsertObjectivePeriod(
   period: ObjectivePeriod,
@@ -456,9 +487,9 @@ export async function upsertObjectivePeriod(
   });
 }
 
-/* ---------------------------
+/* ============================================================
    TESTS DE HIDRATACIÓN
----------------------------- */
+============================================================ */
 
 export async function upsertHydrationTest(
   test: HydrationTest,
@@ -487,55 +518,308 @@ export async function upsertHydrationTest(
 export async function deleteHydrationTest(
   id: number,
 ) {
-  await db().hydrationTests.delete(id);
+  await db()
+    .hydrationTests
+    .delete(id);
 }
 
-/* =========================================
+/* ============================================================
    ANTROPOMETRÍAS COMPLETAS
    5 COMPONENTES / KERR / ANTROPOGIMS
-========================================= */
+============================================================ */
 
+/*
+ * Esta función es el corazón de la conexión
+ * entre:
+ *
+ * ANTROPOMETRÍA COMPLETA
+ *
+ * y
+ *
+ * SEGUIMIENTO HABITUAL.
+ *
+ * Al guardar una evaluación:
+ *
+ * 1. calcula Kerr;
+ * 2. busca si ya existe un control habitual
+ *    para esa jugadora y esa fecha;
+ * 3. lo actualiza o lo crea;
+ * 4. guarda la antropometría completa;
+ * 5. vincula ambos registros.
+ *
+ * Todo ocurre dentro de una única transacción.
+ */
 export async function upsertFullAnthropometry(
   anthropometry: FullAnthropometry,
 ) {
   const d = db();
 
-  if (anthropometry.id) {
-    await d.fullAnthropometries.update(
-      anthropometry.id,
-      {
+  return await d.transaction(
+    "rw",
+    d.fullAnthropometries,
+    d.controls,
+    async () => {
+      const now =
+        nowISO();
+
+      /*
+       * Calculamos SIEMPRE nuevamente.
+       *
+       * No confiamos en resultados viejos
+       * que puedan venir de un archivo.
+       */
+      const results =
+        calculateFiveComponents(
+          anthropometry,
+        );
+
+      /*
+       * Extraemos únicamente los campos
+       * que comparte con el seguimiento
+       * habitual.
+       */
+      const controlData =
+        controlDataFromFullAnthropometry(
+          anthropometry,
+        );
+
+      /* ======================================================
+         1. BUSCAR CONTROL HABITUAL
+      ====================================================== */
+
+      let existingControl:
+        | Control
+        | undefined;
+
+      /*
+       * Primero intentamos usar el vínculo
+       * previamente guardado.
+       */
+      if (
+        anthropometry.linkedControlId !=
+        null
+      ) {
+        const linked =
+          await d.controls.get(
+            anthropometry.linkedControlId,
+          );
+
+        /*
+         * Verificamos además que realmente
+         * corresponda a la misma jugadora
+         * y fecha.
+         */
+        if (
+          linked &&
+          linked.playerId ===
+            anthropometry.playerId &&
+          linked.date ===
+            anthropometry.date
+        ) {
+          existingControl =
+            linked;
+        }
+      }
+
+      /*
+       * Si no había vínculo, buscamos
+       * jugadora + fecha.
+       */
+      if (!existingControl) {
+        existingControl =
+          await d.controls
+            .where(
+              "[playerId+date]",
+            )
+            .equals([
+              anthropometry.playerId,
+              anthropometry.date,
+            ])
+            .first();
+      }
+
+      /* ======================================================
+         2. CREAR O ACTUALIZAR CONTROL
+      ====================================================== */
+
+      let controlId: number;
+
+      if (
+        existingControl?.id !=
+        null
+      ) {
+        /*
+         * MUY IMPORTANTE:
+         *
+         * conservamos las notas que ya
+         * pudiera tener el control.
+         *
+         * Actualizamos solamente las
+         * mediciones compartidas.
+         */
+        await d.controls.update(
+          existingControl.id,
+          {
+            ...controlData,
+            updatedAt: now,
+          },
+        );
+
+        controlId =
+          existingControl.id;
+      } else {
+        /*
+         * No existe un control habitual
+         * ese día: lo creamos.
+         */
+        const newControl:
+          Control = {
+          playerId:
+            anthropometry.playerId,
+
+          date:
+            anthropometry.date,
+
+          ...controlData,
+
+          notes: null,
+
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        const addedId =
+          await d.controls.add(
+            newControl,
+          );
+
+        controlId =
+          Number(addedId);
+      }
+
+      /* ======================================================
+         3. EVITAR DUPLICAR ANTROPOMETRÍAS
+      ====================================================== */
+
+      let existingAnthropometry:
+        | FullAnthropometry
+        | undefined;
+
+      if (
+        anthropometry.id !=
+        null
+      ) {
+        existingAnthropometry =
+          await d.fullAnthropometries.get(
+            anthropometry.id,
+          );
+      }
+
+      /*
+       * Si por ejemplo importamos dos veces
+       * el mismo Excel sin ID, usamos:
+       *
+       * jugadora + fecha
+       *
+       * para encontrar el registro anterior.
+       */
+      if (
+        !existingAnthropometry
+      ) {
+        existingAnthropometry =
+          await d.fullAnthropometries
+            .where(
+              "[playerId+date]",
+            )
+            .equals([
+              anthropometry.playerId,
+              anthropometry.date,
+            ])
+            .first();
+      }
+
+      /* ======================================================
+         4. CONSTRUIR REGISTRO FINAL
+      ====================================================== */
+
+      const finalRecord:
+        FullAnthropometry = {
         ...anthropometry,
-        updatedAt: nowISO(),
-      },
-    );
 
-    return anthropometry.id;
-  }
+        id:
+          existingAnthropometry?.id ??
+          anthropometry.id,
 
-  return await d.fullAnthropometries.add({
-    ...anthropometry,
-    createdAt:
-      anthropometry.createdAt ??
-      nowISO(),
-    updatedAt: nowISO(),
-  });
-}
+        /*
+         * Siempre usamos nuestros cálculos.
+         */
+        results,
 
-export async function deleteFullAnthropometry(
-  id: number,
-) {
-  await db().fullAnthropometries.delete(
-    id,
+        /*
+         * Vinculación con seguimiento.
+         */
+        linkedControlId:
+          controlId,
+
+        createdAt:
+          existingAnthropometry
+            ?.createdAt ??
+          anthropometry.createdAt ??
+          now,
+
+        updatedAt:
+          now,
+      };
+
+      /* ======================================================
+         5. GUARDAR ANTROPOMETRÍA
+      ====================================================== */
+
+      if (
+        existingAnthropometry?.id !=
+        null
+      ) {
+        await d.fullAnthropometries.update(
+          existingAnthropometry.id,
+          finalRecord,
+        );
+
+        return (
+          existingAnthropometry.id
+        );
+      }
+
+      const newId =
+        await d.fullAnthropometries.add(
+          finalRecord,
+        );
+
+      return Number(newId);
+    },
   );
 }
 
 /*
- * Busca una antropometría completa de una
- * jugadora en una fecha determinada.
+ * Eliminar una antropometría completa NO elimina
+ * automáticamente el control habitual.
  *
- * Nos va a servir mucho cuando importemos
- * Antropogims para evitar duplicar una
- * evaluación que ya existe.
+ * Esto es intencional:
+ *
+ * si borramos por error un informe completo,
+ * no queremos borrar también el historial de
+ * peso, pliegues y perímetros.
+ */
+export async function deleteFullAnthropometry(
+  id: number,
+) {
+  await db()
+    .fullAnthropometries
+    .delete(id);
+}
+
+/*
+ * Busca la evaluación completa de una
+ * jugadora en una fecha.
  */
 export async function findFullAnthropometryByDate(
   playerId: number,
@@ -543,7 +827,9 @@ export async function findFullAnthropometryByDate(
 ) {
   return await db()
     .fullAnthropometries
-    .where("[playerId+date]")
+    .where(
+      "[playerId+date]",
+    )
     .equals([
       playerId,
       date,
