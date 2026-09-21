@@ -255,9 +255,7 @@ function draftFromTest(
         value:
           entry.value == null
             ? ""
-            : String(
-                entry.value,
-              ),
+            : String(entry.value),
         ...observationDraft(
           entry.observation,
         ),
@@ -695,7 +693,7 @@ function HydrationPage() {
         @media print {
           @page {
             size: A4;
-            margin: 12mm;
+            margin: 10mm;
           }
 
           .hydration-print {
@@ -709,11 +707,20 @@ function HydrationPage() {
             border-collapse: collapse;
           }
 
+          .hydration-print thead {
+            display: table-header-group;
+          }
+
+          .hydration-print tr {
+            break-inside: avoid;
+          }
+
           .hydration-print th,
           .hydration-print td {
             border: 1px solid #cbd5e1;
-            padding: 7px 8px;
-            font-size: 10px;
+            padding: 4px 6px;
+            font-size: 9px;
+            line-height: 1.15;
             vertical-align: middle;
           }
 
@@ -724,6 +731,10 @@ function HydrationPage() {
           }
 
           .hydration-print-section {
+            break-inside: auto;
+          }
+
+          .hydration-print-chart {
             break-inside: avoid;
           }
 
@@ -751,8 +762,8 @@ function HydrationPage() {
           .print-header-box {
             border: 1px solid #cbd5e1;
             background: #f8fafc !important;
-            border-radius: 12px;
-            padding: 14px;
+            border-radius: 10px;
+            padding: 10px 12px;
           }
         }
       `}</style>
@@ -760,23 +771,23 @@ function HydrationPage() {
       {draft && (
         <div className="hydration-print hidden print:block">
           <div className="print-header-box">
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-3">
               <img
                 src="/logo-san-lorenzo.png"
                 alt="San Lorenzo"
-                className="h-20 w-20 object-contain"
+                className="h-12 w-12 object-contain"
               />
 
               <div className="flex-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-600">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
                   San Lorenzo · Fútbol Femenino
                 </p>
 
-                <h1 className="mt-1 text-3xl font-extrabold uppercase tracking-wide">
+                <h1 className="mt-0.5 text-2xl font-extrabold uppercase leading-none tracking-wide">
                   TEST DE HIDRATACIÓN
                 </h1>
 
-                <div className="mt-3 grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+                <div className="mt-2 grid grid-cols-2 gap-x-8 gap-y-0.5 text-xs">
                   <p>
                     <strong>Fecha:</strong>{" "}
                     {fmtDate(draft.date)}
@@ -810,15 +821,13 @@ function HydrationPage() {
           </div>
 
           {printMode !== "chart" && (
-            <section className="hydration-print-section mt-5">
-              <div className="mb-3 flex items-end justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-bold">
-                    Valores
-                  </h2>
-                </div>
+            <section className="hydration-print-section mt-3">
+              <div className="mb-2 flex items-end justify-between gap-4">
+                <h2 className="text-base font-bold">
+                  Valores
+                </h2>
 
-                <p className="text-xs">
+                <p className="text-[10px]">
                   <strong>
                     {summary.measured}
                   </strong>{" "}
@@ -900,19 +909,19 @@ function HydrationPage() {
           )}
 
           {printMode !== "values" && (
-            <section className="hydration-print-section mt-6">
-              <h2 className="text-lg font-bold">
+            <section className="hydration-print-chart mt-5">
+              <h2 className="text-base font-bold">
                 Estado de hidratación
               </h2>
 
-              <p className="mt-1 text-xs text-gray-600">
+              <p className="mt-1 text-[10px] text-gray-600">
                 Porcentajes calculados solo sobre las jugadoras con medición.
               </p>
 
               {summary.measured > 0 ? (
-                <div className="mt-5 space-y-5">
+                <div className="mt-3 space-y-3">
                   <div>
-                    <div className="mb-1 flex items-center justify-between text-sm">
+                    <div className="mb-1 flex items-center justify-between text-xs">
                       <strong>
                         Bien hidratadas
                       </strong>
@@ -926,9 +935,9 @@ function HydrationPage() {
                       </span>
                     </div>
 
-                    <div className="h-8 overflow-hidden rounded border border-emerald-700">
+                    <div className="h-6 overflow-hidden rounded border border-emerald-700">
                       <div
-                        className="flex h-full items-center justify-end bg-emerald-500 px-2 text-xs font-bold text-white"
+                        className="flex h-full items-center justify-end bg-emerald-500 px-2 text-[10px] font-bold text-white"
                         style={{
                           width: `${summary.hydratedPercent}%`,
                         }}
@@ -944,7 +953,7 @@ function HydrationPage() {
                   </div>
 
                   <div>
-                    <div className="mb-1 flex items-center justify-between text-sm">
+                    <div className="mb-1 flex items-center justify-between text-xs">
                       <strong>
                         Deshidratadas
                       </strong>
@@ -958,9 +967,9 @@ function HydrationPage() {
                       </span>
                     </div>
 
-                    <div className="h-8 overflow-hidden rounded border border-rose-700">
+                    <div className="h-6 overflow-hidden rounded border border-rose-700">
                       <div
-                        className="flex h-full items-center justify-end bg-rose-500 px-2 text-xs font-bold text-white"
+                        className="flex h-full items-center justify-end bg-rose-500 px-2 text-[10px] font-bold text-white"
                         style={{
                           width: `${summary.dehydratedPercent}%`,
                         }}
@@ -975,40 +984,40 @@ function HydrationPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3 border-t pt-4 text-center">
+                  <div className="grid grid-cols-3 gap-3 border-t pt-3 text-center">
                     <div>
-                      <p className="text-2xl font-bold">
+                      <p className="text-xl font-bold">
                         {summary.hydrated}
                       </p>
 
-                      <p className="text-xs">
+                      <p className="text-[10px]">
                         Bien hidratadas
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-2xl font-bold">
+                      <p className="text-xl font-bold">
                         {summary.dehydrated}
                       </p>
 
-                      <p className="text-xs">
+                      <p className="text-[10px]">
                         Deshidratadas
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-2xl font-bold">
+                      <p className="text-xl font-bold">
                         {summary.noData}
                       </p>
 
-                      <p className="text-xs">
+                      <p className="text-[10px]">
                         Sin medición
                       </p>
                     </div>
                   </div>
                 </div>
               ) : (
-                <p className="mt-5 text-sm">
+                <p className="mt-4 text-xs">
                   No hay valores cargados para calcular porcentajes.
                 </p>
               )}
