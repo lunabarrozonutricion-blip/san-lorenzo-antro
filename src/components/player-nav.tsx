@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   ClipboardPlus,
   FileText,
+  FlaskConical,
   History,
   LineChart,
   Target,
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 type PlayerSection =
   | "ficha"
   | "control"
+  | "componentes"
   | "evolucion"
   | "informe"
   | "historial"
@@ -78,6 +80,28 @@ export function PlayerNav({
           >
             <ClipboardPlus className="h-4 w-4" />
             Nuevo control
+          </Link>
+        </Button>
+
+        <Button
+          asChild
+          size="sm"
+          variant={
+            current ===
+            "componentes"
+              ? "default"
+              : "outline"
+          }
+        >
+          <Link
+            to="/componentes"
+            search={{
+              player:
+                playerId,
+            }}
+          >
+            <FlaskConical className="h-4 w-4" />
+            5 componentes
           </Link>
         </Button>
 
