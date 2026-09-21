@@ -7,6 +7,7 @@ import {
 
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
+import { PlayerNav } from "@/components/player-nav";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -58,10 +59,6 @@ export const Route = createFileRoute(
   ),
 });
 
-/* ============================================================
-   HELPERS
-============================================================ */
-
 function finalMasses(
   anthropometry:
     FullAnthropometry,
@@ -73,13 +70,6 @@ function finalMasses(
     return null;
   }
 
-  /*
-   * Si existe el reajuste por masa ósea
-   * de referencia, usamos ese como
-   * resultado final.
-   *
-   * Si no, usamos el ajuste al peso real.
-   */
   return (
     results
       .boneReferenceAdjustedMassesKg ??
@@ -100,10 +90,6 @@ function sourceLabel(
   return "Carga manual";
 }
 
-/* ============================================================
-   PANTALLA
-============================================================ */
-
 function CincoComponentes() {
   const search =
     Route.useSearch();
@@ -118,10 +104,6 @@ function CincoComponentes() {
     useFullAnthropometries(
       playerId,
     );
-
-  /* ==========================================================
-     SIN JUGADORA
-  ========================================================== */
 
   if (!playerId) {
     return (
@@ -148,10 +130,6 @@ function CincoComponentes() {
     );
   }
 
-  /* ==========================================================
-     CARGANDO
-  ========================================================== */
-
   if (!player) {
     return (
       <AppLayout
@@ -176,18 +154,16 @@ function CincoComponentes() {
       ? finalMasses(latest)
       : null;
 
-  /* ==========================================================
-     RENDER
-  ========================================================== */
-
   return (
     <AppLayout
       title={`5 componentes · ${player.name}`}
       subtitle="Antropometría completa · Fraccionamiento corporal de Kerr"
     >
-      {/* ====================================================
-          ACCIONES
-      ===================================================== */}
+      <PlayerNav
+        playerId={playerId}
+        playerName={player.name}
+        current="componentes"
+      />
 
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-lg border border-border bg-card p-5 shadow-panel">
@@ -258,10 +234,6 @@ function CincoComponentes() {
           </div>
         </div>
       </div>
-
-      {/* ====================================================
-          ÚLTIMA EVALUACIÓN
-      ===================================================== */}
 
       <div className="mt-4">
         <div className="mb-2">
@@ -337,10 +309,6 @@ function CincoComponentes() {
           </div>
         </div>
       </div>
-
-      {/* ====================================================
-          HISTORIAL
-      ===================================================== */}
 
       <div className="mt-4 overflow-hidden rounded-lg border border-border bg-card shadow-panel">
         <div className="border-b border-border px-4 py-3">
