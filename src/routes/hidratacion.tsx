@@ -16,10 +16,7 @@ import { toast } from "sonner";
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
 import { Button } from "@/components/ui/button";
-import {
-  fmtDate,
-  todayISO,
-} from "@/lib/calc";
+import { fmtDate, todayISO } from "@/lib/calc";
 import {
   deleteHydrationTest,
   nowISO,
@@ -283,6 +280,64 @@ function emptyDraft(
   };
 }
 
+function PrintHeader({
+  draft,
+}: {
+  draft: Draft;
+}) {
+  return (
+    <div className="print-report-header">
+      <div className="flex items-center gap-3">
+        <img
+          src="/logo-san-lorenzo.png"
+          alt="San Lorenzo"
+          className="print-logo object-contain"
+        />
+
+        <div className="min-w-0 flex-1">
+          <p className="print-club-name">
+            SAN LORENZO · FÚTBOL FEMENINO
+          </p>
+
+          <h1 className="print-main-title">
+            TEST DE HIDRATACIÓN
+          </h1>
+        </div>
+      </div>
+
+      <div className="print-meta-grid">
+        <p>
+          <strong>Fecha:</strong>{" "}
+          {fmtDate(draft.date)}
+        </p>
+
+        <p>
+          <strong>Rival:</strong>{" "}
+          {draft.rival.trim() || "—"}
+        </p>
+
+        <p>
+          <strong>N.º de fecha:</strong>{" "}
+          {draft.round.trim() || "—"}
+        </p>
+
+        <p>
+          <strong>Tipo de día:</strong>{" "}
+          {dayTypeLabel(draft.dayType)}
+        </p>
+
+        <p>
+          <strong>Contexto:</strong>{" "}
+          {contextLabel(
+            draft.context,
+            draft.customContext,
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function HydrationPage() {
   const players = usePlayers();
   const tests = useHydrationTests();
@@ -325,9 +380,7 @@ function HydrationPage() {
         tests[0];
 
       if (first?.id != null) {
-        setSelectedId(
-          first.id,
-        );
+        setSelectedId(first.id);
       }
     }
   }, [
@@ -356,9 +409,7 @@ function HydrationPage() {
 
     if (selected) {
       setDraft(
-        draftFromTest(
-          selected,
-        ),
+        draftFromTest(selected),
       );
     }
   }, [
@@ -599,9 +650,7 @@ function HydrationPage() {
   }
 
   async function removeTest() {
-    if (
-      !draft?.id
-    ) {
+    if (!draft?.id) {
       return;
     }
 
@@ -692,236 +741,296 @@ function HydrationPage() {
       <style>{`
         @media print {
           @page {
-            size: A4;
-            margin: 10mm;
+            size: A4 portrait;
+            margin: 8mm;
           }
 
           .hydration-print {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            color: #0f172a;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color: #0f172a !important;
           }
 
-          .hydration-print table {
-            width: 100%;
-            border-collapse: collapse;
+          .hydration-values-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+            table-layout: fixed !important;
           }
 
-          .hydration-print thead {
-            display: table-header-group;
+          .hydration-values-table caption {
+            caption-side: top !important;
+            display: table-caption !important;
+            text-align: left !important;
+            padding: 0 !important;
+            margin: 0 !important;
           }
 
-          .hydration-print tr {
-            break-inside: avoid;
+          .hydration-values-table tbody {
+            break-inside: auto !important;
+            page-break-inside: auto !important;
           }
 
-          .hydration-print th,
-          .hydration-print td {
-            border: 1px solid #cbd5e1;
-            padding: 4px 6px;
-            font-size: 9px;
-            line-height: 1.15;
-            vertical-align: middle;
+          .hydration-values-table tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
           }
 
-          .hydration-print th {
+          .hydration-values-table th,
+          .hydration-values-table td {
+            border: 1px solid #cbd5e1 !important;
+            padding: 2.5px 5px !important;
+            font-size: 8px !important;
+            line-height: 1.05 !important;
+            vertical-align: middle !important;
+          }
+
+          .hydration-values-table th {
             background: #0b234a !important;
             color: #ffffff !important;
-            font-weight: 700;
+            font-weight: 700 !important;
           }
 
-          .hydration-print-section {
-            break-inside: auto;
+          .print-report-header {
+            border: 1px solid #cbd5e1 !important;
+            background: #f8fafc !important;
+            border-radius: 7px !important;
+            padding: 6px 8px !important;
+            margin: 0 0 5px 0 !important;
           }
 
-          .hydration-print-chart {
-            break-inside: avoid;
+          .print-logo {
+            width: 42px !important;
+            height: 42px !important;
+            flex: none !important;
+          }
+
+          .print-club-name {
+            margin: 0 !important;
+            font-size: 8px !important;
+            line-height: 1 !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.15em !important;
+            color: #64748b !important;
+          }
+
+          .print-main-title {
+            margin: 3px 0 0 0 !important;
+            font-size: 19px !important;
+            line-height: 1 !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.04em !important;
+            color: #0f172a !important;
+          }
+
+          .print-meta-grid {
+            margin-top: 5px !important;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr 1fr !important;
+            column-gap: 14px !important;
+            row-gap: 1px !important;
+            font-size: 8px !important;
+            line-height: 1.15 !important;
+          }
+
+          .print-meta-grid p {
+            margin: 0 !important;
+          }
+
+          .print-values-heading {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 10px !important;
+            margin: 0 0 4px 0 !important;
+          }
+
+          .print-values-heading h2 {
+            margin: 0 !important;
+            font-size: 12px !important;
+            line-height: 1 !important;
+            font-weight: 800 !important;
+          }
+
+          .print-values-heading p {
+            margin: 0 !important;
+            font-size: 8px !important;
           }
 
           .print-status-ok {
             background: #dcfce7 !important;
             color: #166534 !important;
-            font-weight: 700;
-            text-align: center;
+            font-weight: 700 !important;
+            text-align: center !important;
           }
 
           .print-status-bad {
             background: #fee2e2 !important;
             color: #b91c1c !important;
-            font-weight: 700;
-            text-align: center;
+            font-weight: 700 !important;
+            text-align: center !important;
           }
 
           .print-status-empty {
             background: #f1f5f9 !important;
             color: #475569 !important;
-            font-weight: 700;
-            text-align: center;
+            font-weight: 700 !important;
+            text-align: center !important;
           }
 
-          .print-header-box {
-            border: 1px solid #cbd5e1;
-            background: #f8fafc !important;
-            border-radius: 10px;
-            padding: 10px 12px;
+          .hydration-print-chart {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+            margin-top: 10px !important;
+          }
+
+          .hydration-print-chart h2 {
+            font-size: 14px !important;
+            margin: 0 !important;
           }
         }
       `}</style>
 
       {draft && (
         <div className="hydration-print hidden print:block">
-          <div className="print-header-box">
-            <div className="flex items-start gap-3">
-              <img
-                src="/logo-san-lorenzo.png"
-                alt="San Lorenzo"
-                className="h-12 w-12 object-contain"
-              />
 
-              <div className="flex-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-                  San Lorenzo · Fútbol Femenino
-                </p>
+          {printMode !== "chart" ? (
+            <table className="hydration-values-table">
+              <caption>
+                <PrintHeader
+                  draft={draft}
+                />
 
-                <h1 className="mt-0.5 text-2xl font-extrabold uppercase leading-none tracking-wide">
-                  TEST DE HIDRATACIÓN
-                </h1>
-
-                <div className="mt-2 grid grid-cols-2 gap-x-8 gap-y-0.5 text-xs">
-                  <p>
-                    <strong>Fecha:</strong>{" "}
-                    {fmtDate(draft.date)}
-                  </p>
+                <div className="print-values-heading">
+                  <h2>
+                    Valores
+                  </h2>
 
                   <p>
-                    <strong>Rival:</strong>{" "}
-                    {draft.rival.trim() || "—"}
-                  </p>
-
-                  <p>
-                    <strong>N.º de fecha:</strong>{" "}
-                    {draft.round.trim() || "—"}
-                  </p>
-
-                  <p>
-                    <strong>Tipo de día:</strong>{" "}
-                    {dayTypeLabel(draft.dayType)}
-                  </p>
-
-                  <p className="col-span-2">
-                    <strong>Contexto:</strong>{" "}
-                    {contextLabel(
-                      draft.context,
-                      draft.customContext,
-                    )}
+                    <strong>
+                      {summary.measured}
+                    </strong>{" "}
+                    mediciones ·{" "}
+                    <strong>
+                      {summary.noData}
+                    </strong>{" "}
+                    sin valor
                   </p>
                 </div>
-              </div>
-            </div>
-          </div>
+              </caption>
 
-          {printMode !== "chart" && (
-            <section className="hydration-print-section mt-3">
-              <div className="mb-2 flex items-end justify-between gap-4">
-                <h2 className="text-base font-bold">
-                  Valores
-                </h2>
+              <thead>
+                <tr>
+                  <th
+                    className="text-left"
+                    style={{
+                      width: "52%",
+                    }}
+                  >
+                    Jugadora
+                  </th>
 
-                <p className="text-[10px]">
-                  <strong>
-                    {summary.measured}
-                  </strong>{" "}
-                  mediciones ·{" "}
-                  <strong>
-                    {summary.noData}
-                  </strong>{" "}
-                  sin valor
-                </p>
-              </div>
+                  <th
+                    className="text-center"
+                    style={{
+                      width: "11%",
+                    }}
+                  >
+                    Valor
+                  </th>
 
-              <table>
-                <thead>
-                  <tr>
-                    <th className="text-left">
-                      Jugadora
-                    </th>
+                  <th
+                    className="text-center"
+                    style={{
+                      width: "18%",
+                    }}
+                  >
+                    Estado
+                  </th>
 
-                    <th className="w-[80px] text-center">
-                      Valor
-                    </th>
+                  <th
+                    className="text-left"
+                    style={{
+                      width: "19%",
+                    }}
+                  >
+                    Observación
+                  </th>
+                </tr>
+              </thead>
 
-                    <th className="w-[120px] text-center">
-                      Estado
-                    </th>
-
-                    <th className="w-[140px] text-left">
-                      Observación
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {draft.entries.map(
-                    (entry, index) => {
-                      const value =
-                        parseHydrationValue(
-                          entry.value,
-                        );
-
-                      return (
-                        <tr
-                          key={`print-${entry.playerId ?? "historic"}-${entry.playerName}-${index}`}
-                        >
-                          <td>
-                            {entry.playerName}
-                          </td>
-
-                          <td className="text-center">
-                            {value ?? "—"}
-                          </td>
-
-                          <td
-                            className={
-                              value == null
-                                ? "print-status-empty"
-                                : value <= 1020
-                                  ? "print-status-ok"
-                                  : "print-status-bad"
-                            }
-                          >
-                            {hydrationStatus(
-                              value,
-                            )}
-                          </td>
-
-                          <td>
-                            {savedObservation(
-                              entry,
-                            ) ?? "—"}
-                          </td>
-                        </tr>
+              <tbody>
+                {draft.entries.map(
+                  (entry, index) => {
+                    const value =
+                      parseHydrationValue(
+                        entry.value,
                       );
-                    },
-                  )}
-                </tbody>
-              </table>
-            </section>
+
+                    return (
+                      <tr
+                        key={`print-${entry.playerId ?? "historic"}-${entry.playerName}-${index}`}
+                      >
+                        <td>
+                          {
+                            entry.playerName
+                          }
+                        </td>
+
+                        <td className="text-center">
+                          {value ??
+                            "—"}
+                        </td>
+
+                        <td
+                          className={
+                            value == null
+                              ? "print-status-empty"
+                              : value <=
+                                  1020
+                                ? "print-status-ok"
+                                : "print-status-bad"
+                          }
+                        >
+                          {hydrationStatus(
+                            value,
+                          )}
+                        </td>
+
+                        <td>
+                          {savedObservation(
+                            entry,
+                          ) ??
+                            "—"}
+                        </td>
+                      </tr>
+                    );
+                  },
+                )}
+              </tbody>
+            </table>
+          ) : (
+            <PrintHeader
+              draft={draft}
+            />
           )}
 
           {printMode !== "values" && (
-            <section className="hydration-print-chart mt-5">
-              <h2 className="text-base font-bold">
+            <section className="hydration-print-chart">
+              <h2 className="font-bold">
                 Estado de hidratación
               </h2>
 
-              <p className="mt-1 text-[10px] text-gray-600">
+              <p className="mt-1 text-[9px] text-gray-600">
                 Porcentajes calculados solo sobre las jugadoras con medición.
               </p>
 
-              {summary.measured > 0 ? (
+              {summary.measured >
+              0 ? (
                 <div className="mt-3 space-y-3">
                   <div>
-                    <div className="mb-1 flex items-center justify-between text-xs">
+                    <div className="mb-1 flex items-center justify-between text-[10px]">
                       <strong>
                         Bien hidratadas
                       </strong>
@@ -930,14 +1039,20 @@ function HydrationPage() {
                         {summary.hydratedPercent.toFixed(
                           1,
                         )}
-                        % · {summary.hydrated} de{" "}
-                        {summary.measured}
+                        % ·{" "}
+                        {
+                          summary.hydrated
+                        }{" "}
+                        de{" "}
+                        {
+                          summary.measured
+                        }
                       </span>
                     </div>
 
-                    <div className="h-6 overflow-hidden rounded border border-emerald-700">
+                    <div className="h-5 overflow-hidden rounded border border-emerald-700">
                       <div
-                        className="flex h-full items-center justify-end bg-emerald-500 px-2 text-[10px] font-bold text-white"
+                        className="flex h-full items-center justify-end bg-emerald-500 px-2 text-[9px] font-bold text-white"
                         style={{
                           width: `${summary.hydratedPercent}%`,
                         }}
@@ -953,7 +1068,7 @@ function HydrationPage() {
                   </div>
 
                   <div>
-                    <div className="mb-1 flex items-center justify-between text-xs">
+                    <div className="mb-1 flex items-center justify-between text-[10px]">
                       <strong>
                         Deshidratadas
                       </strong>
@@ -962,14 +1077,20 @@ function HydrationPage() {
                         {summary.dehydratedPercent.toFixed(
                           1,
                         )}
-                        % · {summary.dehydrated} de{" "}
-                        {summary.measured}
+                        % ·{" "}
+                        {
+                          summary.dehydrated
+                        }{" "}
+                        de{" "}
+                        {
+                          summary.measured
+                        }
                       </span>
                     </div>
 
-                    <div className="h-6 overflow-hidden rounded border border-rose-700">
+                    <div className="h-5 overflow-hidden rounded border border-rose-700">
                       <div
-                        className="flex h-full items-center justify-end bg-rose-500 px-2 text-[10px] font-bold text-white"
+                        className="flex h-full items-center justify-end bg-rose-500 px-2 text-[9px] font-bold text-white"
                         style={{
                           width: `${summary.dehydratedPercent}%`,
                         }}
@@ -984,40 +1105,46 @@ function HydrationPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3 border-t pt-3 text-center">
+                  <div className="grid grid-cols-3 gap-3 border-t pt-2 text-center">
                     <div>
-                      <p className="text-xl font-bold">
-                        {summary.hydrated}
+                      <p className="text-lg font-bold">
+                        {
+                          summary.hydrated
+                        }
                       </p>
 
-                      <p className="text-[10px]">
+                      <p className="text-[9px]">
                         Bien hidratadas
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-xl font-bold">
-                        {summary.dehydrated}
+                      <p className="text-lg font-bold">
+                        {
+                          summary.dehydrated
+                        }
                       </p>
 
-                      <p className="text-[10px]">
+                      <p className="text-[9px]">
                         Deshidratadas
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-xl font-bold">
-                        {summary.noData}
+                      <p className="text-lg font-bold">
+                        {
+                          summary.noData
+                        }
                       </p>
 
-                      <p className="text-[10px]">
+                      <p className="text-[9px]">
                         Sin medición
                       </p>
                     </div>
                   </div>
                 </div>
               ) : (
-                <p className="mt-4 text-xs">
+                <p className="mt-3 text-xs">
                   No hay valores cargados para calcular porcentajes.
                 </p>
               )}
@@ -1120,8 +1247,9 @@ function HydrationPage() {
                           {fmtDate(
                             test.date,
                           )}
+
                           {test.round !=
-                            null
+                          null
                             ? ` · Fecha ${test.round}`
                             : ""}
                         </p>
@@ -1129,7 +1257,8 @@ function HydrationPage() {
 
                       <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold">
                         {
-                          test.entries
+                          test
+                            .entries
                             .length
                         }
                       </span>
@@ -1657,7 +1786,8 @@ function HydrationPage() {
                   </p>
                 </div>
 
-                {summary.measured > 0 ? (
+                {summary.measured >
+                0 ? (
                   <>
                     <div className="mt-5 overflow-hidden rounded-full bg-muted">
                       <div className="flex h-8 w-full">
@@ -1712,8 +1842,13 @@ function HydrationPage() {
                           </p>
 
                           <p className="text-sm font-semibold text-emerald-700">
-                            {summary.hydrated} de{" "}
-                            {summary.measured}
+                            {
+                              summary.hydrated
+                            }{" "}
+                            de{" "}
+                            {
+                              summary.measured
+                            }
                           </p>
                         </div>
                       </div>
@@ -1732,8 +1867,13 @@ function HydrationPage() {
                           </p>
 
                           <p className="text-sm font-semibold text-rose-700">
-                            {summary.dehydrated} de{" "}
-                            {summary.measured}
+                            {
+                              summary.dehydrated
+                            }{" "}
+                            de{" "}
+                            {
+                              summary.measured
+                            }
                           </p>
                         </div>
                       </div>
