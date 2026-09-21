@@ -229,19 +229,26 @@ function CincoComponentes() {
               </p>
 
               <Button
-                className="mt-4"
-                variant="outline"
-                disabled
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                Importar Excel
-              </Button>
+  asChild
+  className="mt-4"
+  variant="outline"
+>
+  <Link
+    to="/componentes-importar"
+    search={{
+      player:
+        playerId,
+    }}
+  >
+    <FileSpreadsheet className="h-4 w-4" />
+    Importar Excel
+  </Link>
+</Button>
 
-              <p className="mt-2 text-xs text-muted-foreground">
-                Próximo paso:
-                lectura automática del
-                Excel.
-              </p>
+<p className="mt-2 text-xs text-muted-foreground">
+  Compatible con .xls,
+  .xlsx y .xlsm.
+</p>
             </div>
           </div>
         </div>
