@@ -2,6 +2,7 @@ import Dexie, { type Table } from "dexie";
 
 import type {
   Control,
+  FullAnthropometry,
   HydrationTest,
   ObjectivePeriod,
   Player,
@@ -14,6 +15,15 @@ export class AnthroDB extends Dexie {
   weightRecords!: Table<WeightRecord, number>;
   objectivePeriods!: Table<ObjectivePeriod, number>;
   hydrationTests!: Table<HydrationTest, number>;
+
+  /*
+   * Evaluaciones antropométricas completas:
+   * Kerr / 5 componentes / Antropogims.
+   */
+  fullAnthropometries!: Table<
+    FullAnthropometry,
+    number
+  >;
 
   constructor() {
     super("sanlorenzo-antropometria");
@@ -57,6 +67,33 @@ export class AnthroDB extends Dexie {
         "++id, &key, year, month",
       hydrationTests:
         "++id, date, round, dayType, context",
+    });
+
+    /*
+     * Migración aditiva:
+     * agrega antropometrías completas.
+     *
+     * NO modifica las tablas anteriores.
+     *
+     * El índice compuesto [playerId+date]
+     * nos permite:
+     * - encontrar la evaluación de una jugadora
+     *   en una fecha determinada;
+     * - evitar duplicaciones accidentales;
+     * - vincularla luego con el control habitual.
+     */
+    this.version(5).stores({
+      players: "++id, name, active",
+      controls:
+        "++id, playerId, date, [playerId+date]",
+      weightRecords:
+        "++id, playerId, date, condition, [playerId+date]",
+      objectivePeriods:
+        "++id, &key, year, month",
+      hydrationTests:
+        "++id, date, round, dayType, context",
+      fullAnthropometries:
+        "++id, playerId, date, source, [playerId+date]",
     });
   }
 }
@@ -366,12 +403,26 @@ export async function deletePlayer(
 ) {
   const d = db();
 
+  /*
+   * Si alguna vez se elimina definitivamente
+   * una jugadora, también eliminamos sus
+   * controles y sus evaluaciones completas.
+   *
+   * Esto NO afecta a las jugadoras inactivas.
+   * Solamente ocurre al borrar una jugadora.
+   */
   await d.transaction(
     "rw",
     d.players,
     d.controls,
+    d.fullAnthropometries,
     async () => {
       await d.controls
+        .where("playerId")
+        .equals(id)
+        .delete();
+
+      await d.fullAnthropometries
         .where("playerId")
         .equals(id)
         .delete();
@@ -437,4 +488,65 @@ export async function deleteHydrationTest(
   id: number,
 ) {
   await db().hydrationTests.delete(id);
+}
+
+/* =========================================
+   ANTROPOMETRÍAS COMPLETAS
+   5 COMPONENTES / KERR / ANTROPOGIMS
+========================================= */
+
+export async function upsertFullAnthropometry(
+  anthropometry: FullAnthropometry,
+) {
+  const d = db();
+
+  if (anthropometry.id) {
+    await d.fullAnthropometries.update(
+      anthropometry.id,
+      {
+        ...anthropometry,
+        updatedAt: nowISO(),
+      },
+    );
+
+    return anthropometry.id;
+  }
+
+  return await d.fullAnthropometries.add({
+    ...anthropometry,
+    createdAt:
+      anthropometry.createdAt ??
+      nowISO(),
+    updatedAt: nowISO(),
+  });
+}
+
+export async function deleteFullAnthropometry(
+  id: number,
+) {
+  await db().fullAnthropometries.delete(
+    id,
+  );
+}
+
+/*
+ * Busca una antropometría completa de una
+ * jugadora en una fecha determinada.
+ *
+ * Nos va a servir mucho cuando importemos
+ * Antropogims para evitar duplicar una
+ * evaluación que ya existe.
+ */
+export async function findFullAnthropometryByDate(
+  playerId: number,
+  date: string,
+) {
+  return await db()
+    .fullAnthropometries
+    .where("[playerId+date]")
+    .equals([
+      playerId,
+      date,
+    ])
+    .first();
 }
