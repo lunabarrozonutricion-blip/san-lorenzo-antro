@@ -701,6 +701,7 @@ function HydrationPage() {
           .hydration-print {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+            color: #0f172a;
           }
 
           .hydration-print table {
@@ -710,72 +711,101 @@ function HydrationPage() {
 
           .hydration-print th,
           .hydration-print td {
-            border: 1px solid #d1d5db;
-            padding: 6px 8px;
+            border: 1px solid #cbd5e1;
+            padding: 7px 8px;
             font-size: 10px;
-            vertical-align: top;
+            vertical-align: middle;
           }
 
           .hydration-print th {
-            background: #f3f4f6 !important;
+            background: #0b234a !important;
+            color: #ffffff !important;
             font-weight: 700;
           }
 
           .hydration-print-section {
             break-inside: avoid;
           }
+
+          .print-status-ok {
+            background: #dcfce7 !important;
+            color: #166534 !important;
+            font-weight: 700;
+            text-align: center;
+          }
+
+          .print-status-bad {
+            background: #fee2e2 !important;
+            color: #b91c1c !important;
+            font-weight: 700;
+            text-align: center;
+          }
+
+          .print-status-empty {
+            background: #f1f5f9 !important;
+            color: #475569 !important;
+            font-weight: 700;
+            text-align: center;
+          }
+
+          .print-header-box {
+            border: 1px solid #cbd5e1;
+            background: #f8fafc !important;
+            border-radius: 12px;
+            padding: 14px;
+          }
         }
       `}</style>
 
       {draft && (
         <div className="hydration-print hidden print:block">
-          <div className="border-b border-black pb-3">
-            <div className="flex items-start gap-3">
+          <div className="print-header-box">
+            <div className="flex items-start gap-4">
               <img
                 src="/logo-san-lorenzo.png"
                 alt="San Lorenzo"
-                className="h-14 w-14 object-contain"
+                className="h-20 w-20 object-contain"
               />
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em]">
+              <div className="flex-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-600">
                   San Lorenzo · Fútbol Femenino
                 </p>
 
-                <h1 className="mt-1 text-2xl font-bold">
-                  Test de hidratación
+                <h1 className="mt-1 text-3xl font-extrabold uppercase tracking-wide">
+                  TEST DE HIDRATACIÓN
                 </h1>
+
+                <div className="mt-3 grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+                  <p>
+                    <strong>Fecha:</strong>{" "}
+                    {fmtDate(draft.date)}
+                  </p>
+
+                  <p>
+                    <strong>Rival:</strong>{" "}
+                    {draft.rival.trim() || "—"}
+                  </p>
+
+                  <p>
+                    <strong>N.º de fecha:</strong>{" "}
+                    {draft.round.trim() || "—"}
+                  </p>
+
+                  <p>
+                    <strong>Tipo de día:</strong>{" "}
+                    {dayTypeLabel(draft.dayType)}
+                  </p>
+
+                  <p className="col-span-2">
+                    <strong>Contexto:</strong>{" "}
+                    {contextLabel(
+                      draft.context,
+                      draft.customContext,
+                    )}
+                  </p>
+                </div>
               </div>
-            </div>
-
-            <div className="mt-2 grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
-              <p>
-                <strong>Fecha:</strong>{" "}
-                {fmtDate(draft.date)}
-              </p>
-
-              <p>
-                <strong>Rival:</strong>{" "}
-                {draft.rival.trim() || "—"}
-              </p>
-
-              <p>
-                <strong>N.º de fecha:</strong>{" "}
-                {draft.round.trim() || "—"}
-              </p>
-
-              <p>
-                <strong>Tipo de día:</strong>{" "}
-                {dayTypeLabel(draft.dayType)}
-              </p>
-
-              <p className="col-span-2">
-                <strong>Contexto:</strong>{" "}
-                {contextLabel(
-                  draft.context,
-                  draft.customContext,
-                )}
-              </p>
             </div>
           </div>
 
@@ -786,10 +816,6 @@ function HydrationPage() {
                   <h2 className="text-lg font-bold">
                     Valores
                   </h2>
-
-                  <p className="text-xs text-gray-600">
-                    Clasificación: ≤1020 bien hidratada · ≥1021 deshidratada
-                  </p>
                 </div>
 
                 <p className="text-xs">
@@ -845,7 +871,15 @@ function HydrationPage() {
                             {value ?? "—"}
                           </td>
 
-                          <td className="text-center">
+                          <td
+                            className={
+                              value == null
+                                ? "print-status-empty"
+                                : value <= 1020
+                                  ? "print-status-ok"
+                                  : "print-status-bad"
+                            }
+                          >
                             {hydrationStatus(
                               value,
                             )}
@@ -1145,37 +1179,36 @@ function HydrationPage() {
                       </div>
                     </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {!creating &&
-                      draft.id !=
-                        null && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() =>
-                            void removeTest()
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Eliminar
-                        </Button>
-                      )}
+                    <div className="flex flex-wrap gap-2">
+                      {!creating &&
+                        draft.id !=
+                          null && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              void removeTest()
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Eliminar
+                          </Button>
+                        )}
 
-                    <Button
-                      onClick={() =>
-                        void saveTest()
-                      }
-                      disabled={saving}
-                    >
-                      <Save className="h-4 w-4" />
+                      <Button
+                        onClick={() =>
+                          void saveTest()
+                        }
+                        disabled={saving}
+                      >
+                        <Save className="h-4 w-4" />
 
-                      {saving
-                        ? "Guardando..."
-                        : "Guardar test"}
-                    </Button>
+                        {saving
+                          ? "Guardando..."
+                          : "Guardar test"}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-
                 </div>
 
                 <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -1747,8 +1780,12 @@ function SummaryCard({
         : "text-muted-foreground";
 
   return (
-    <div className={`rounded-md border px-3 py-3 ${styles}`}>
-      <p className={`text-[10px] font-semibold uppercase tracking-wide ${subtitle}`}>
+    <div
+      className={`rounded-md border px-3 py-3 ${styles}`}
+    >
+      <p
+        className={`text-[10px] font-semibold uppercase tracking-wide ${subtitle}`}
+      >
         {label}
       </p>
 
