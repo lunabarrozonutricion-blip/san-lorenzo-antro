@@ -1,4 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+} from "@tanstack/react-router";
 import {
   FileSpreadsheet,
   FlaskConical,
@@ -81,13 +84,10 @@ function sourceLabel(
   source:
     FullAnthropometry["source"],
 ) {
-  if (
-    source === "antropogims"
-  ) {
-    return "Antropogims";
-  }
-
-  return "Carga manual";
+  return source ===
+    "antropogims"
+    ? "Antropogims"
+    : "Carga manual";
 }
 
 function CincoComponentes() {
@@ -178,22 +178,33 @@ function CincoComponentes() {
               </h2>
 
               <p className="mt-1 text-sm text-muted-foreground">
-                Cargar una antropometría
-                completa directamente
-                desde la aplicación.
+                Cargar una
+                antropometría completa
+                directamente desde la
+                aplicación.
               </p>
 
               <Button
+                asChild
                 className="mt-4"
-                disabled
               >
-                <Plus className="h-4 w-4" />
-                Nueva evaluación
+                <Link
+                  to="/componentes-nueva"
+                  search={{
+                    player:
+                      playerId,
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                  Nueva evaluación
+                </Link>
               </Button>
 
               <p className="mt-2 text-xs text-muted-foreground">
-                La activamos en el
-                próximo paso.
+                Al guardar, los datos
+                compartidos también
+                pasan al seguimiento
+                habitual.
               </p>
             </div>
           </div>
@@ -227,8 +238,9 @@ function CincoComponentes() {
               </Button>
 
               <p className="mt-2 text-xs text-muted-foreground">
-                Después vamos a aceptar
-                .xls, .xlsx y .xlsm.
+                Próximo paso:
+                lectura automática del
+                Excel.
               </p>
             </div>
           </div>
@@ -236,67 +248,54 @@ function CincoComponentes() {
       </div>
 
       <div className="mt-4">
-        <div className="mb-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Última evaluación completa
-          </p>
-        </div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Última evaluación completa
+        </p>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-lg border border-border bg-card p-4 shadow-panel">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Fecha
-            </p>
-
-            <p className="mt-2 font-display text-xl font-semibold">
-              {latest
+          <SummaryCard
+            label="Fecha"
+            value={
+              latest
                 ? fmtDate(
                     latest.date,
                   )
-                : "—"}
-            </p>
-          </div>
+                : "—"
+            }
+          />
 
-          <div className="rounded-lg border border-border bg-card p-4 shadow-panel">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Sum6
-            </p>
-
-            <p className="mt-2 font-display text-xl font-semibold">
-              {latest?.results
+          <SummaryCard
+            label="Sum6"
+            value={
+              latest?.results
                 ?.sum6 != null
                 ? `${fmt(
                     latest.results
                       .sum6,
                     1,
                   )} mm`
-                : "—"}
-            </p>
-          </div>
+                : "—"
+            }
+          />
 
-          <div className="rounded-lg border border-border bg-card p-4 shadow-panel">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Masa muscular
-            </p>
-
-            <p className="mt-2 font-display text-xl font-semibold">
-              {latestMasses
+          <SummaryCard
+            label="Masa muscular"
+            value={
+              latestMasses
                 ?.muscle != null
                 ? `${fmt(
-                    latestMasses.muscle,
+                    latestMasses
+                      .muscle,
                     1,
                   )} kg`
-                : "—"}
-            </p>
-          </div>
+                : "—"
+            }
+          />
 
-          <div className="rounded-lg border border-border bg-card p-4 shadow-panel">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              IMO
-            </p>
-
-            <p className="mt-2 font-display text-xl font-semibold">
-              {latest?.results
+          <SummaryCard
+            label="IMO"
+            value={
+              latest?.results
                 ?.muscleBoneIndexAdjusted !=
               null
                 ? fmt(
@@ -304,9 +303,9 @@ function CincoComponentes() {
                       .muscleBoneIndexAdjusted,
                     2,
                   )
-                : "—"}
-            </p>
-          </div>
+                : "—"
+            }
+          />
         </div>
       </div>
 
@@ -339,31 +338,24 @@ function CincoComponentes() {
                   <th className="px-3 py-2 font-semibold">
                     Fecha
                   </th>
-
                   <th className="px-3 py-2 font-semibold">
                     Origen
                   </th>
-
                   <th className="px-3 py-2 text-right font-semibold">
                     Peso
                   </th>
-
                   <th className="px-3 py-2 text-right font-semibold">
                     Sum6
                   </th>
-
                   <th className="px-3 py-2 text-right font-semibold">
                     Muscular
                   </th>
-
                   <th className="px-3 py-2 text-right font-semibold">
                     Adiposa
                   </th>
-
                   <th className="px-3 py-2 text-right font-semibold">
                     Ósea
                   </th>
-
                   <th className="px-3 py-2 text-right font-semibold">
                     IMO
                   </th>
@@ -437,7 +429,8 @@ function CincoComponentes() {
                             ?.muscle !=
                           null
                             ? `${fmt(
-                                masses.muscle,
+                                masses
+                                  .muscle,
                                 1,
                               )} kg`
                             : "—"}
@@ -448,7 +441,8 @@ function CincoComponentes() {
                             ?.adipose !=
                           null
                             ? `${fmt(
-                                masses.adipose,
+                                masses
+                                  .adipose,
                                 1,
                               )} kg`
                             : "—"}
@@ -497,14 +491,35 @@ function CincoComponentes() {
             <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
               Cuando carguemos una
               antropometría manual o
-              importemos un Antropogims,
-              va a aparecer acá junto
-              con sus resultados de 5
+              importemos un
+              Antropogims, va a
+              aparecer acá junto con
+              sus resultados de 5
               componentes.
             </p>
           </div>
         )}
       </div>
     </AppLayout>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 shadow-panel">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+
+      <p className="mt-2 font-display text-xl font-semibold">
+        {value}
+      </p>
+    </div>
   );
 }
