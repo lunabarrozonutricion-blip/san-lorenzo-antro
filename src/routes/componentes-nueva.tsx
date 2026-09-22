@@ -276,6 +276,12 @@ function optionalInteger(
     : null;
 }
 
+/*
+ * Antropogims muestra:
+ *
+ * - kg con mayor precisión
+ * - porcentaje con 2 decimales
+ */
 function massText(
   kg: number | null,
   percent: number | null,
@@ -286,12 +292,12 @@ function massText(
 
   return `${fmt(
     kg,
-    1,
+    3,
   )} kg${
     percent != null
       ? ` · ${fmt(
           percent,
-          1,
+          2,
         )}%`
       : ""
   }`;
@@ -437,14 +443,29 @@ function NuevaAntropometria() {
       [measures],
     );
 
+  /*
+   * Los kg finales siguen la lógica
+   * completa de Antropogims:
+   *
+   * 1. Kerr
+   * 2. reajuste al peso real
+   * 3. reajuste por MOR, si existe
+   */
   const finalMasses =
     preview
       .boneReferenceAdjustedMassesKg ??
     preview.weightAdjustedMassesKg;
 
+  /*
+   * Antropogims conserva en su
+   * presentación los porcentajes
+   * obtenidos después del primer
+   * reajuste al peso real.
+   *
+   * No vuelve a calcular estos %
+   * después del reajuste por MOR.
+   */
   const finalPercentages =
-    preview
-      .boneReferenceAdjustedMassesPercent ??
     preview.weightAdjustedMassesPercent;
 
   function updateSeries(
@@ -1233,15 +1254,20 @@ function NuevaAntropometria() {
             )}
           />
 
+          {/*
+           * El IMO de la presentación
+           * de Antropogims se calcula
+           * antes del reajuste por MOR.
+           */}
           <ResultCard
             label="IMO"
             value={
               preview
-                .muscleBoneIndexAdjusted !=
+                .muscleBoneIndexRaw !=
               null
                 ? fmt(
                     preview
-                      .muscleBoneIndexAdjusted,
+                      .muscleBoneIndexRaw,
                     2,
                   )
                 : "—"
