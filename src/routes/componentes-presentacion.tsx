@@ -990,7 +990,7 @@ function PresentacionAntropogims() {
           font-size: 10px;
         }
 
-        @media max-width: 800px {
+        @media (max-width: 800px) {
           .antro-title-grid {
             grid-template-columns: 1fr;
           }
