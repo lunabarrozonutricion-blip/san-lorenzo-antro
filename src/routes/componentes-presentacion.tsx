@@ -6,9 +6,7 @@ import {
   ArrowLeft,
   Printer,
 } from "lucide-react";
-import {
-  useMemo,
-} from "react";
+import { useMemo } from "react";
 
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
@@ -90,23 +88,23 @@ const MASS_ROWS: Array<{
 }> = [
   {
     key: "adipose",
-    label: "Masa adiposa",
+    label: "Masa Adiposa",
   },
   {
     key: "muscle",
-    label: "Masa muscular",
+    label: "Masa Muscular",
   },
   {
     key: "residual",
-    label: "Masa residual",
+    label: "Masa Residual",
   },
   {
     key: "bone",
-    label: "Masa ósea",
+    label: "Masa Ósea",
   },
   {
     key: "skin",
-    label: "Masa de la piel",
+    label: "Masa de la Piel",
   },
 ];
 
@@ -114,23 +112,21 @@ const MASS_COLORS: Record<
   keyof FiveComponentMasses,
   string
 > = {
-  adipose: "#c94e4e",
-  muscle: "#7fa64a",
-  residual: "#72559b",
-  bone: "#4c9db2",
-  skin: "#e89242",
+  adipose: "#c94f48",
+  muscle: "#8bae48",
+  residual: "#7655a0",
+  bone: "#4aa1ba",
+  skin: "#e88a3c",
 };
 
 const BASIC_KEYS:
-  FullAnthropometryMeasureKey[] =
-  [
+  FullAnthropometryMeasureKey[] = [
     "weight",
     "sittingHeight",
   ];
 
 const DIAMETER_KEYS:
-  FullAnthropometryMeasureKey[] =
-  [
+  FullAnthropometryMeasureKey[] = [
     "biacromial",
     "thoraxTransverse",
     "thoraxAP",
@@ -140,8 +136,7 @@ const DIAMETER_KEYS:
   ];
 
 const PERIMETER_KEYS:
-  FullAnthropometryMeasureKey[] =
-  [
+  FullAnthropometryMeasureKey[] = [
     "head",
     "armRelaxed",
     "armFlexed",
@@ -155,8 +150,7 @@ const PERIMETER_KEYS:
   ];
 
 const SKINFOLD_KEYS:
-  FullAnthropometryMeasureKey[] =
-  [
+  FullAnthropometryMeasureKey[] = [
     "triceps",
     "subscapular",
     "supraespinal",
@@ -194,6 +188,23 @@ function currentMeasureValue(
   );
 }
 
+function formatNumber(
+  value:
+    | number
+    | null
+    | undefined,
+  decimals = 2,
+) {
+  if (value == null) {
+    return "—";
+  }
+
+  return fmt(
+    value,
+    decimals,
+  );
+}
+
 function signed(
   value:
     | number
@@ -215,23 +226,6 @@ function signed(
     value,
     decimals,
   )}${unit}`;
-}
-
-function formatMeasure(
-  value:
-    | number
-    | null
-    | undefined,
-  decimals = 2,
-) {
-  if (value == null) {
-    return "—";
-  }
-
-  return fmt(
-    value,
-    decimals,
-  );
 }
 
 function sumMasses(
@@ -374,15 +368,14 @@ function PresentacionAntropogims() {
   const fiveMassScoreItems:
     ScoreItem[] = [
       {
-        label: "Peso",
+        label: "Peso (kg)",
         value:
           presentation
             .totalMassScoreZ,
-        color: "#497eb9",
+        color: "#4d83bd",
       },
       {
-        label:
-          "Masa adiposa",
+        label: "Masa Adiposa",
         value:
           presentation
             .massScoreZ
@@ -391,8 +384,7 @@ function PresentacionAntropogims() {
           MASS_COLORS.adipose,
       },
       {
-        label:
-          "Masa muscular",
+        label: "Masa Muscular",
         value:
           presentation
             .massScoreZ
@@ -401,8 +393,7 @@ function PresentacionAntropogims() {
           MASS_COLORS.muscle,
       },
       {
-        label:
-          "Masa residual",
+        label: "Masa Residual",
         value:
           presentation
             .massScoreZ
@@ -411,8 +402,7 @@ function PresentacionAntropogims() {
           MASS_COLORS.residual,
       },
       {
-        label:
-          "Masa ósea",
+        label: "Masa Ósea",
         value:
           presentation
             .massScoreZ
@@ -433,14 +423,624 @@ function PresentacionAntropogims() {
           margin: 8mm;
         }
 
+        .antro-sheet {
+          background: #ffffff;
+          color: #111827;
+          border: 1px solid #475569;
+          border-radius: 0;
+          overflow: hidden;
+        }
+
+        .antro-title-grid {
+          display: grid;
+          grid-template-columns: 1fr 235px;
+          border-bottom: 1px solid #475569;
+        }
+
+        .antro-title {
+          min-height: 112px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px 20px;
+          text-align: center;
+          font-size: 29px;
+          line-height: 1.1;
+          font-weight: 700;
+        }
+
+        .antro-brand {
+          border-left: 1px solid #475569;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          text-align: center;
+          padding: 12px;
+          font-size: 12px;
+          line-height: 1.35;
+        }
+
+        .antro-brand strong {
+          font-size: 15px;
+        }
+
+        .antro-info {
+          padding: 18px 110px 16px;
+          border-bottom: 1px solid #475569;
+        }
+
+        .antro-info-line {
+          display: grid;
+          grid-template-columns: 1fr 165px;
+          border: 1px solid #475569;
+          min-height: 31px;
+        }
+
+        .antro-info-line + .antro-info-line {
+          margin-top: 12px;
+        }
+
+        .antro-info-cell {
+          padding: 5px 10px;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 13px;
+        }
+
+        .antro-info-cell + .antro-info-cell {
+          border-left: 1px solid #475569;
+        }
+
+        .antro-info-cell strong {
+          font-weight: 700;
+        }
+
+        .section-title {
+          font-size: 26px;
+          font-weight: 700;
+          text-align: center;
+          padding: 23px 15px;
+          border-bottom: 1px solid #475569;
+        }
+
+        .technical-table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+          font-size: 12px;
+        }
+
+        .technical-table th,
+        .technical-table td {
+          border-bottom: 1px solid #cbd5e1;
+          padding: 5px 7px;
+          vertical-align: middle;
+        }
+
+        .technical-table thead th {
+          border-bottom: 1px solid #475569;
+          font-weight: 600;
+          text-align: center;
+          background: #ffffff;
+        }
+
+        .technical-table .measure-name {
+          text-align: left;
+        }
+
+        .technical-table .numeric {
+          text-align: center;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .group-cell {
+          width: 84px;
+          text-align: center;
+          font-weight: 700;
+          border-right: 1px solid #475569;
+          line-height: 1.15;
+        }
+
+        .group-basicos {
+          color: #304c9c;
+        }
+
+        .group-diametros {
+          color: #b03333;
+        }
+
+        .group-perimetros {
+          color: #303c96;
+        }
+
+        .group-pliegues {
+          color: #b03333;
+        }
+
+        .five-mass-layout {
+          display: grid;
+          grid-template-columns: 84px 1fr 105px;
+          min-height: 340px;
+          border-bottom: 1px solid #475569;
+        }
+
+        .side-label {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          text-align: center;
+          padding: 8px;
+          font-size: 11px;
+          line-height: 1.15;
+          font-weight: 700;
+        }
+
+        .side-label-left {
+          color: #9c3697;
+          border-right: 1px solid #475569;
+        }
+
+        .side-label-right {
+          color: #5650a6;
+          border-left: 1px solid #475569;
+        }
+
+        .five-chart {
+          padding: 18px 26px;
+        }
+
+        .five-table {
+          width: calc(100% - 84px);
+          margin-left: 84px;
+          border-collapse: collapse;
+          font-size: 12px;
+        }
+
+        .five-table th,
+        .five-table td {
+          padding: 6px 9px;
+          border-bottom: 1px solid #cbd5e1;
+        }
+
+        .five-table th {
+          color: #31893c;
+          text-align: center;
+          font-weight: 700;
+        }
+
+        .five-table td:first-child {
+          color: #31893c;
+        }
+
+        .five-table td:not(:first-child) {
+          text-align: center;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .five-table-total td {
+          font-weight: 700;
+          border-top: 1px solid #475569;
+        }
+
+        .structured-row {
+          margin-left: 84px;
+          border-top: 1px solid #475569;
+          border-bottom: 1px solid #475569;
+          padding: 7px 9px;
+          color: #31893c;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .five-explanation {
+          margin-left: 84px;
+          padding: 10px 12px 16px;
+          font-size: 11px;
+          line-height: 1.4;
+        }
+
+        .mass-reference {
+          display: grid;
+          grid-template-columns: 100px 1fr;
+          max-width: 520px;
+          margin-top: 8px;
+          font-size: 10px;
+        }
+
+        .mass-reference > div {
+          padding: 2px 4px;
+        }
+
+        .phantom-description {
+          border-bottom: 1px solid #475569;
+          padding: 14px 20px;
+          font-size: 11px;
+          line-height: 1.45;
+        }
+
+        .phantom-description h3 {
+          text-align: center;
+          margin-bottom: 8px;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .phantom-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 28px 34px;
+          padding: 22px;
+        }
+
+        .score-plot {
+          min-width: 0;
+        }
+
+        .score-title {
+          text-align: center;
+          font-size: 15px;
+          font-weight: 700;
+          margin-bottom: 12px;
+        }
+
+        .score-row {
+          display: grid;
+          grid-template-columns: 135px minmax(0, 1fr) 44px;
+          gap: 8px;
+          align-items: center;
+          margin-bottom: 9px;
+        }
+
+        .score-label {
+          font-size: 10px;
+          line-height: 1.1;
+        }
+
+        .score-value {
+          font-size: 10px;
+          font-weight: 600;
+          text-align: right;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .score-track {
+          position: relative;
+          height: 24px;
+          border-left: 1px solid #6b7280;
+          border-right: 1px solid #6b7280;
+          background-image:
+            linear-gradient(
+              to bottom,
+              transparent calc(50% - .5px),
+              #9ca3af calc(50% - .5px),
+              #9ca3af calc(50% + .5px),
+              transparent calc(50% + .5px)
+            ),
+            repeating-linear-gradient(
+              to right,
+              transparent 0,
+              transparent calc(12.5% - 1px),
+              #cbd5e1 calc(12.5% - 1px),
+              #cbd5e1 12.5%
+            );
+        }
+
+        .score-zero {
+          position: absolute;
+          left: 50%;
+          top: 0;
+          bottom: 0;
+          width: 1px;
+          background: #374151;
+        }
+
+        .score-dot {
+          position: absolute;
+          top: 50%;
+          width: 13px;
+          height: 13px;
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          border: 1px solid rgba(255,255,255,.9);
+        }
+
+        .score-axis {
+          display: grid;
+          grid-template-columns: repeat(9, 1fr);
+          margin-left: 143px;
+          margin-right: 52px;
+          font-size: 9px;
+          color: #374151;
+          text-align: center;
+        }
+
+        .additional-layout {
+          display: grid;
+          grid-template-columns: 95px 1fr;
+        }
+
+        .additional-side {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          border-right: 1px solid #475569;
+          font-size: 10px;
+          font-weight: 700;
+          color: #4c4c91;
+        }
+
+        .additional-content {
+          padding: 16px 22px 20px;
+        }
+
+        .additional-values {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 12px;
+          margin-top: 14px;
+        }
+
+        .additional-values td {
+          border-top: 1px solid #94a3b8;
+          border-bottom: 1px solid #94a3b8;
+          padding: 11px 12px;
+        }
+
+        .additional-values td:nth-child(odd) {
+          width: 30%;
+          font-weight: 500;
+        }
+
+        .additional-values td:nth-child(even) {
+          width: 20%;
+          font-weight: 700;
+          text-align: center;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .risk-intro {
+          margin: 2px 0 10px;
+          font-size: 11px;
+          line-height: 1.45;
+        }
+
+        .risk-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 10px;
+        }
+
+        .risk-table th,
+        .risk-table td {
+          border: 1px solid #475569;
+          padding: 4px 6px;
+          text-align: center;
+        }
+
+        .risk-table th {
+          font-weight: 700;
+        }
+
+        .somato-values {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 0;
+          font-size: 12px;
+        }
+
+        .somato-values th,
+        .somato-values td {
+          border-bottom: 1px solid #94a3b8;
+          padding: 7px 10px;
+          text-align: center;
+        }
+
+        .somato-values th:nth-child(1),
+        .somato-values td:nth-child(1) {
+          color: #ef7d22;
+        }
+
+        .somato-values th:nth-child(2),
+        .somato-values td:nth-child(2) {
+          color: #315be4;
+        }
+
+        .somato-values th:nth-child(3),
+        .somato-values td:nth-child(3) {
+          color: #299443;
+        }
+
+        .somatochart {
+          display: grid;
+          grid-template-columns: 95px 1fr;
+          min-height: 440px;
+          border-top: 1px solid #475569;
+          border-bottom: 1px solid #475569;
+        }
+
+        .somato-side {
+          border-right: 1px solid #475569;
+          padding-top: 20px;
+          text-align: center;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .somato-graph {
+          position: relative;
+          margin: 0;
+          height: 440px;
+          overflow: hidden;
+          background:
+            repeating-linear-gradient(
+              to right,
+              transparent 0,
+              transparent calc(10% - 1px),
+              #e5e7eb calc(10% - 1px),
+              #e5e7eb 10%
+            ),
+            repeating-linear-gradient(
+              to bottom,
+              transparent 0,
+              transparent calc(10% - 1px),
+              #e5e7eb calc(10% - 1px),
+              #e5e7eb 10%
+            );
+        }
+
+        .somato-x {
+          position: absolute;
+          left: 50%;
+          top: 0;
+          bottom: 0;
+          width: 1px;
+          background: #6b7280;
+        }
+
+        .somato-y {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 61.5%;
+          height: 1px;
+          background: #6b7280;
+        }
+
+        .somato-meso {
+          position: absolute;
+          left: 50%;
+          top: 14px;
+          transform: translateX(-50%);
+          color: #315be4;
+          font-weight: 700;
+          font-size: 13px;
+        }
+
+        .somato-endo {
+          position: absolute;
+          left: 18px;
+          bottom: 22px;
+          color: #ef7d22;
+          font-weight: 700;
+          font-size: 13px;
+        }
+
+        .somato-ecto {
+          position: absolute;
+          right: 18px;
+          bottom: 22px;
+          color: #299443;
+          font-weight: 700;
+          font-size: 13px;
+        }
+
+        .somato-dot {
+          position: absolute;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          border: 2px solid white;
+        }
+
+        .somato-footer {
+          margin-left: 95px;
+          padding: 10px 12px;
+          font-size: 11px;
+        }
+
+        .somato-footer-grid {
+          display: grid;
+          grid-template-columns:
+            repeat(
+              4,
+              minmax(0, 1fr)
+            );
+          border: 1px solid #94a3b8;
+          margin-top: 10px;
+        }
+
+        .somato-footer-item {
+          padding: 8px;
+          text-align: center;
+        }
+
+        .somato-footer-item + .somato-footer-item {
+          border-left: 1px solid #94a3b8;
+        }
+
+        .somato-footer-label {
+          font-size: 9px;
+          color: #64748b;
+          text-transform: uppercase;
+        }
+
+        .somato-footer-value {
+          margin-top: 3px;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .comparison-note {
+          margin-top: 10px;
+          border-top: 1px solid #94a3b8;
+          padding-top: 8px;
+          font-size: 10px;
+        }
+
+        @media max-width: 800px {
+          .antro-title-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .antro-brand {
+            border-left: 0;
+            border-top: 1px solid #475569;
+          }
+
+          .antro-info {
+            padding: 14px;
+          }
+
+          .five-mass-layout {
+            grid-template-columns: 1fr;
+          }
+
+          .side-label {
+            display: none;
+          }
+
+          .five-table,
+          .structured-row,
+          .five-explanation {
+            width: 100%;
+            margin-left: 0;
+          }
+
+          .phantom-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .additional-layout,
+          .somatochart {
+            grid-template-columns: 1fr;
+          }
+
+          .additional-side,
+          .somato-side {
+            display: none;
+          }
+
+          .somato-footer {
+            margin-left: 0;
+          }
+        }
+
         @media print {
           .no-print {
             display: none !important;
-          }
-
-          html,
-          body {
-            background: white !important;
           }
 
           body {
@@ -448,335 +1048,250 @@ function PresentacionAntropogims() {
             -webkit-print-color-adjust: exact;
           }
 
-          .presentation-card {
-            box-shadow: none !important;
-          }
-
           .print-page {
             break-before: page;
             page-break-before: always;
           }
 
-          .avoid-print-break {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-
-          /*
-           * PÁGINA 1
-           * Encabezado + todas las mediciones.
-           */
-          .presentation-main-header {
+          .antro-sheet {
             box-shadow: none !important;
           }
 
-          .presentation-main-header
-            .presentation-title-bar {
-            padding: 8px 12px !important;
+          .antro-title {
+            min-height: 70px;
+            font-size: 20px;
           }
 
-          .presentation-main-header
-            .presentation-title-bar h1 {
-            font-size: 18px !important;
-            line-height: 1.1 !important;
+          .antro-brand {
+            font-size: 8px;
           }
 
-          .presentation-main-header
-            .header-item {
-            padding: 5px 8px !important;
+          .antro-brand strong {
+            font-size: 10px;
           }
 
-          .presentation-main-header
-            .header-item p:first-child {
-            font-size: 7px !important;
+          .antro-info {
+            padding: 9px 95px;
           }
 
-          .presentation-main-header
-            .header-item p:last-child {
-            margin-top: 1px !important;
-            font-size: 9px !important;
+          .antro-info-line {
+            min-height: 22px;
           }
 
-          .presentation-measurements {
-            margin-top: 6px !important;
+          .antro-info-line + .antro-info-line {
+            margin-top: 6px;
           }
 
-          .presentation-measurements
-            .measurement-heading {
-            padding: 5px 8px !important;
+          .antro-info-cell {
+            padding: 3px 7px;
+            font-size: 8px;
           }
 
-          .presentation-measurements
-            .measurement-heading
-            > p:first-child {
-            font-size: 7px !important;
+          .section-title {
+            padding: 10px;
+            font-size: 16px;
           }
 
-          .presentation-measurements
-            .measurement-heading h2 {
-            margin-top: 1px !important;
-            font-size: 13px !important;
-            line-height: 1.1 !important;
+          .technical-table {
+            font-size: 7.5px;
           }
 
-          .presentation-measurements
-            .measurement-heading
-            > p:last-child {
-            margin-top: 1px !important;
-            font-size: 7px !important;
-            line-height: 1.1 !important;
+          .technical-table th,
+          .technical-table td {
+            padding: 2px 4px;
           }
 
-          .presentation-measurements table {
-            min-width: 0 !important;
-            width: 100% !important;
-            font-size: 7.6px !important;
+          .group-cell {
+            width: 62px;
+            font-size: 7px;
           }
 
-          .presentation-measurements
-            th,
-          .presentation-measurements
-            td {
-            padding: 2px 5px !important;
-            line-height: 1.08 !important;
+          .five-mass-layout {
+            grid-template-columns: 62px 1fr 80px;
+            min-height: 255px;
           }
 
-          .presentation-measurements
-            .measurement-group-row
-            td {
-            padding-top: 3px !important;
-            padding-bottom: 3px !important;
-            font-size: 7px !important;
+          .side-label {
+            font-size: 7px;
           }
 
-          .presentation-measurements
-            td span.text-xs {
-            font-size: 6.5px !important;
+          .five-chart {
+            padding: 10px 18px;
           }
 
-          /*
-           * SCORE-Z
-           * Compactamos gráficos sin cambiar sus valores.
-           */
-          .score-z-plot {
-            padding: 7px !important;
+          .five-table {
+            width: calc(100% - 62px);
+            margin-left: 62px;
+            font-size: 7.5px;
           }
 
-          .score-z-plot h3 {
-            font-size: 10px !important;
-            line-height: 1.1 !important;
+          .five-table th,
+          .five-table td {
+            padding: 3px 6px;
           }
 
-          .score-z-plot
-            .score-z-content {
-            margin-top: 7px !important;
+          .structured-row,
+          .five-explanation {
+            margin-left: 62px;
           }
 
-          .score-z-row {
-            grid-template-columns:
-              88px 1fr 32px !important;
-            gap: 4px !important;
-            margin-bottom: 4px !important;
+          .structured-row {
+            padding: 4px 6px;
+            font-size: 7.5px;
           }
 
-          .score-z-row
-            .score-z-label,
-          .score-z-row
-            .score-z-value {
-            font-size: 7px !important;
+          .five-explanation {
+            padding: 6px 8px 8px;
+            font-size: 7px;
           }
 
-          .score-z-bar {
-            height: 15px !important;
-          }
-
-          .score-z-point {
-            width: 9px !important;
-            height: 9px !important;
-          }
-
-          .score-z-axis {
-            margin-left: 92px !important;
-            margin-right: 36px !important;
-            font-size: 6px !important;
-          }
-
-          /*
-           * PÁGINA PHANTOM
-           * Fuerza 2 columnas también al imprimir.
-           */
-          .phantom-grid {
-            display: grid !important;
-            grid-template-columns:
-              repeat(
-                2,
-                minmax(0, 1fr)
-              ) !important;
-            gap: 8px !important;
-            margin-top: 8px !important;
+          .mass-reference {
+            font-size: 6.5px;
+            margin-top: 4px;
           }
 
           .phantom-description {
-            margin-top: 7px !important;
-            padding: 7px !important;
-            font-size: 7.5px !important;
-            line-height: 1.2 !important;
+            padding: 8px 12px;
+            font-size: 7px;
           }
 
-          .phantom-description p {
-            margin-top: 2px !important;
+          .phantom-description h3 {
+            font-size: 8px;
+            margin-bottom: 4px;
           }
 
-          /*
-           * 5 MASAS
-           */
-          .five-masses-section {
-            padding: 10px !important;
+          .phantom-grid {
+            gap: 14px 18px;
+            padding: 12px;
           }
 
-          .five-masses-section
-            .five-masses-chart {
-            margin-top: 8px !important;
+          .score-title {
+            font-size: 9px;
+            margin-bottom: 6px;
           }
 
-          .five-masses-section
-            .five-masses-table {
-            margin-top: 9px !important;
+          .score-row {
+            grid-template-columns: 92px 1fr 30px;
+            gap: 4px;
+            margin-bottom: 4px;
           }
 
-          .five-masses-section table {
-            font-size: 8px !important;
+          .score-label,
+          .score-value {
+            font-size: 6.5px;
           }
 
-          .five-masses-section
-            th,
-          .five-masses-section
-            td {
-            padding-top: 4px !important;
-            padding-bottom: 4px !important;
+          .score-track {
+            height: 15px;
           }
 
-          .five-masses-description {
-            margin-top: 7px !important;
-            padding: 7px !important;
-            font-size: 7.5px !important;
+          .score-dot {
+            width: 9px;
+            height: 9px;
           }
 
-          .five-masses-description
-            .mini-masses-grid {
-            margin-top: 6px !important;
-            gap: 4px !important;
+          .score-axis {
+            margin-left: 96px;
+            margin-right: 34px;
+            font-size: 5.5px;
           }
 
-          /*
-           * DATOS ADICIONALES
-           */
-          .additional-section {
-            padding: 10px !important;
+          .additional-layout {
+            grid-template-columns: 62px 1fr;
           }
 
-          .additional-cards {
-            margin-top: 8px !important;
-            gap: 6px !important;
+          .additional-side {
+            font-size: 7px;
           }
 
-          .metric-card {
-            padding: 7px !important;
+          .additional-content {
+            padding: 8px 12px;
           }
 
-          .metric-card
-            p:first-child {
-            font-size: 7px !important;
-          }
-
-          .metric-card
-            p:last-child {
-            margin-top: 3px !important;
-            font-size: 12px !important;
+          .risk-intro {
+            font-size: 7px;
+            margin-bottom: 5px;
           }
 
           .risk-table {
-            margin-top: 7px !important;
+            font-size: 6.5px;
           }
 
-          .risk-table table {
-            min-width: 0 !important;
-            font-size: 7px !important;
+          .risk-table th,
+          .risk-table td {
+            padding: 2px 4px;
           }
 
-          .risk-table
-            th,
-          .risk-table
-            td {
-            padding: 2px 4px !important;
+          .additional-values {
+            font-size: 7px;
+            margin-top: 7px;
           }
 
-          /*
-           * SOMATOTIPO
-           * La somatocarta se reduce para que no salte
-           * sola a una página nueva.
-           */
-          .somatotype-section {
-            padding: 10px !important;
+          .additional-values td {
+            padding: 5px 7px;
           }
 
-          .somatotype-cards {
-            margin-top: 8px !important;
-            gap: 6px !important;
+          .somato-values {
+            font-size: 7.5px;
           }
 
-          .somatotype-card {
-            padding: 7px !important;
+          .somato-values th,
+          .somato-values td {
+            padding: 4px 6px;
           }
 
-          .somatotype-card
-            p:first-child {
-            font-size: 7px !important;
+          .somatochart {
+            grid-template-columns: 62px 1fr;
+            min-height: 300px;
           }
 
-          .somatotype-card
-            p:nth-child(2) {
-            margin-top: 3px !important;
-            font-size: 16px !important;
+          .somato-side {
+            font-size: 7px;
+            padding-top: 12px;
           }
 
-          .somatochart-wrapper {
-            margin-top: 8px !important;
-            padding: 7px !important;
+          .somato-graph {
+            height: 300px;
           }
 
-          .somatochart-wrapper h3 {
-            font-size: 12px !important;
+          .somato-meso,
+          .somato-endo,
+          .somato-ecto {
+            font-size: 8px;
           }
 
-          .somatochart-area {
-            height: 255px !important;
-            margin-top: 7px !important;
+          .somato-dot {
+            width: 11px;
+            height: 11px;
           }
 
-          .somatochart-legend {
-            margin-top: 5px !important;
-            font-size: 7px !important;
-            gap: 8px !important;
+          .somato-footer {
+            margin-left: 62px;
+            padding: 6px 8px;
           }
 
-          .somatotype-details {
-            margin-top: 7px !important;
-            gap: 6px !important;
+          .somato-footer-item {
+            padding: 5px;
           }
 
-          .comparison-card {
-            margin-top: 7px !important;
-            padding: 7px !important;
-            font-size: 7.5px !important;
+          .somato-footer-label {
+            font-size: 6px;
+          }
+
+          .somato-footer-value {
+            font-size: 8px;
+          }
+
+          .comparison-note {
+            font-size: 6.5px;
+            margin-top: 5px;
+            padding-top: 5px;
           }
         }
       `}</style>
 
       <PlayerNav
-        playerId={
-          playerId
-        }
+        playerId={playerId}
         playerName={
           player.name
         }
@@ -811,283 +1326,213 @@ function PresentacionAntropogims() {
       </div>
 
       {/* ==================================================
-          INFORME PRINCIPAL
+          PÁGINA 1
       ================================================== */}
 
-      <PresentationHeader
-        title="Informe de Composición Corporal"
-        playerName={
-          player.name
-        }
-        anthropometry={
-          anthropometry
-        }
-      />
+      <section className="antro-sheet">
+        <SheetHeader
+          title="Informe de Composición Corporal"
+          playerName={
+            player.name
+          }
+          anthropometry={
+            anthropometry
+          }
+        />
 
-      {/* ==================================================
-          MEDICIONES
-      ================================================== */}
-
-      <section className="presentation-card presentation-measurements mt-4 overflow-hidden rounded-lg border border-border bg-card shadow-panel">
-        <div className="measurement-heading border-b border-border px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Antropometría
-          </p>
-
-          <h2 className="mt-1 font-display text-xl font-semibold">
-            Mediciones
-          </h2>
-
-          <p className="mt-1 text-xs text-muted-foreground">
-            Resultados, valor
-            ajustado PHANTOM,
-            diferencia con la
-            medición anterior y
-            Score-Z.
-          </p>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] text-sm">
-            <thead className="bg-muted/70">
-              <tr>
-                <th className="px-3 py-2 text-left">
-                  Medición
-                </th>
-
-                <th className="px-3 py-2 text-right">
-                  Resultado
-                </th>
-
-                <th className="px-3 py-2 text-right">
-                  Valor ajustado
-                </th>
-
-                <th className="px-3 py-2 text-right">
-                  Anterior
-                </th>
-
-                <th className="px-3 py-2 text-right">
-                  Diferencia
-                </th>
-
-                <th className="px-3 py-2 text-right">
-                  Score-Z
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {GROUP_ORDER.map(
-                (group) => (
-                  <MeasurementGroup
-                    key={group}
-                    group={
-                      group
-                    }
-                    anthropometry={
-                      anthropometry
-                    }
-                    presentation={
-                      presentation
-                    }
-                  />
-                ),
-              )}
-            </tbody>
-          </table>
-        </div>
+        <MeasurementTable
+          anthropometry={
+            anthropometry
+          }
+          presentation={
+            presentation
+          }
+        />
       </section>
 
       {/* ==================================================
-          FRACCIONAMIENTO 5 MASAS
+          PÁGINA 2
       ================================================== */}
 
-      <section className="presentation-card five-masses-section print-page mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Fraccionamiento
-            </p>
+      <section className="antro-sheet print-page mt-4">
+        <SheetHeader
+          title="Informe de Composición Corporal"
+          playerName={
+            player.name
+          }
+          anthropometry={
+            anthropometry
+          }
+        />
 
-            <h2 className="mt-1 font-display text-xl font-semibold">
-              5 masas
-            </h2>
+        <div className="five-mass-layout">
+          <div className="side-label side-label-left">
+            FRACCIONAMIENTO
+            <br />
+            5 MASAS
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            D. Kerr, 1988
-          </p>
+          <div className="five-chart">
+            <ScoreZPlot
+              title="Fraccionamiento 5 masas"
+              items={
+                fiveMassScoreItems
+              }
+            />
+          </div>
+
+          <div className="side-label side-label-right">
+            MASAS
+            <br />
+            CORPORALES
+          </div>
         </div>
 
-        <div className="five-masses-chart mt-4">
-          <ScoreZPlot
-            title="Fraccionamiento 5 masas · Score-Z"
-            items={
-              fiveMassScoreItems
-            }
-          />
-        </div>
+        <table className="five-table">
+          <thead>
+            <tr>
+              <th className="text-left">
+                &nbsp;
+              </th>
 
-        <div className="five-masses-table mt-5 overflow-x-auto">
-          <table className="w-full min-w-[760px] text-sm">
-            <thead className="bg-muted/70">
-              <tr>
-                <th className="px-3 py-2 text-left">
-                  Componente
-                </th>
+              <th>
+                Porcentaje
+              </th>
 
-                <th className="px-3 py-2 text-right">
-                  Porcentaje
-                </th>
+              <th>
+                Kg
+              </th>
 
-                <th className="px-3 py-2 text-right">
-                  Kg
-                </th>
+              <th>
+                Score-Z
+              </th>
 
-                <th className="px-3 py-2 text-right">
-                  Score-Z
-                </th>
+              <th>
+                Dif.
+              </th>
+            </tr>
+          </thead>
 
-                <th className="px-3 py-2 text-right">
-                  Diferencia
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {MASS_ROWS.map(
-                (row) => (
-                  <tr
-                    key={
-                      row.key
+          <tbody>
+            {MASS_ROWS.map(
+              (
+                row,
+              ) => (
+                <tr
+                  key={
+                    row.key
+                  }
+                >
+                  <td>
+                    {
+                      row.label
                     }
-                    className="border-t border-border"
-                  >
-                    <td className="px-3 py-2 font-medium">
-                      <span
-                        className="mr-2 inline-block h-2.5 w-2.5 rounded-full"
-                        style={{
-                          backgroundColor:
-                            MASS_COLORS[
-                              row.key
-                            ],
-                        }}
-                      />
+                  </td>
 
-                      {
-                        row.label
-                      }
-                    </td>
+                  <td>
+                    {presentation
+                      .massPercentages[
+                      row.key
+                    ] != null
+                      ? `${fmt(
+                          presentation
+                            .massPercentages[
+                            row.key
+                          ]!,
+                          2,
+                        )}%`
+                      : "—"}
+                  </td>
 
-                    <td className="numeric px-3 py-2 text-right">
-                      {presentation
-                        .massPercentages[
-                        row.key
-                      ] != null
-                        ? `${fmt(
-                            presentation
-                              .massPercentages[
-                              row.key
-                            ]!,
-                            2,
-                          )}%`
-                        : "—"}
-                    </td>
+                  <td>
+                    {presentation
+                      .massesKg[
+                      row.key
+                    ] != null
+                      ? fmt(
+                          presentation
+                            .massesKg[
+                            row.key
+                          ]!,
+                          3,
+                        )
+                      : "—"}
+                  </td>
 
-                    <td className="numeric px-3 py-2 text-right font-semibold">
-                      {presentation
-                        .massesKg[
-                        row.key
-                      ] != null
-                        ? `${fmt(
-                            presentation
-                              .massesKg[
-                              row.key
-                            ]!,
-                            3,
-                          )} kg`
-                        : "—"}
-                    </td>
+                  <td>
+                    {presentation
+                      .massScoreZ[
+                      row.key
+                    ] != null
+                      ? fmt(
+                          presentation
+                            .massScoreZ[
+                            row.key
+                          ]!,
+                          2,
+                        )
+                      : "—"}
+                  </td>
 
-                    <td className="numeric px-3 py-2 text-right">
-                      {presentation
-                        .massScoreZ[
-                        row.key
-                      ] != null
-                        ? fmt(
-                            presentation
-                              .massScoreZ[
-                              row.key
-                            ]!,
-                            2,
-                          )
-                        : "—"}
-                    </td>
+                  <td>
+                    {presentation
+                      .massDifferencesKg
+                      ? signed(
+                          presentation
+                            .massDifferencesKg[
+                            row.key
+                          ],
+                          3,
+                        )
+                      : "—"}
+                  </td>
+                </tr>
+              ),
+            )}
 
-                    <td className="numeric px-3 py-2 text-right">
-                      {presentation
-                        .massDifferencesKg
-                        ? signed(
-                            presentation
-                              .massDifferencesKg[
-                              row.key
-                            ],
-                            3,
-                            " kg",
-                          )
-                        : "—"}
-                    </td>
-                  </tr>
-                ),
-              )}
+            <tr className="five-table-total">
+              <td>
+                Masa Total
+              </td>
 
-              <tr className="border-t-2 border-border bg-muted/40 font-semibold">
-                <td className="px-3 py-2">
-                  Masa total
-                </td>
+              <td>
+                100,00%
+              </td>
 
-                <td className="numeric px-3 py-2 text-right">
-                  100,00%
-                </td>
+              <td>
+                {massTotal !=
+                null
+                  ? fmt(
+                      massTotal,
+                      3,
+                    )
+                  : "—"}
+              </td>
 
-                <td className="numeric px-3 py-2 text-right">
-                  {massTotal !=
-                  null
-                    ? `${fmt(
-                        massTotal,
-                        3,
-                      )} kg`
-                    : "—"}
-                </td>
+              <td>
+                {presentation
+                  .totalMassScoreZ !=
+                null
+                  ? fmt(
+                      presentation
+                        .totalMassScoreZ,
+                      2,
+                    )
+                  : "—"}
+              </td>
 
-                <td className="numeric px-3 py-2 text-right">
-                  {presentation
-                    .totalMassScoreZ !=
-                  null
-                    ? fmt(
-                        presentation
-                          .totalMassScoreZ,
-                        2,
-                      )
-                    : "—"}
-                </td>
+              <td>
+                —
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-                <td className="px-3 py-2 text-right">
-                  —
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
-            <strong>
-              Diferencia peso
-              estructurado / peso
-              bruto:
-            </strong>{" "}
+        <div className="structured-row">
+          Porcentaje de diferencia
+          Peso Estructurado - Peso
+          Bruto:{" "}
+          <span className="text-foreground">
             {presentation
               .structuredDifferencePercent !=
             null
@@ -1098,77 +1543,85 @@ function PresentacionAntropogims() {
                   "%",
                 )
               : "—"}
-          </div>
+          </span>
 
-          <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
-            <strong>
-              Masa ósea de referencia:
-            </strong>{" "}
-            {anthropometry
-              .boneReferenceKg !=
-            null
-              ? `${fmt(
+          {anthropometry
+            .boneReferenceKg !=
+            null && (
+            <>
+              {" "}
+              · Masa ósea de
+              referencia:{" "}
+              <span className="text-foreground">
+                {fmt(
                   anthropometry
                     .boneReferenceKg,
                   3,
-                )} kg`
-              : "—"}
-          </div>
+                )}{" "}
+                kg
+              </span>
+            </>
+          )}
         </div>
 
-        <div className="five-masses-description mt-4 rounded-md border border-border p-4 text-sm">
-          <p className="font-semibold">
-            Fraccionamiento corporal
-            en 5 componentes
+        <div className="five-explanation">
+          <p>
+            El{" "}
+            <strong>
+              fraccionamiento corporal
+              en 5 componentes
+            </strong>{" "}
+            (D. Kerr, 1988) divide la
+            masa corporal en cinco
+            fracciones anatómicas.
           </p>
 
-          <p className="mt-2 leading-relaxed text-muted-foreground">
-            El modelo divide la masa
-            corporal en tejido
-            adiposo, muscular,
-            residual, óseo y cutáneo.
-            Los porcentajes y masas
-            respetan la metodología
-            utilizada por
-            Antropogims.
-          </p>
+          <div className="mass-reference">
+            <div>
+              1 - Adiposa
+            </div>
+            <div>
+              grasa subcutánea
+            </div>
 
-          <div className="mini-masses-grid mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-            <MiniMass
-              label="Adiposa"
-              detail="grasa subcutánea"
-            />
+            <div>
+              2 - Muscular
+            </div>
+            <div>
+              músculo
+            </div>
 
-            <MiniMass
-              label="Muscular"
-              detail="músculo"
-            />
+            <div>
+              3 - Residual
+            </div>
+            <div>
+              vísceras, órganos y
+              pulmones
+            </div>
 
-            <MiniMass
-              label="Residual"
-              detail="vísceras, órganos, pulmones"
-            />
+            <div>
+              4 - Ósea
+            </div>
+            <div>
+              huesos
+            </div>
 
-            <MiniMass
-              label="Ósea"
-              detail="huesos"
-            />
-
-            <MiniMass
-              label="Cutánea"
-              detail="piel"
-            />
+            <div>
+              5 - Cutánea
+            </div>
+            <div>
+              piel
+            </div>
           </div>
         </div>
       </section>
 
       {/* ==================================================
-          PHANTOM SCORE-Z
+          PÁGINA 3
       ================================================== */}
 
-      <section className="presentation-card print-page mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
-        <PresentationHeader
-          compact
+      <section className="antro-sheet print-page mt-4">
+        <SheetHeader
           title="Phantom Score-Z"
           playerName={
             player.name
@@ -1178,35 +1631,31 @@ function PresentacionAntropogims() {
           }
         />
 
-        <div className="phantom-description mt-4 rounded-md border border-border bg-muted/20 p-4 text-sm leading-relaxed">
-          <p className="font-semibold">
-            Modelo de
-            proporcionalidad
-            PHANTOM
-          </p>
+        <div className="phantom-description">
+          <h3>
+            MODELO DE
+            PROPORCIONALIDAD PHANTOM
+          </h3>
 
-          <p className="mt-2 text-muted-foreground">
-            El modelo PHANTOM usa
-            una referencia unisex de
-            170,18 cm. Las
-            mediciones se ajustan a
-            esa talla y luego se
-            expresan en desvíos
-            estándar mediante
+          <p>
+            El modelo PHANTOM utiliza
+            una referencia humana
+            unisex de 170,18 cm. Cada
+            variable se ajusta a esa
+            talla y se expresa como
             Score-Z.
           </p>
 
-          <p className="mt-2 text-xs font-medium text-muted-foreground">
-            Un Score-Z de 0
-            corresponde al valor de
-            referencia. Valores
-            positivos quedan por
-            encima y valores
-            negativos por debajo.
+          <p className="mt-2">
+            El valor 0 representa la
+            referencia. Los valores
+            positivos se ubican por
+            encima y los negativos por
+            debajo de ella.
           </p>
         </div>
 
-        <div className="phantom-grid mt-5 grid gap-5 lg:grid-cols-2">
+        <div className="phantom-grid">
           <ScoreZPlot
             title="Score-Z Básicos"
             items={makeScoreItems(
@@ -1246,13 +1695,12 @@ function PresentacionAntropogims() {
       </section>
 
       {/* ==================================================
-          DATOS ADICIONALES
+          PÁGINA 4
       ================================================== */}
 
-      <section className="presentation-card additional-section print-page mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
-        <PresentationHeader
-          compact
-          title="Datos adicionales"
+      <section className="antro-sheet print-page mt-4">
+        <SheetHeader
+          title="Datos Adicionales"
           playerName={
             player.name
           }
@@ -1261,168 +1709,172 @@ function PresentacionAntropogims() {
           }
         />
 
-        <div className="additional-cards mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            label="Índice cintura / cadera"
-            value={
-              presentation
-                .additional
-                .waistHipRatio !=
-              null
-                ? fmt(
-                    presentation
+        <div className="additional-layout">
+          <div className="additional-side">
+            DATOS
+            <br />
+            ADICIONALES
+          </div>
+
+          <div className="additional-content">
+            <p className="risk-intro">
+              El índice cintura/cadera
+              es una relación
+              antropométrica utilizada
+              como referencia para la
+              distribución corporal.
+            </p>
+
+            <WaistHipReferenceTable />
+
+            <table className="additional-values">
+              <tbody>
+                <tr>
+                  <td>
+                    Índice cintura /
+                    cadera
+                  </td>
+
+                  <td>
+                    {formatNumber(
+                      presentation
+                        .additional
+                        .waistHipRatio,
+                      3,
+                    )}
+                  </td>
+
+                  <td>
+                    Suma de 6 pliegues
+                  </td>
+
+                  <td>
+                    {presentation
                       .additional
-                      .waistHipRatio,
-                    3,
-                  )
-                : "—"
-            }
-          />
+                      .sum6 != null
+                      ? `${fmt(
+                          presentation
+                            .additional
+                            .sum6,
+                          1,
+                        )} mm`
+                      : "—"}
+                  </td>
+                </tr>
 
-          <MetricCard
-            label="Suma de 6 pliegues"
-            value={
-              presentation
-                .additional
-                .sum6 != null
-                ? `${fmt(
-                    presentation
+                <tr>
+                  <td>
+                    Índice músculo /
+                    óseo
+                  </td>
+
+                  <td>
+                    {formatNumber(
+                      presentation
+                        .additional
+                        .muscleBoneIndex,
+                      2,
+                    )}
+                  </td>
+
+                  <td>
+                    Índice adiposo /
+                    muscular
+                  </td>
+
+                  <td>
+                    {formatNumber(
+                      presentation
+                        .additional
+                        .adiposeMuscleIndex,
+                      3,
+                    )}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td>
+                    Índice de masa
+                    corporal
+                  </td>
+
+                  <td>
+                    {presentation
+                      .additional.bmi !=
+                    null
+                      ? `${fmt(
+                          presentation
+                            .additional.bmi,
+                          2,
+                        )} kg/m²`
+                      : "—"}
+                  </td>
+
+                  <td>
+                    Talla sentado /
+                    talla
+                  </td>
+
+                  <td>
+                    {formatNumber(
+                      presentation
+                        .additional
+                        .sittingHeightStatureRatio,
+                      3,
+                    )}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td>
+                    BSA
+                  </td>
+
+                  <td>
+                    {presentation
                       .additional
-                      .sum6,
-                    1,
-                  )} mm`
-                : "—"
-            }
-          />
+                      .bodySurfaceArea !=
+                    null
+                      ? `${fmt(
+                          presentation
+                            .additional
+                            .bodySurfaceArea,
+                          3,
+                        )} m²`
+                      : "—"}
+                  </td>
 
-          <MetricCard
-            label="Índice músculo / óseo"
-            value={
-              presentation
-                .additional
-                .muscleBoneIndex !=
-              null
-                ? fmt(
-                    presentation
+                  <td>
+                    BSA / BM
+                  </td>
+
+                  <td>
+                    {presentation
                       .additional
-                      .muscleBoneIndex,
-                    2,
-                  )
-                : "—"
-            }
-          />
-
-          <MetricCard
-            label="Índice adiposo / muscular"
-            value={
-              presentation
-                .additional
-                .adiposeMuscleIndex !=
-              null
-                ? fmt(
-                    presentation
-                      .additional
-                      .adiposeMuscleIndex,
-                    3,
-                  )
-                : "—"
-            }
-          />
-
-          <MetricCard
-            label="Índice de masa corporal"
-            value={
-              presentation
-                .additional
-                .bmi != null
-                ? `${fmt(
-                    presentation
-                      .additional
-                      .bmi,
-                    2,
-                  )} kg/m²`
-                : "—"
-            }
-          />
-
-          <MetricCard
-            label="Talla sentado / talla"
-            value={
-              presentation
-                .additional
-                .sittingHeightStatureRatio !=
-              null
-                ? fmt(
-                    presentation
-                      .additional
-                      .sittingHeightStatureRatio,
-                    3,
-                  )
-                : "—"
-            }
-          />
-
-          <MetricCard
-            label="BSA"
-            value={
-              presentation
-                .additional
-                .bodySurfaceArea !=
-              null
-                ? `${fmt(
-                    presentation
-                      .additional
-                      .bodySurfaceArea,
-                    3,
-                  )} m²`
-                : "—"
-            }
-          />
-
-          <MetricCard
-            label="BSA / BM"
-            value={
-              presentation
-                .additional
-                .bodySurfaceAreaBodyMass !=
-              null
-                ? `${fmt(
-                    presentation
-                      .additional
-                      .bodySurfaceAreaBodyMass,
-                    2,
-                  )} cm²/kg`
-                : "—"
-            }
-          />
-        </div>
-
-        <div className="mt-5">
-          <h3 className="font-display text-lg font-semibold">
-            Índice cintura /
-            cadera
-          </h3>
-
-          <p className="mt-1 text-xs text-muted-foreground">
-            Tabla incluida en la
-            presentación original
-            como referencia
-            descriptiva.
-          </p>
-
-          <WaistHipReferenceTable />
+                      .bodySurfaceAreaBodyMass !=
+                    null
+                      ? `${fmt(
+                          presentation
+                            .additional
+                            .bodySurfaceAreaBodyMass,
+                          2,
+                        )} cm²/kg`
+                      : "—"}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
       {/* ==================================================
-          SOMATOTIPO
+          PÁGINA 5
       ================================================== */}
 
-      <section className="presentation-card somatotype-section print-page mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
-        <PresentationHeader
-          compact
-          title="Somatotipo de Heath & Carter"
-          subtitle="1990"
+      <section className="antro-sheet print-page mt-4">
+        <SheetHeader
+          title="Somatotipo de Heath & Carter (1990)"
           playerName={
             player.name
           }
@@ -1431,313 +1883,387 @@ function PresentacionAntropogims() {
           }
         />
 
-        <div className="somatotype-cards mt-5 grid gap-4 md:grid-cols-3">
-          <SomatotypeCard
-            label="Endomorfia"
-            value={
-              presentation
-                .somatotype
-                .endomorph
-            }
-            previous={
-              previousPresentation
-                ?.somatotype
-                .endomorph
-            }
-          />
+        <table className="somato-values">
+          <thead>
+            <tr>
+              <th>
+                ENDO
+              </th>
 
-          <SomatotypeCard
-            label="Mesomorfia"
-            value={
-              presentation
-                .somatotype
-                .mesomorph
-            }
-            previous={
-              previousPresentation
-                ?.somatotype
-                .mesomorph
-            }
-          />
+              <th>
+                MESO
+              </th>
 
-          <SomatotypeCard
-            label="Ectomorfia"
-            value={
-              presentation
-                .somatotype
-                .ectomorph
-            }
-            previous={
-              previousPresentation
-                ?.somatotype
-                .ectomorph
-            }
-          />
-        </div>
+              <th>
+                ECTO
+              </th>
+            </tr>
+          </thead>
 
-        <div className="mt-5">
-          <Somatochart
-            x={
-              presentation
-                .somatotype.x
-            }
-            y={
-              presentation
-                .somatotype.y
-            }
-            previousX={
-              previousPresentation
-                ?.somatotype.x
-            }
-            previousY={
-              previousPresentation
-                ?.somatotype.y
-            }
-          />
-        </div>
-
-        <div className="somatotype-details mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            label="Σ pliegues somatotipo"
-            value={
-              presentation
-                .somatotype
-                .skinfoldSum !=
-              null
-                ? `${fmt(
-                    presentation
-                      .somatotype
-                      .skinfoldSum,
-                    2,
-                  )} mm`
-                : "—"
-            }
-          />
-
-          <MetricCard
-            label="Brazo flexionado corregido"
-            value={
-              presentation
-                .somatotype
-                .correctedFlexedArm !=
-              null
-                ? `${fmt(
-                    presentation
-                      .somatotype
-                      .correctedFlexedArm,
-                    2,
-                  )} cm`
-                : "—"
-            }
-          />
-
-          <MetricCard
-            label="Pantorrilla corregida"
-            value={
-              presentation
-                .somatotype
-                .correctedCalf !=
-              null
-                ? `${fmt(
-                    presentation
-                      .somatotype
-                      .correctedCalf,
-                    2,
-                  )} cm`
-                : "—"
-            }
-          />
-
-          <MetricCard
-            label="Índice talla / peso"
-            value={
-              presentation
-                .somatotype
-                .heightWeightRatio !=
-              null
-                ? fmt(
-                    presentation
-                      .somatotype
-                      .heightWeightRatio,
-                    2,
-                  )
-                : "—"
-            }
-          />
-        </div>
-
-        <section className="comparison-card mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
-          <p className="font-semibold">
-            Comparación con medición
-            anterior
-          </p>
-
-          {previous ? (
-            <p className="mt-2 text-sm text-muted-foreground">
-              Los campos
-              “Anterior” y
-              “Diferencia” se
-              calcularon
-              automáticamente contra
-              la evaluación del{" "}
-              <strong>
-                {fmtDate(
-                  previous.date,
+          <tbody>
+            <tr>
+              <td>
+                {formatNumber(
+                  presentation
+                    .somatotype
+                    .endomorph,
+                  2,
                 )}
-              </strong>
-              .
-            </p>
-          ) : (
-            <p className="mt-2 text-sm text-muted-foreground">
-              Esta es la primera
-              evaluación completa
-              disponible para la
-              jugadora. Todavía no hay
-              una medición anterior
-              para comparar.
-            </p>
-          )}
-        </section>
+              </td>
+
+              <td>
+                {formatNumber(
+                  presentation
+                    .somatotype
+                    .mesomorph,
+                  2,
+                )}
+              </td>
+
+              <td>
+                {formatNumber(
+                  presentation
+                    .somatotype
+                    .ectomorph,
+                  2,
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <Somatochart
+          x={
+            presentation
+              .somatotype.x
+          }
+          y={
+            presentation
+              .somatotype.y
+          }
+          previousX={
+            previousPresentation
+              ?.somatotype.x
+          }
+          previousY={
+            previousPresentation
+              ?.somatotype.y
+          }
+        />
+
+        <div className="somato-footer">
+          <div className="somato-footer-grid">
+            <SomatoDetail
+              label="Σ pliegues somatotipo"
+              value={
+                presentation
+                  .somatotype
+                  .skinfoldSum !=
+                null
+                  ? `${fmt(
+                      presentation
+                        .somatotype
+                        .skinfoldSum,
+                      2,
+                    )} mm`
+                  : "—"
+              }
+            />
+
+            <SomatoDetail
+              label="Brazo flexionado corregido"
+              value={
+                presentation
+                  .somatotype
+                  .correctedFlexedArm !=
+                null
+                  ? `${fmt(
+                      presentation
+                        .somatotype
+                        .correctedFlexedArm,
+                      2,
+                    )} cm`
+                  : "—"
+              }
+            />
+
+            <SomatoDetail
+              label="Pantorrilla corregida"
+              value={
+                presentation
+                  .somatotype
+                  .correctedCalf !=
+                null
+                  ? `${fmt(
+                      presentation
+                        .somatotype
+                        .correctedCalf,
+                      2,
+                    )} cm`
+                  : "—"
+              }
+            />
+
+            <SomatoDetail
+              label="Índice talla / peso"
+              value={
+                formatNumber(
+                  presentation
+                    .somatotype
+                    .heightWeightRatio,
+                  2,
+                )
+              }
+            />
+          </div>
+
+          <div className="comparison-note">
+            {previous ? (
+              <>
+                Posicionamiento actual
+                comparado con la
+                medición anterior del{" "}
+                <strong>
+                  {fmtDate(
+                    previous.date,
+                  )}
+                </strong>
+                .
+              </>
+            ) : (
+              <>
+                Primera evaluación
+                completa disponible
+                para la jugadora. No
+                existe una medición
+                anterior para comparar.
+              </>
+            )}
+          </div>
+        </div>
       </section>
     </AppLayout>
   );
 }
 
 /* ============================================================
-   ENCABEZADO
+   ENCABEZADO TIPO ANTROPOGIMS
 ============================================================ */
 
-function PresentationHeader({
+function SheetHeader({
   title,
-  subtitle,
   playerName,
   anthropometry,
-  compact = false,
 }: {
   title: string;
-  subtitle?: string;
   playerName: string;
   anthropometry:
     FullAnthropometry;
-  compact?: boolean;
 }) {
   return (
-    <section
-      className={
-        compact
-          ? ""
-          : "presentation-card presentation-main-header overflow-hidden rounded-lg border border-border bg-card shadow-panel"
-      }
-    >
-      <div
-        className={
-          compact
-            ? "border-b border-border pb-3"
-            : "presentation-title-bar border-b border-border bg-primary px-5 py-4 text-primary-foreground"
-        }
-      >
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="font-display text-2xl font-bold">
-              {title}
-            </h1>
+    <>
+      <div className="antro-title-grid">
+        <div className="antro-title">
+          {title}
+        </div>
 
-            {subtitle && (
-              <p className="mt-1 text-sm opacity-80">
-                {subtitle}
-              </p>
-            )}
-          </div>
+        <div className="antro-brand">
+          <strong>
+            SAN LORENZO
+          </strong>
 
-          {!compact && (
-            <p className="text-sm font-semibold">
-              {fmtDate(
-                anthropometry.date,
-              )}
-            </p>
-          )}
+          <span>
+            Nutrición Deportiva
+          </span>
+
+          <span>
+            Antropometría
+          </span>
         </div>
       </div>
 
-      <div
-        className={
-          compact
-            ? "mt-3 grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-4"
-            : "grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-4"
-        }
-      >
-        <HeaderItem
-          label="Nombre"
-          value={
-            playerName
-          }
-        />
+      <div className="antro-info">
+        <div className="antro-info-line">
+          <div className="antro-info-cell">
+            <strong>
+              Nombre:
+            </strong>
 
-        <HeaderItem
-          label="Edad"
-          value={
-            anthropometry
-              .ageYears !=
-            null
-              ? `${fmt(
-                  anthropometry
-                    .ageYears,
-                  1,
-                )} años`
-              : "—"
-          }
-        />
+            <span>
+              {playerName}
+            </span>
+          </div>
 
-        <HeaderItem
-          label="N.º de medición"
-          value={
-            anthropometry
-              .measurementNumber !=
-            null
-              ? String(
-                  anthropometry
-                    .measurementNumber,
-                )
-              : "—"
-          }
-        />
+          <div className="antro-info-cell">
+            <strong>
+              Edad:
+            </strong>
 
-        <HeaderItem
-          label="Fecha"
-          value={
-            fmtDate(
-              anthropometry.date,
-            )
-          }
-        />
+            <span>
+              {anthropometry
+                .ageYears != null
+                ? fmt(
+                    anthropometry
+                      .ageYears,
+                    1,
+                  )
+                : "—"}
+            </span>
+          </div>
+        </div>
+
+        <div className="antro-info-line">
+          <div className="antro-info-cell">
+            <strong>
+              Número de medición:
+            </strong>
+
+            <span>
+              {anthropometry
+                .measurementNumber !=
+              null
+                ? anthropometry
+                    .measurementNumber
+                : "—"}
+            </span>
+          </div>
+
+          <div className="antro-info-cell">
+            <strong>
+              Fecha de medición:
+            </strong>
+
+            <span>
+              {fmtDate(
+                anthropometry.date,
+              )}
+            </span>
+          </div>
+        </div>
       </div>
-    </section>
-  );
-}
-
-function HeaderItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="header-item bg-card px-4 py-3 text-foreground">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-
-      <p className="mt-1 font-semibold">
-        {value}
-      </p>
-    </div>
+    </>
   );
 }
 
 /* ============================================================
-   TABLA DE MEDICIONES
+   MEDICIONES
 ============================================================ */
+
+function MeasurementTable({
+  anthropometry,
+  presentation,
+}: {
+  anthropometry:
+    FullAnthropometry;
+
+  presentation:
+    ReturnType<
+      typeof calculateAntropogimsPresentation
+    >;
+}) {
+  return (
+    <table className="technical-table">
+      <colgroup>
+        <col
+          style={{
+            width: "84px",
+          }}
+        />
+
+        <col
+          style={{
+            width: "34%",
+          }}
+        />
+
+        <col
+          style={{
+            width: "18%",
+          }}
+        />
+
+        <col
+          style={{
+            width: "16%",
+          }}
+        />
+
+        <col
+          style={{
+            width: "16%",
+          }}
+        />
+
+        <col />
+      </colgroup>
+
+      <thead>
+        <tr>
+          <th />
+
+          <th />
+
+          <th>
+            Resultados
+          </th>
+
+          <th colSpan={2}>
+            Diferencias con anterior
+          </th>
+
+          <th>
+            Score-Z
+          </th>
+        </tr>
+
+        <tr>
+          <th />
+
+          <th className="text-left">
+            Medición
+          </th>
+
+          <th>
+            Actual
+          </th>
+
+          <th>
+            Anterior
+          </th>
+
+          <th>
+            Dif.
+          </th>
+
+          <th>
+            Z
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {GROUP_ORDER.map(
+          (
+            group,
+          ) => (
+            <MeasurementGroup
+              key={group}
+              group={
+                group
+              }
+              anthropometry={
+                anthropometry
+              }
+              presentation={
+                presentation
+              }
+            />
+          ),
+        )}
+      </tbody>
+    </table>
+  );
+}
 
 function MeasurementGroup({
   group,
@@ -1746,8 +2272,10 @@ function MeasurementGroup({
 }: {
   group:
     FullAnthropometryGroup;
+
   anthropometry:
     FullAnthropometry;
+
   presentation:
     ReturnType<
       typeof calculateAntropogimsPresentation
@@ -1760,36 +2288,27 @@ function MeasurementGroup({
         group,
     );
 
+  const groupClass =
+    group === "basicos"
+      ? "group-basicos"
+      : group === "diametros"
+        ? "group-diametros"
+        : group === "perimetros"
+          ? "group-perimetros"
+          : "group-pliegues";
+
   return (
     <>
-      <tr className="measurement-group-row border-t border-border bg-primary/5">
-        <td
-          colSpan={6}
-          className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-primary"
-        >
-          {
-            FULL_ANTHROPOMETRY_GROUP_LABELS[
-              group
-            ]
-          }
-        </td>
-      </tr>
-
       {definitions.map(
         (
           definition,
+          index,
         ) => {
           const currentValue =
             currentMeasureValue(
               anthropometry,
               definition.key,
             );
-
-          const adjustedValue =
-            presentation
-              .adjustedValues[
-              definition.key
-            ];
 
           const previousValue =
             presentation
@@ -1814,81 +2333,97 @@ function MeasurementGroup({
               key={
                 definition.key
               }
-              className="border-t border-border"
             >
-              <td className="px-3 py-2">
-                <span className="font-medium">
-                  {
-                    definition.label
+              {index ===
+                0 && (
+                <td
+                  rowSpan={
+                    definitions.length
                   }
-                </span>
+                  className={`group-cell ${groupClass}`}
+                >
+                  {
+                    FULL_ANTHROPOMETRY_GROUP_LABELS[
+                      group
+                    ]
+                  }
+                </td>
+              )}
 
-                <span className="ml-1 text-xs text-muted-foreground">
-                  ({definition.unit})
+              <td className="measure-name">
+                {
+                  definition.label
+                }{" "}
+                <span className="text-[10px] text-muted-foreground">
+                  (
+                  {
+                    definition.unit
+                  }
+                  )
                 </span>
               </td>
 
-              <td className="numeric px-3 py-2 text-right font-semibold">
-                {formatMeasure(
+              <td className="numeric">
+                {formatNumber(
                   currentValue,
                   2,
                 )}
               </td>
 
-              <td className="numeric px-3 py-2 text-right">
-                {formatMeasure(
-                  adjustedValue,
-                  2,
-                )}
-              </td>
-
-              <td className="numeric px-3 py-2 text-right">
-                {formatMeasure(
+              <td className="numeric">
+                {formatNumber(
                   previousValue,
                   2,
                 )}
               </td>
 
-              <td className="numeric px-3 py-2 text-right">
+              <td className="numeric">
                 {signed(
                   difference,
                   2,
                 )}
               </td>
 
-              <td className="numeric px-3 py-2 text-right font-semibold">
-                {scoreZ !=
-                null
-                  ? fmt(
-                      scoreZ,
-                      2,
-                    )
-                  : "—"}
+              <td className="numeric">
+                {formatNumber(
+                  scoreZ,
+                  2,
+                )}
               </td>
             </tr>
           );
         },
       )}
+
+      <tr>
+        <td
+          colSpan={6}
+          className="h-3 !border-b !border-slate-600 !p-0"
+        />
+      </tr>
     </>
   );
 }
 
 /* ============================================================
-   SCORE-Z VISUAL
+   SCORE-Z
 ============================================================ */
 
 type ScoreItem = {
   label: string;
+
   value:
     | number
     | null
     | undefined;
+
   color: string;
 };
 
 function makeScoreItems(
   keys:
     FullAnthropometryMeasureKey[],
+
   values:
     Partial<
       Record<
@@ -1898,16 +2433,16 @@ function makeScoreItems(
     >,
 ): ScoreItem[] {
   const colors = [
-    "#497eb9",
-    "#c34f48",
-    "#88aa46",
-    "#72559b",
-    "#49a1b3",
-    "#e88a3c",
-    "#527da8",
-    "#a34e4e",
-    "#779b46",
-    "#67538f",
+    "#4d83bd",
+    "#c94f48",
+    "#96b749",
+    "#7655a0",
+    "#4aa1ba",
+    "#ed8b39",
+    "#4d83bd",
+    "#c94f48",
+    "#96b749",
+    "#7655a0",
   ];
 
   return keys.map(
@@ -1942,285 +2477,242 @@ function ScoreZPlot({
   items: ScoreItem[];
 }) {
   return (
-    <div className="score-z-plot avoid-print-break rounded-lg border border-border bg-background p-4">
-      <h3 className="text-center font-display text-base font-semibold">
+    <div className="score-plot">
+      <h3 className="score-title">
         {title}
       </h3>
 
-      <div className="score-z-content mt-4">
-        {items.map(
-          (
-            item,
-          ) => {
-            const clamped =
-              item.value !=
-              null
-                ? clamp(
-                    item.value,
-                    -4,
-                    4,
-                  )
-                : null;
+      {items.map(
+        (
+          item,
+        ) => {
+          const bounded =
+            item.value !=
+            null
+              ? clamp(
+                  item.value,
+                  -4,
+                  4,
+                )
+              : null;
 
-            const left =
-              clamped !=
-              null
-                ? (
-                    (
-                      clamped +
-                      4
-                    ) /
-                    8
-                  ) *
-                  100
-                : null;
+          const left =
+            bounded !=
+            null
+              ? (
+                  (
+                    bounded +
+                    4
+                  ) /
+                  8
+                ) *
+                100
+              : null;
 
-            return (
-              <div
-                key={
+          return (
+            <div
+              key={
+                item.label
+              }
+              className="score-row"
+            >
+              <div className="score-label">
+                {
                   item.label
                 }
-                className="score-z-row mb-3 grid grid-cols-[130px_1fr_52px] items-center gap-2"
-              >
-                <div className="score-z-label truncate text-xs font-medium">
-                  {
-                    item.label
-                  }
-                </div>
-
-                <div
-                  className="score-z-bar relative h-7 overflow-hidden rounded border border-border"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(to right, transparent 49.7%, rgba(100,116,139,.5) 49.7%, rgba(100,116,139,.5) 50.3%, transparent 50.3%), repeating-linear-gradient(to right, transparent 0, transparent calc(12.5% - 1px), rgba(148,163,184,.28) calc(12.5% - 1px), rgba(148,163,184,.28) 12.5%)",
-                  }}
-                >
-                  {left !=
-                    null && (
-                    <span
-                      className="score-z-point absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
-                      style={{
-                        left: `${left}%`,
-                        backgroundColor:
-                          item.color,
-                      }}
-                    />
-                  )}
-                </div>
-
-                <div className="score-z-value numeric text-right text-xs font-semibold">
-                  {item.value !=
-                  null
-                    ? fmt(
-                        item.value,
-                        2,
-                      )
-                    : "—"}
-                </div>
               </div>
-            );
-          },
-        )}
 
-        <div className="score-z-axis ml-[138px] mr-[60px] mt-1 grid grid-cols-9 text-center text-[10px] text-muted-foreground">
-          {[
-            -4,
-            -3,
-            -2,
-            -1,
-            0,
-            1,
-            2,
-            3,
-            4,
-          ].map(
-            (
-              value,
-            ) => (
-              <span
-                key={
-                  value
-                }
-              >
-                {value}
-              </span>
-            ),
-          )}
-        </div>
+              <div className="score-track">
+                <div className="score-zero" />
+
+                {left !=
+                  null && (
+                  <span
+                    className="score-dot"
+                    style={{
+                      left: `${left}%`,
+                      backgroundColor:
+                        item.color,
+                    }}
+                  />
+                )}
+              </div>
+
+              <div className="score-value">
+                {formatNumber(
+                  item.value,
+                  2,
+                )}
+              </div>
+            </div>
+          );
+        },
+      )}
+
+      <div className="score-axis">
+        {[
+          -4,
+          -3,
+          -2,
+          -1,
+          0,
+          1,
+          2,
+          3,
+          4,
+        ].map(
+          (
+            number,
+          ) => (
+            <span
+              key={
+                number
+              }
+            >
+              {
+                number
+              }
+            </span>
+          ),
+        )}
       </div>
     </div>
   );
 }
 
 /* ============================================================
-   DATOS ADICIONALES
+   CINTURA / CADERA
 ============================================================ */
-
-function MetricCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="metric-card rounded-lg border border-border bg-muted/25 p-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-
-      <p className="mt-2 numeric text-lg font-bold">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function MiniMass({
-  label,
-  detail,
-}: {
-  label: string;
-  detail: string;
-}) {
-  return (
-    <div className="rounded-md bg-muted/40 p-2">
-      <p className="text-xs font-semibold">
-        {label}
-      </p>
-
-      <p className="mt-0.5 text-[11px] text-muted-foreground">
-        {detail}
-      </p>
-    </div>
-  );
-}
 
 function WaistHipReferenceTable() {
   return (
-    <div className="risk-table mt-3 overflow-x-auto">
-      <table className="w-full min-w-[720px] text-xs">
-        <thead className="bg-muted/70">
-          <tr>
-            <th className="px-2 py-2 text-left">
-              Sexo
-            </th>
+    <table className="risk-table">
+      <thead>
+        <tr>
+          <th rowSpan={2}>
+            Sexo
+          </th>
 
-            <th className="px-2 py-2 text-left">
-              Edad
-            </th>
+          <th rowSpan={2}>
+            Edad
+          </th>
 
-            <th className="px-2 py-2 text-center">
-              Bajo
-            </th>
+          <th colSpan={4}>
+            Riesgo
+          </th>
+        </tr>
 
-            <th className="px-2 py-2 text-center">
-              Moderado
-            </th>
+        <tr>
+          <th>
+            Bajo
+          </th>
 
-            <th className="px-2 py-2 text-center">
-              Alto
-            </th>
+          <th>
+            Moderado
+          </th>
 
-            <th className="px-2 py-2 text-center">
-              Muy alto
-            </th>
-          </tr>
-        </thead>
+          <th>
+            Alto
+          </th>
 
-        <tbody>
-          <RiskRow
-            sex="Hombres"
-            age="20–29"
-            low="<0,83"
-            moderate="0,83–0,88"
-            high="0,89–0,94"
-            veryHigh=">0,94"
-          />
+          <th>
+            Muy alto
+          </th>
+        </tr>
+      </thead>
 
-          <RiskRow
-            sex="Hombres"
-            age="30–39"
-            low="<0,84"
-            moderate="0,84–0,91"
-            high="0,92–0,96"
-            veryHigh=">0,96"
-          />
+      <tbody>
+        <RiskRow
+          sex="Hombres"
+          age="20-29"
+          low="<0,83"
+          moderate="0,83-0,88"
+          high="0,89-0,94"
+          veryHigh=">0,94"
+        />
 
-          <RiskRow
-            sex="Hombres"
-            age="40–49"
-            low="<0,88"
-            moderate="0,88–0,95"
-            high="0,96–1,00"
-            veryHigh=">1,00"
-          />
+        <RiskRow
+          sex="Hombres"
+          age="30-39"
+          low="<0,84"
+          moderate="0,84-0,91"
+          high="0,92-0,96"
+          veryHigh=">0,96"
+        />
 
-          <RiskRow
-            sex="Hombres"
-            age="50–59"
-            low="<0,90"
-            moderate="0,90–0,96"
-            high="0,97–1,02"
-            veryHigh=">1,02"
-          />
+        <RiskRow
+          sex="Hombres"
+          age="40-49"
+          low="<0,88"
+          moderate="0,88-0,95"
+          high="0,96-1,00"
+          veryHigh=">1,00"
+        />
 
-          <RiskRow
-            sex="Hombres"
-            age="60–69"
-            low="<0,91"
-            moderate="0,91–0,98"
-            high="0,99–1,03"
-            veryHigh=">1,03"
-          />
+        <RiskRow
+          sex="Hombres"
+          age="50-59"
+          low="<0,90"
+          moderate="0,90-0,96"
+          high="0,97-1,02"
+          veryHigh=">1,02"
+        />
 
-          <RiskRow
-            sex="Mujeres"
-            age="20–29"
-            low="<0,71"
-            moderate="0,71–0,77"
-            high="0,78–0,82"
-            veryHigh=">0,82"
-          />
+        <RiskRow
+          sex="Hombres"
+          age="60-69"
+          low="<0,91"
+          moderate="0,91-0,98"
+          high="0,99-1,03"
+          veryHigh=">1,03"
+        />
 
-          <RiskRow
-            sex="Mujeres"
-            age="30–39"
-            low="<0,72"
-            moderate="0,72–0,78"
-            high="0,79–0,84"
-            veryHigh=">0,84"
-          />
+        <RiskRow
+          sex="Mujeres"
+          age="20-29"
+          low="<0,71"
+          moderate="0,71-0,77"
+          high="0,78-0,82"
+          veryHigh=">0,82"
+        />
 
-          <RiskRow
-            sex="Mujeres"
-            age="40–49"
-            low="<0,73"
-            moderate="0,73–0,79"
-            high="0,80–0,87"
-            veryHigh=">0,87"
-          />
+        <RiskRow
+          sex="Mujeres"
+          age="30-39"
+          low="<0,72"
+          moderate="0,72-0,78"
+          high="0,79-0,84"
+          veryHigh=">0,84"
+        />
 
-          <RiskRow
-            sex="Mujeres"
-            age="50–59"
-            low="<0,74"
-            moderate="0,74–0,81"
-            high="0,82–0,88"
-            veryHigh=">0,88"
-          />
+        <RiskRow
+          sex="Mujeres"
+          age="40-49"
+          low="<0,73"
+          moderate="0,73-0,79"
+          high="0,80-0,87"
+          veryHigh=">0,87"
+        />
 
-          <RiskRow
-            sex="Mujeres"
-            age="60–69"
-            low="<0,76"
-            moderate="0,76–0,83"
-            high="0,84–0,90"
-            veryHigh=">0,90"
-          />
-        </tbody>
-      </table>
-    </div>
+        <RiskRow
+          sex="Mujeres"
+          age="50-59"
+          low="<0,74"
+          moderate="0,74-0,81"
+          high="0,82-0,88"
+          veryHigh=">0,88"
+        />
+
+        <RiskRow
+          sex="Mujeres"
+          age="60-69"
+          low="<0,76"
+          moderate="0,76-0,83"
+          high="0,84-0,90"
+          veryHigh=">0,90"
+        />
+      </tbody>
+    </table>
   );
 }
 
@@ -2240,28 +2732,28 @@ function RiskRow({
   veryHigh: string;
 }) {
   return (
-    <tr className="border-t border-border">
-      <td className="px-2 py-1.5 font-medium">
+    <tr>
+      <td>
         {sex}
       </td>
 
-      <td className="px-2 py-1.5">
+      <td>
         {age}
       </td>
 
-      <td className="px-2 py-1.5 text-center">
+      <td>
         {low}
       </td>
 
-      <td className="px-2 py-1.5 text-center">
+      <td>
         {moderate}
       </td>
 
-      <td className="px-2 py-1.5 text-center">
+      <td>
         {high}
       </td>
 
-      <td className="px-2 py-1.5 text-center">
+      <td>
         {veryHigh}
       </td>
     </tr>
@@ -2269,50 +2761,8 @@ function RiskRow({
 }
 
 /* ============================================================
-   SOMATOTIPO
+   SOMATOCARTA
 ============================================================ */
-
-function SomatotypeCard({
-  label,
-  value,
-  previous,
-}: {
-  label: string;
-  value:
-    | number
-    | null;
-  previous?:
-    | number
-    | null;
-}) {
-  return (
-    <div className="somatotype-card rounded-lg border border-border bg-muted/25 p-4 text-center">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-
-      <p className="mt-2 numeric text-2xl font-bold">
-        {value != null
-          ? fmt(
-              value,
-              2,
-            )
-          : "—"}
-      </p>
-
-      {previous !=
-        null && (
-        <p className="mt-1 text-xs text-muted-foreground">
-          Anterior:{" "}
-          {fmt(
-            previous,
-            2,
-          )}
-        </p>
-      )}
-    </div>
-  );
-}
 
 function Somatochart({
   x,
@@ -2323,12 +2773,15 @@ function Somatochart({
   x:
     | number
     | null;
+
   y:
     | number
     | null;
+
   previousX?:
     | number
     | null;
+
   previousY?:
     | number
     | null;
@@ -2339,11 +2792,12 @@ function Somatochart({
   const minY = -10;
   const maxY = 16;
 
-  const position = (
+  const getPosition = (
     pointX:
       | number
       | null
       | undefined,
+
     pointY:
       | number
       | null
@@ -2401,103 +2855,84 @@ function Somatochart({
   };
 
   const current =
-    position(
+    getPosition(
       x,
       y,
     );
 
   const previous =
-    position(
+    getPosition(
       previousX,
       previousY,
     );
 
   return (
-    <div className="somatochart-wrapper avoid-print-break rounded-lg border border-border bg-background p-4">
-      <h3 className="text-center font-display text-lg font-semibold">
-        Somatocarta
-      </h3>
+    <div className="somatochart">
+      <div className="somato-side">
+        SOMATOCARTA
+      </div>
 
-      <div className="somatochart-area relative mx-auto mt-4 h-[430px] max-w-3xl overflow-hidden border border-border bg-muted/10">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(148,163,184,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.18) 1px, transparent 1px)",
-            backgroundSize:
-              "10% 10%",
-          }}
-        />
+      <div className="somato-graph">
+        <div className="somato-x" />
 
-        <div className="absolute left-1/2 top-0 h-full w-px bg-border" />
+        <div className="somato-y" />
 
-        <div className="absolute left-0 top-[61.5%] h-px w-full bg-border" />
-
-        <div className="absolute left-1/2 top-3 -translate-x-1/2 text-sm font-bold text-blue-600">
+        <div className="somato-meso">
           MESOMORFO
         </div>
 
-        <div className="absolute bottom-8 left-4 text-sm font-bold text-orange-500">
+        <div className="somato-endo">
           ENDOMORFO
         </div>
 
-        <div className="absolute bottom-8 right-4 text-sm font-bold text-emerald-600">
+        <div className="somato-ecto">
           ECTOMORFO
         </div>
 
         {previous && (
           <span
-            className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-emerald-500 shadow"
+            className="somato-dot"
             style={{
               left: `${previous.left}%`,
               top: `${previous.top}%`,
+              backgroundColor:
+                "#20d94a",
             }}
-            title="Posicionamiento anterior"
           />
         )}
 
         {current && (
           <span
-            className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-blue-600 shadow"
+            className="somato-dot"
             style={{
               left: `${current.left}%`,
               top: `${current.top}%`,
+              backgroundColor:
+                "#2455f4",
             }}
-            title="Posicionamiento actual"
           />
         )}
       </div>
+    </div>
+  );
+}
 
-      <div className="somatochart-legend mt-3 flex flex-wrap justify-center gap-5 text-xs">
-        <span className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full bg-blue-600" />
-          Posicionamiento actual
-        </span>
+function SomatoDetail({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="somato-footer-item">
+      <p className="somato-footer-label">
+        {label}
+      </p>
 
-        {previous && (
-          <span className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-emerald-500" />
-            Posicionamiento anterior
-          </span>
-        )}
-
-        <span className="numeric font-medium">
-          X:{" "}
-          {x != null
-            ? fmt(
-                x,
-                2,
-              )
-            : "—"}{" "}
-          · Y:{" "}
-          {y != null
-            ? fmt(
-                y,
-                2,
-              )
-            : "—"}
-        </span>
-      </div>
+      <p className="somato-footer-value">
+        {value}
+      </p>
     </div>
   );
 }
