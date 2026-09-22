@@ -181,18 +181,6 @@ function measureLabel(
   );
 }
 
-function measureUnit(
-  key:
-    FullAnthropometryMeasureKey,
-) {
-  return (
-    FULL_ANTHROPOMETRY_MEASURES.find(
-      (item) =>
-        item.key === key,
-    )?.unit ?? ""
-  );
-}
-
 function currentMeasureValue(
   anthropometry:
     FullAnthropometry,
@@ -234,17 +222,16 @@ function formatMeasure(
     | number
     | null
     | undefined,
-  unit = "",
   decimals = 2,
 ) {
   if (value == null) {
     return "—";
   }
 
-  return `${fmt(
+  return fmt(
     value,
     decimals,
-  )}${unit ? ` ${unit}` : ""}`;
+  );
 }
 
 function sumMasses(
@@ -274,16 +261,6 @@ function sumMasses(
       (value as number),
     0,
   );
-}
-
-function sourceLabel(
-  source:
-    FullAnthropometry["source"],
-) {
-  return source ===
-    "antropogims"
-    ? "Antropogims"
-    : "Carga manual";
 }
 
 function clamp(
@@ -394,15 +371,81 @@ function PresentacionAntropogims() {
       presentation.massesKg,
     );
 
+  const fiveMassScoreItems:
+    ScoreItem[] = [
+      {
+        label: "Peso",
+        value:
+          presentation
+            .totalMassScoreZ,
+        color: "#497eb9",
+      },
+      {
+        label:
+          "Masa adiposa",
+        value:
+          presentation
+            .massScoreZ
+            .adipose,
+        color:
+          MASS_COLORS.adipose,
+      },
+      {
+        label:
+          "Masa muscular",
+        value:
+          presentation
+            .massScoreZ
+            .muscle,
+        color:
+          MASS_COLORS.muscle,
+      },
+      {
+        label:
+          "Masa residual",
+        value:
+          presentation
+            .massScoreZ
+            .residual,
+        color:
+          MASS_COLORS.residual,
+      },
+      {
+        label:
+          "Masa ósea",
+        value:
+          presentation
+            .massScoreZ
+            .bone,
+        color:
+          MASS_COLORS.bone,
+      },
+    ];
+
   return (
     <AppLayout
       title={`Presentación · ${player.name}`}
       subtitle="Informe de composición corporal · Antropogims / Kerr"
     >
       <style>{`
+        @page {
+          size: A4 portrait;
+          margin: 8mm;
+        }
+
         @media print {
           .no-print {
             display: none !important;
+          }
+
+          html,
+          body {
+            background: white !important;
+          }
+
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
           }
 
           .presentation-card {
@@ -411,15 +454,321 @@ function PresentacionAntropogims() {
 
           .print-page {
             break-before: page;
+            page-break-before: always;
           }
 
           .avoid-print-break {
             break-inside: avoid;
+            page-break-inside: avoid;
           }
 
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
+          /*
+           * PÁGINA 1
+           * Encabezado + todas las mediciones.
+           */
+          .presentation-main-header {
+            box-shadow: none !important;
+          }
+
+          .presentation-main-header
+            .presentation-title-bar {
+            padding: 8px 12px !important;
+          }
+
+          .presentation-main-header
+            .presentation-title-bar h1 {
+            font-size: 18px !important;
+            line-height: 1.1 !important;
+          }
+
+          .presentation-main-header
+            .header-item {
+            padding: 5px 8px !important;
+          }
+
+          .presentation-main-header
+            .header-item p:first-child {
+            font-size: 7px !important;
+          }
+
+          .presentation-main-header
+            .header-item p:last-child {
+            margin-top: 1px !important;
+            font-size: 9px !important;
+          }
+
+          .presentation-measurements {
+            margin-top: 6px !important;
+          }
+
+          .presentation-measurements
+            .measurement-heading {
+            padding: 5px 8px !important;
+          }
+
+          .presentation-measurements
+            .measurement-heading
+            > p:first-child {
+            font-size: 7px !important;
+          }
+
+          .presentation-measurements
+            .measurement-heading h2 {
+            margin-top: 1px !important;
+            font-size: 13px !important;
+            line-height: 1.1 !important;
+          }
+
+          .presentation-measurements
+            .measurement-heading
+            > p:last-child {
+            margin-top: 1px !important;
+            font-size: 7px !important;
+            line-height: 1.1 !important;
+          }
+
+          .presentation-measurements table {
+            min-width: 0 !important;
+            width: 100% !important;
+            font-size: 7.6px !important;
+          }
+
+          .presentation-measurements
+            th,
+          .presentation-measurements
+            td {
+            padding: 2px 5px !important;
+            line-height: 1.08 !important;
+          }
+
+          .presentation-measurements
+            .measurement-group-row
+            td {
+            padding-top: 3px !important;
+            padding-bottom: 3px !important;
+            font-size: 7px !important;
+          }
+
+          .presentation-measurements
+            td span.text-xs {
+            font-size: 6.5px !important;
+          }
+
+          /*
+           * SCORE-Z
+           * Compactamos gráficos sin cambiar sus valores.
+           */
+          .score-z-plot {
+            padding: 7px !important;
+          }
+
+          .score-z-plot h3 {
+            font-size: 10px !important;
+            line-height: 1.1 !important;
+          }
+
+          .score-z-plot
+            .score-z-content {
+            margin-top: 7px !important;
+          }
+
+          .score-z-row {
+            grid-template-columns:
+              88px 1fr 32px !important;
+            gap: 4px !important;
+            margin-bottom: 4px !important;
+          }
+
+          .score-z-row
+            .score-z-label,
+          .score-z-row
+            .score-z-value {
+            font-size: 7px !important;
+          }
+
+          .score-z-bar {
+            height: 15px !important;
+          }
+
+          .score-z-point {
+            width: 9px !important;
+            height: 9px !important;
+          }
+
+          .score-z-axis {
+            margin-left: 92px !important;
+            margin-right: 36px !important;
+            font-size: 6px !important;
+          }
+
+          /*
+           * PÁGINA PHANTOM
+           * Fuerza 2 columnas también al imprimir.
+           */
+          .phantom-grid {
+            display: grid !important;
+            grid-template-columns:
+              repeat(
+                2,
+                minmax(0, 1fr)
+              ) !important;
+            gap: 8px !important;
+            margin-top: 8px !important;
+          }
+
+          .phantom-description {
+            margin-top: 7px !important;
+            padding: 7px !important;
+            font-size: 7.5px !important;
+            line-height: 1.2 !important;
+          }
+
+          .phantom-description p {
+            margin-top: 2px !important;
+          }
+
+          /*
+           * 5 MASAS
+           */
+          .five-masses-section {
+            padding: 10px !important;
+          }
+
+          .five-masses-section
+            .five-masses-chart {
+            margin-top: 8px !important;
+          }
+
+          .five-masses-section
+            .five-masses-table {
+            margin-top: 9px !important;
+          }
+
+          .five-masses-section table {
+            font-size: 8px !important;
+          }
+
+          .five-masses-section
+            th,
+          .five-masses-section
+            td {
+            padding-top: 4px !important;
+            padding-bottom: 4px !important;
+          }
+
+          .five-masses-description {
+            margin-top: 7px !important;
+            padding: 7px !important;
+            font-size: 7.5px !important;
+          }
+
+          .five-masses-description
+            .mini-masses-grid {
+            margin-top: 6px !important;
+            gap: 4px !important;
+          }
+
+          /*
+           * DATOS ADICIONALES
+           */
+          .additional-section {
+            padding: 10px !important;
+          }
+
+          .additional-cards {
+            margin-top: 8px !important;
+            gap: 6px !important;
+          }
+
+          .metric-card {
+            padding: 7px !important;
+          }
+
+          .metric-card
+            p:first-child {
+            font-size: 7px !important;
+          }
+
+          .metric-card
+            p:last-child {
+            margin-top: 3px !important;
+            font-size: 12px !important;
+          }
+
+          .risk-table {
+            margin-top: 7px !important;
+          }
+
+          .risk-table table {
+            min-width: 0 !important;
+            font-size: 7px !important;
+          }
+
+          .risk-table
+            th,
+          .risk-table
+            td {
+            padding: 2px 4px !important;
+          }
+
+          /*
+           * SOMATOTIPO
+           * La somatocarta se reduce para que no salte
+           * sola a una página nueva.
+           */
+          .somatotype-section {
+            padding: 10px !important;
+          }
+
+          .somatotype-cards {
+            margin-top: 8px !important;
+            gap: 6px !important;
+          }
+
+          .somatotype-card {
+            padding: 7px !important;
+          }
+
+          .somatotype-card
+            p:first-child {
+            font-size: 7px !important;
+          }
+
+          .somatotype-card
+            p:nth-child(2) {
+            margin-top: 3px !important;
+            font-size: 16px !important;
+          }
+
+          .somatochart-wrapper {
+            margin-top: 8px !important;
+            padding: 7px !important;
+          }
+
+          .somatochart-wrapper h3 {
+            font-size: 12px !important;
+          }
+
+          .somatochart-area {
+            height: 255px !important;
+            margin-top: 7px !important;
+          }
+
+          .somatochart-legend {
+            margin-top: 5px !important;
+            font-size: 7px !important;
+            gap: 8px !important;
+          }
+
+          .somatotype-details {
+            margin-top: 7px !important;
+            gap: 6px !important;
+          }
+
+          .comparison-card {
+            margin-top: 7px !important;
+            padding: 7px !important;
+            font-size: 7.5px !important;
           }
         }
       `}</style>
@@ -479,8 +828,8 @@ function PresentacionAntropogims() {
           MEDICIONES
       ================================================== */}
 
-      <section className="presentation-card mt-4 overflow-hidden rounded-lg border border-border bg-card shadow-panel">
-        <div className="border-b border-border px-4 py-3">
+      <section className="presentation-card presentation-measurements mt-4 overflow-hidden rounded-lg border border-border bg-card shadow-panel">
+        <div className="measurement-heading border-b border-border px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Antropometría
           </p>
@@ -554,7 +903,7 @@ function PresentacionAntropogims() {
           FRACCIONAMIENTO 5 MASAS
       ================================================== */}
 
-      <section className="presentation-card print-page mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
+      <section className="presentation-card five-masses-section print-page mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -571,30 +920,16 @@ function PresentacionAntropogims() {
           </p>
         </div>
 
-        <div className="mt-4">
+        <div className="five-masses-chart mt-4">
           <ScoreZPlot
             title="Fraccionamiento 5 masas · Score-Z"
-            items={MASS_ROWS.map(
-              (
-                row,
-              ) => ({
-                label:
-                  row.label,
-                value:
-                  presentation
-                    .massScoreZ[
-                    row.key
-                  ],
-                color:
-                  MASS_COLORS[
-                    row.key
-                  ],
-              }),
-            )}
+            items={
+              fiveMassScoreItems
+            }
           />
         </div>
 
-        <div className="mt-5 overflow-x-auto">
+        <div className="five-masses-table mt-5 overflow-x-auto">
           <table className="w-full min-w-[760px] text-sm">
             <thead className="bg-muted/70">
               <tr>
@@ -746,25 +1081,42 @@ function PresentacionAntropogims() {
           </table>
         </div>
 
-        <div className="mt-3 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
-          <strong>
-            Diferencia peso
-            estructurado / peso
-            bruto:
-          </strong>{" "}
-          {presentation
-            .structuredDifferencePercent !=
-          null
-            ? signed(
-                presentation
-                  .structuredDifferencePercent,
-                2,
-                "%",
-              )
-            : "—"}
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
+            <strong>
+              Diferencia peso
+              estructurado / peso
+              bruto:
+            </strong>{" "}
+            {presentation
+              .structuredDifferencePercent !=
+            null
+              ? signed(
+                  presentation
+                    .structuredDifferencePercent,
+                  2,
+                  "%",
+                )
+              : "—"}
+          </div>
+
+          <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
+            <strong>
+              Masa ósea de referencia:
+            </strong>{" "}
+            {anthropometry
+              .boneReferenceKg !=
+            null
+              ? `${fmt(
+                  anthropometry
+                    .boneReferenceKg,
+                  3,
+                )} kg`
+              : "—"}
+          </div>
         </div>
 
-        <div className="mt-4 rounded-md border border-border p-4 text-sm">
+        <div className="five-masses-description mt-4 rounded-md border border-border p-4 text-sm">
           <p className="font-semibold">
             Fraccionamiento corporal
             en 5 componentes
@@ -781,7 +1133,7 @@ function PresentacionAntropogims() {
             Antropogims.
           </p>
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mini-masses-grid mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
             <MiniMass
               label="Adiposa"
               detail="grasa subcutánea"
@@ -826,7 +1178,7 @@ function PresentacionAntropogims() {
           }
         />
 
-        <div className="mt-4 rounded-md border border-border bg-muted/20 p-4 text-sm leading-relaxed">
+        <div className="phantom-description mt-4 rounded-md border border-border bg-muted/20 p-4 text-sm leading-relaxed">
           <p className="font-semibold">
             Modelo de
             proporcionalidad
@@ -854,7 +1206,7 @@ function PresentacionAntropogims() {
           </p>
         </div>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <div className="phantom-grid mt-5 grid gap-5 lg:grid-cols-2">
           <ScoreZPlot
             title="Score-Z Básicos"
             items={makeScoreItems(
@@ -897,7 +1249,7 @@ function PresentacionAntropogims() {
           DATOS ADICIONALES
       ================================================== */}
 
-      <section className="presentation-card print-page mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
+      <section className="presentation-card additional-section print-page mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
         <PresentationHeader
           compact
           title="Datos adicionales"
@@ -909,7 +1261,7 @@ function PresentacionAntropogims() {
           }
         />
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="additional-cards mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             label="Índice cintura / cadera"
             value={
@@ -1066,7 +1418,7 @@ function PresentacionAntropogims() {
           SOMATOTIPO
       ================================================== */}
 
-      <section className="presentation-card print-page mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
+      <section className="presentation-card somatotype-section print-page mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
         <PresentationHeader
           compact
           title="Somatotipo de Heath & Carter"
@@ -1079,7 +1431,7 @@ function PresentacionAntropogims() {
           }
         />
 
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
+        <div className="somatotype-cards mt-5 grid gap-4 md:grid-cols-3">
           <SomatotypeCard
             label="Endomorfia"
             value={
@@ -1144,7 +1496,7 @@ function PresentacionAntropogims() {
           />
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="somatotype-details mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             label="Σ pliegues somatotipo"
             value={
@@ -1213,43 +1565,39 @@ function PresentacionAntropogims() {
             }
           />
         </div>
-      </section>
 
-      {/* ==================================================
-          COMPARACIÓN
-      ================================================== */}
-
-      <section className="presentation-card mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
-        <p className="font-semibold">
-          Comparación con medición
-          anterior
-        </p>
-
-        {previous ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            Los campos
-            “Anterior” y
-            “Diferencia” se
-            calcularon
-            automáticamente contra
-            la evaluación del{" "}
-            <strong>
-              {fmtDate(
-                previous.date,
-              )}
-            </strong>
-            .
+        <section className="comparison-card mt-4 rounded-lg border border-border bg-card p-4 shadow-panel">
+          <p className="font-semibold">
+            Comparación con medición
+            anterior
           </p>
-        ) : (
-          <p className="mt-2 text-sm text-muted-foreground">
-            Esta es la primera
-            evaluación completa
-            disponible para la
-            jugadora. Todavía no hay
-            una medición anterior
-            para comparar.
-          </p>
-        )}
+
+          {previous ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Los campos
+              “Anterior” y
+              “Diferencia” se
+              calcularon
+              automáticamente contra
+              la evaluación del{" "}
+              <strong>
+                {fmtDate(
+                  previous.date,
+                )}
+              </strong>
+              .
+            </p>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Esta es la primera
+              evaluación completa
+              disponible para la
+              jugadora. Todavía no hay
+              una medición anterior
+              para comparar.
+            </p>
+          )}
+        </section>
       </section>
     </AppLayout>
   );
@@ -1278,25 +1626,19 @@ function PresentationHeader({
       className={
         compact
           ? ""
-          : "presentation-card overflow-hidden rounded-lg border border-border bg-card shadow-panel"
+          : "presentation-card presentation-main-header overflow-hidden rounded-lg border border-border bg-card shadow-panel"
       }
     >
       <div
         className={
           compact
             ? "border-b border-border pb-3"
-            : "border-b border-border bg-primary px-5 py-4 text-primary-foreground"
+            : "presentation-title-bar border-b border-border bg-primary px-5 py-4 text-primary-foreground"
         }
       >
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1
-              className={
-                compact
-                  ? "font-display text-2xl font-bold"
-                  : "font-display text-2xl font-bold"
-              }
-            >
+            <h1 className="font-display text-2xl font-bold">
               {title}
             </h1>
 
@@ -1369,34 +1711,6 @@ function PresentationHeader({
           }
         />
       </div>
-
-      {!compact && (
-        <div className="grid gap-px border-t border-border bg-border sm:grid-cols-2">
-          <HeaderItem
-            label="Origen"
-            value={
-              sourceLabel(
-                anthropometry.source,
-              )
-            }
-          />
-
-          <HeaderItem
-            label="Masa ósea de referencia"
-            value={
-              anthropometry
-                .boneReferenceKg !=
-              null
-                ? `${fmt(
-                    anthropometry
-                      .boneReferenceKg,
-                    3,
-                  )} kg`
-                : "—"
-            }
-          />
-        </div>
-      )}
     </section>
   );
 }
@@ -1409,7 +1723,7 @@ function HeaderItem({
   value: string;
 }) {
   return (
-    <div className="bg-card px-4 py-3 text-foreground">
+    <div className="header-item bg-card px-4 py-3 text-foreground">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
@@ -1448,7 +1762,7 @@ function MeasurementGroup({
 
   return (
     <>
-      <tr className="border-t border-border bg-primary/5">
+      <tr className="measurement-group-row border-t border-border bg-primary/5">
         <td
           colSpan={6}
           className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-primary"
@@ -1517,7 +1831,6 @@ function MeasurementGroup({
               <td className="numeric px-3 py-2 text-right font-semibold">
                 {formatMeasure(
                   currentValue,
-                  "",
                   2,
                 )}
               </td>
@@ -1525,7 +1838,6 @@ function MeasurementGroup({
               <td className="numeric px-3 py-2 text-right">
                 {formatMeasure(
                   adjustedValue,
-                  "",
                   2,
                 )}
               </td>
@@ -1533,7 +1845,6 @@ function MeasurementGroup({
               <td className="numeric px-3 py-2 text-right">
                 {formatMeasure(
                   previousValue,
-                  "",
                   2,
                 )}
               </td>
@@ -1631,12 +1942,12 @@ function ScoreZPlot({
   items: ScoreItem[];
 }) {
   return (
-    <div className="avoid-print-break rounded-lg border border-border bg-background p-4">
+    <div className="score-z-plot avoid-print-break rounded-lg border border-border bg-background p-4">
       <h3 className="text-center font-display text-base font-semibold">
         {title}
       </h3>
 
-      <div className="mt-4">
+      <div className="score-z-content mt-4">
         {items.map(
           (
             item,
@@ -1669,16 +1980,16 @@ function ScoreZPlot({
                 key={
                   item.label
                 }
-                className="mb-3 grid grid-cols-[130px_1fr_52px] items-center gap-2"
+                className="score-z-row mb-3 grid grid-cols-[130px_1fr_52px] items-center gap-2"
               >
-                <div className="truncate text-xs font-medium">
+                <div className="score-z-label truncate text-xs font-medium">
                   {
                     item.label
                   }
                 </div>
 
                 <div
-                  className="relative h-7 overflow-hidden rounded border border-border"
+                  className="score-z-bar relative h-7 overflow-hidden rounded border border-border"
                   style={{
                     backgroundImage:
                       "linear-gradient(to right, transparent 49.7%, rgba(100,116,139,.5) 49.7%, rgba(100,116,139,.5) 50.3%, transparent 50.3%), repeating-linear-gradient(to right, transparent 0, transparent calc(12.5% - 1px), rgba(148,163,184,.28) calc(12.5% - 1px), rgba(148,163,184,.28) 12.5%)",
@@ -1687,7 +1998,7 @@ function ScoreZPlot({
                   {left !=
                     null && (
                     <span
-                      className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
+                      className="score-z-point absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
                       style={{
                         left: `${left}%`,
                         backgroundColor:
@@ -1697,7 +2008,7 @@ function ScoreZPlot({
                   )}
                 </div>
 
-                <div className="numeric text-right text-xs font-semibold">
+                <div className="score-z-value numeric text-right text-xs font-semibold">
                   {item.value !=
                   null
                     ? fmt(
@@ -1711,7 +2022,7 @@ function ScoreZPlot({
           },
         )}
 
-        <div className="ml-[138px] mr-[60px] mt-1 grid grid-cols-9 text-center text-[10px] text-muted-foreground">
+        <div className="score-z-axis ml-[138px] mr-[60px] mt-1 grid grid-cols-9 text-center text-[10px] text-muted-foreground">
           {[
             -4,
             -3,
@@ -1753,7 +2064,7 @@ function MetricCard({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/25 p-3">
+    <div className="metric-card rounded-lg border border-border bg-muted/25 p-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
@@ -1787,7 +2098,7 @@ function MiniMass({
 
 function WaistHipReferenceTable() {
   return (
-    <div className="mt-3 overflow-x-auto">
+    <div className="risk-table mt-3 overflow-x-auto">
       <table className="w-full min-w-[720px] text-xs">
         <thead className="bg-muted/70">
           <tr>
@@ -1975,7 +2286,7 @@ function SomatotypeCard({
     | null;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/25 p-4 text-center">
+    <div className="somatotype-card rounded-lg border border-border bg-muted/25 p-4 text-center">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
@@ -2102,12 +2413,12 @@ function Somatochart({
     );
 
   return (
-    <div className="avoid-print-break rounded-lg border border-border bg-background p-4">
+    <div className="somatochart-wrapper avoid-print-break rounded-lg border border-border bg-background p-4">
       <h3 className="text-center font-display text-lg font-semibold">
         Somatocarta
       </h3>
 
-      <div className="relative mx-auto mt-4 h-[430px] max-w-3xl overflow-hidden border border-border bg-muted/10">
+      <div className="somatochart-area relative mx-auto mt-4 h-[430px] max-w-3xl overflow-hidden border border-border bg-muted/10">
         <div
           className="absolute inset-0"
           style={{
@@ -2157,7 +2468,7 @@ function Somatochart({
         )}
       </div>
 
-      <div className="mt-3 flex flex-wrap justify-center gap-5 text-xs">
+      <div className="somatochart-legend mt-3 flex flex-wrap justify-center gap-5 text-xs">
         <span className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-blue-600" />
           Posicionamiento actual
