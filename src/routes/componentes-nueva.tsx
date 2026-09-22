@@ -4,6 +4,7 @@ import {
 } from "@tanstack/react-router";
 import {
   Calculator,
+  Copy,
   Save,
 } from "lucide-react";
 import {
@@ -36,6 +37,7 @@ import {
 } from "@/lib/kerr";
 
 import {
+  useFullAnthropometries,
   usePlayer,
 } from "@/lib/hooks";
 
@@ -76,14 +78,6 @@ export const Route = createFileRoute(
    TIPOS DEL FORMULARIO
 ============================================================ */
 
-/*
- * Internamente seguimos conservando
- * capacidad para 5 tomas porque
- * Antropogims puede traerlas.
- *
- * En la carga manual mostramos
- * solamente las primeras 3.
- */
 type SeriesStrings = [
   string,
   string,
@@ -104,6 +98,24 @@ const GROUP_ORDER:
     "perimetros",
     "pliegues",
   ];
+
+/*
+ * En estas medidas mostramos además
+ * el botón "Copiar".
+ *
+ * El resto también muestra el valor
+ * anterior, pero sin copiar.
+ */
+const COPY_PREVIOUS_KEYS =
+  new Set<FullAnthropometryMeasureKey>([
+    "biacromial",
+    "thoraxTransverse",
+    "thoraxAP",
+    "biiliocristal",
+    "humeral",
+    "femoral",
+    "head",
+  ]);
 
 /* ============================================================
    HELPERS
@@ -159,22 +171,6 @@ function buildMeasures(
   return result;
 }
 
-/*
- * EDAD DECIMAL
- *
- * Se calcula entre:
- *
- * fecha de nacimiento
- *       ↓
- * fecha de la evaluación
- *
- * Ejemplo:
- * 20,3 años
- *
- * Esto también permite que las
- * antropometrías históricas tengan
- * la edad correcta de ese momento.
- */
 function decimalAgeAtDate(
   birthDate:
     | string
@@ -229,11 +225,6 @@ function decimalAgeAtDate(
     return null;
   }
 
-  /*
-   * UTC evita que cambios de horario
-   * del navegador alteren la cantidad
-   * de días.
-   */
   const birth =
     Date.UTC(
       birthYear,
@@ -261,12 +252,6 @@ function decimalAgeAtDate(
     (evaluation - birth) /
     millisecondsPerDay;
 
-  /*
-   * Duración media del año gregoriano.
-   *
-   * Guardamos más precisión internamente
-   * y mostramos solamente 1 decimal.
-   */
   const years =
     days / 365.2425;
 
@@ -341,6 +326,36 @@ function NuevaAntropometria() {
   const [date, setDate] =
     useState(todayISO());
 
+  /*
+   * Traemos todas las antropometrías
+   * completas previas de la jugadora.
+   *
+   * No se completa ningún dato
+   * automáticamente.
+   */
+  const fullAnthropometries =
+    useFullAnthropometries(
+      playerId,
+    );
+
+  /*
+   * Busca la evaluación anterior más
+   * reciente respecto de la fecha
+   * que estamos cargando.
+   */
+  const previousAnthropometry =
+    useMemo(
+      () =>
+        fullAnthropometries?.find(
+          (row) =>
+            row.date <= date,
+        ),
+      [
+        fullAnthropometries,
+        date,
+      ],
+    );
+
   const [
     measurementNumber,
     setMeasurementNumber,
@@ -385,9 +400,6 @@ function NuevaAntropometria() {
       [measurements],
     );
 
-  /*
-   * Edad decimal automática.
-   */
   const age =
     decimalAgeAtDate(
       player?.birthDate,
@@ -455,6 +467,35 @@ function NuevaAntropometria() {
           [key]: nextSeries,
         };
       },
+    );
+  }
+
+  /*
+   * Copia el valor anterior solamente
+   * a la primera toma.
+   *
+   * Este botón aparece únicamente para
+   * diámetros y perímetro de cabeza.
+   */
+  function copyPreviousValue(
+    key:
+      FullAnthropometryMeasureKey,
+  ) {
+    const previousValue =
+      previousAnthropometry
+        ?.measures[key]
+        ?.median;
+
+    if (
+      previousValue == null
+    ) {
+      return;
+    }
+
+    updateSeries(
+      key,
+      0,
+      String(previousValue),
     );
   }
 
@@ -533,19 +574,10 @@ function NuevaAntropometria() {
 
         sex,
 
-        /*
-         * La fecha de nacimiento
-         * proviene de la ficha.
-         */
         birthDate:
           player.birthDate ??
           null,
 
-        /*
-         * Guardamos la edad decimal
-         * correspondiente exactamente
-         * a esta evaluación.
-         */
         ageYears: age,
 
         measures,
@@ -555,10 +587,6 @@ function NuevaAntropometria() {
             boneReference,
           ),
 
-        /*
-         * db.ts vuelve a calcular
-         * los resultados al guardar.
-         */
         results: null,
 
         linkedControlId:
@@ -834,6 +862,19 @@ function NuevaAntropometria() {
               placeholder="kg · opcional"
               className="mt-1"
             />
+
+            <p className="mt-1 text-xs text-muted-foreground">
+              Anterior:{" "}
+              {previousAnthropometry
+                ?.boneReferenceKg !=
+              null
+                ? `${fmt(
+                    previousAnthropometry
+                      .boneReferenceKg,
+                    3,
+                  )} kg`
+                : "—"}
+            </p>
           </label>
         </div>
       </section>
@@ -873,6 +914,15 @@ function NuevaAntropometria() {
                   repetís, la app usa
                   la mediana.
                 </p>
+
+                <p className="mt-1 text-xs font-medium text-muted-foreground">
+                  {previousAnthropometry
+                    ? `Valores anteriores: ${fmtDate(
+                        previousAnthropometry
+                          .date,
+                      )}`
+                    : "Todavía no hay una evaluación anterior para comparar."}
+                </p>
               </div>
 
               <div className="overflow-x-auto">
@@ -884,24 +934,28 @@ function NuevaAntropometria() {
                           "34%",
                       }}
                     />
+
                     <col
                       style={{
                         width:
                           "14%",
                       }}
                     />
+
                     <col
                       style={{
                         width:
                           "14%",
                       }}
                     />
+
                     <col
                       style={{
                         width:
                           "14%",
                       }}
                     />
+
                     <col
                       style={{
                         width:
@@ -947,6 +1001,22 @@ function NuevaAntropometria() {
                             ],
                           );
 
+                        const previousValue =
+                          previousAnthropometry
+                            ?.measures[
+                              definition
+                                .key
+                            ]
+                            ?.median ??
+                          null;
+
+                        const canCopyPrevious =
+                          COPY_PREVIOUS_KEYS.has(
+                            definition.key,
+                          ) &&
+                          previousValue !=
+                            null;
+
                         return (
                           <tr
                             key={
@@ -955,19 +1025,56 @@ function NuevaAntropometria() {
                             className="border-t border-border"
                           >
                             <td className="px-3 py-2">
-                              <div className="font-medium">
-                                {
-                                  definition.label
-                                }
-                              </div>
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="font-medium">
+                                    {
+                                      definition.label
+                                    }
+                                  </div>
 
-                              <div className="text-xs text-muted-foreground">
-                                {
-                                  definition.unit
-                                }
-                                {definition.usedInKerr
-                                  ? " · Kerr"
-                                  : ""}
+                                  <div className="text-xs text-muted-foreground">
+                                    {
+                                      definition.unit
+                                    }
+                                    {definition.usedInKerr
+                                      ? " · Kerr"
+                                      : ""}
+                                  </div>
+                                </div>
+
+                                <div className="shrink-0 text-right">
+                                  <div className="text-[11px] text-muted-foreground">
+                                    Anterior
+                                  </div>
+
+                                  <div className="numeric whitespace-nowrap text-xs font-semibold">
+                                    {previousValue !=
+                                    null
+                                      ? `${fmt(
+                                          previousValue,
+                                          2,
+                                        )} ${definition.unit}`
+                                      : "—"}
+                                  </div>
+
+                                  {canCopyPrevious && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="mt-1 h-7 px-2 text-xs"
+                                      onClick={() =>
+                                        copyPreviousValue(
+                                          definition.key,
+                                        )
+                                      }
+                                    >
+                                      <Copy className="h-3.5 w-3.5" />
+                                      Copiar
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                             </td>
 
