@@ -4,6 +4,7 @@ import {
 } from "@tanstack/react-router";
 import {
   FileSpreadsheet,
+  FileText,
   FlaskConical,
   Plus,
 } from "lucide-react";
@@ -229,35 +230,60 @@ function CincoComponentes() {
               </p>
 
               <Button
-  asChild
-  className="mt-4"
-  variant="outline"
->
-  <Link
-    to="/componentes-importar"
-    search={{
-      player:
-        playerId,
-    }}
-  >
-    <FileSpreadsheet className="h-4 w-4" />
-    Importar Excel
-  </Link>
-</Button>
+                asChild
+                className="mt-4"
+                variant="outline"
+              >
+                <Link
+                  to="/componentes-importar"
+                  search={{
+                    player:
+                      playerId,
+                  }}
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Importar Excel
+                </Link>
+              </Button>
 
-<p className="mt-2 text-xs text-muted-foreground">
-  Compatible con .xls,
-  .xlsx y .xlsm.
-</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Compatible con .xls,
+                .xlsx y .xlsm.
+              </p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="mt-4">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Última evaluación completa
-        </p>
+        <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Última evaluación completa
+          </p>
+
+          {latest?.id !=
+            null && (
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+            >
+              <Link
+                to="/componentes-presentacion"
+                search={{
+                  player:
+                    playerId,
+
+                  id:
+                    latest.id,
+                }}
+              >
+                <FileText className="h-4 w-4" />
+                Ver presentación
+              </Link>
+            </Button>
+          )}
+        </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard
@@ -303,11 +329,11 @@ function CincoComponentes() {
             label="IMO"
             value={
               latest?.results
-                ?.muscleBoneIndexAdjusted !=
+                ?.muscleBoneIndexRaw !=
               null
                 ? fmt(
                     latest.results
-                      .muscleBoneIndexAdjusted,
+                      .muscleBoneIndexRaw,
                     2,
                   )
                 : "—"
@@ -339,32 +365,43 @@ function CincoComponentes() {
 
         {rows.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[850px] text-sm">
+            <table className="w-full min-w-[1000px] text-sm">
               <thead className="bg-muted/70 text-left">
                 <tr>
                   <th className="px-3 py-2 font-semibold">
                     Fecha
                   </th>
+
                   <th className="px-3 py-2 font-semibold">
                     Origen
                   </th>
+
                   <th className="px-3 py-2 text-right font-semibold">
                     Peso
                   </th>
+
                   <th className="px-3 py-2 text-right font-semibold">
                     Sum6
                   </th>
+
                   <th className="px-3 py-2 text-right font-semibold">
                     Muscular
                   </th>
+
                   <th className="px-3 py-2 text-right font-semibold">
                     Adiposa
                   </th>
+
                   <th className="px-3 py-2 text-right font-semibold">
                     Ósea
                   </th>
+
                   <th className="px-3 py-2 text-right font-semibold">
                     IMO
+                  </th>
+
+                  <th className="px-3 py-2 text-right font-semibold">
+                    Presentación
                   </th>
                 </tr>
               </thead>
@@ -469,15 +506,42 @@ function CincoComponentes() {
                         <td className="numeric px-3 py-3 text-right font-semibold">
                           {anthropometry
                             .results
-                            ?.muscleBoneIndexAdjusted !=
+                            ?.muscleBoneIndexRaw !=
                           null
                             ? fmt(
                                 anthropometry
                                   .results
-                                  .muscleBoneIndexAdjusted,
+                                  .muscleBoneIndexRaw,
                                 2,
                               )
                             : "—"}
+                        </td>
+
+                        <td className="px-3 py-3 text-right">
+                          {anthropometry.id !=
+                          null ? (
+                            <Button
+                              asChild
+                              size="sm"
+                              variant="outline"
+                            >
+                              <Link
+                                to="/componentes-presentacion"
+                                search={{
+                                  player:
+                                    playerId,
+
+                                  id:
+                                    anthropometry.id,
+                                }}
+                              >
+                                <FileText className="h-4 w-4" />
+                                Ver
+                              </Link>
+                            </Button>
+                          ) : (
+                            "—"
+                          )}
                         </td>
                       </tr>
                     );
