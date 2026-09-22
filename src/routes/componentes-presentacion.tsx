@@ -990,7 +990,7 @@ function PresentacionAntropogims() {
           font-size: 10px;
         }
 
-        @media (max-width: 800px) {
+        @media screen and (max-width: 800px) {
           .antro-title-grid {
             grid-template-columns: 1fr;
           }
@@ -1046,6 +1046,38 @@ function PresentacionAntropogims() {
           body {
             print-color-adjust: exact;
             -webkit-print-color-adjust: exact;
+          }
+
+          .side-label,
+          .additional-side,
+          .somato-side {
+            display: flex !important;
+          }
+
+          .five-chart {
+            grid-column: 2 !important;
+            min-width: 0 !important;
+            width: auto !important;
+          }
+
+          .side-label-left {
+            grid-column: 1 !important;
+          }
+
+          .side-label-right {
+            grid-column: 3 !important;
+          }
+
+          .additional-content {
+            grid-column: 2 !important;
+            min-width: 0 !important;
+            width: auto !important;
+          }
+
+          .somato-graph {
+            grid-column: 2 !important;
+            min-width: 0 !important;
+            width: auto !important;
           }
 
           .print-page {
@@ -1107,7 +1139,9 @@ function PresentacionAntropogims() {
           }
 
           .five-mass-layout {
-            grid-template-columns: 62px 1fr 80px;
+            display: grid !important;
+            grid-template-columns:
+              62px minmax(0, 1fr) 80px !important;
             min-height: 255px;
           }
 
@@ -1161,6 +1195,12 @@ function PresentacionAntropogims() {
           }
 
           .phantom-grid {
+            display: grid !important;
+            grid-template-columns:
+              repeat(
+                2,
+                minmax(0, 1fr)
+              ) !important;
             gap: 14px 18px;
             padding: 12px;
           }
@@ -1197,15 +1237,21 @@ function PresentacionAntropogims() {
           }
 
           .additional-layout {
-            grid-template-columns: 62px 1fr;
+            display: grid !important;
+            grid-template-columns:
+              62px minmax(0, 1fr) !important;
+            width: 100% !important;
           }
 
           .additional-side {
+            grid-column: 1 !important;
             font-size: 7px;
           }
 
           .additional-content {
+            grid-column: 2 !important;
             padding: 8px 12px;
+            min-width: 0 !important;
           }
 
           .risk-intro {
@@ -1214,15 +1260,20 @@ function PresentacionAntropogims() {
           }
 
           .risk-table {
+            width: 100% !important;
+            table-layout: fixed !important;
             font-size: 6.5px;
           }
 
           .risk-table th,
           .risk-table td {
             padding: 2px 4px;
+            white-space: nowrap;
           }
 
           .additional-values {
+            width: 100% !important;
+            table-layout: fixed !important;
             font-size: 7px;
             margin-top: 7px;
           }
@@ -1241,17 +1292,24 @@ function PresentacionAntropogims() {
           }
 
           .somatochart {
-            grid-template-columns: 62px 1fr;
+            display: grid !important;
+            grid-template-columns:
+              62px minmax(0, 1fr) !important;
             min-height: 300px;
+            width: 100% !important;
           }
 
           .somato-side {
+            grid-column: 1 !important;
             font-size: 7px;
             padding-top: 12px;
           }
 
           .somato-graph {
+            grid-column: 2 !important;
             height: 300px;
+            min-width: 0 !important;
+            width: auto !important;
           }
 
           .somato-meso,
@@ -2047,7 +2105,7 @@ function PresentacionAntropogims() {
 }
 
 /* ============================================================
-   ENCABEZADO TIPO ANTROPOGIMS
+   ENCABEZADO
 ============================================================ */
 
 function SheetHeader({
