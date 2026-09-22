@@ -146,6 +146,12 @@ function namesLookCompatible(
   );
 }
 
+/*
+ * Igual que en la carga manual:
+ *
+ * - kg con 3 decimales
+ * - porcentajes con 2 decimales
+ */
 function massText(
   kg: number | null,
   percent: number | null,
@@ -156,12 +162,12 @@ function massText(
 
   return `${fmt(
     kg,
-    1,
+    3,
   )} kg${
     percent != null
       ? ` · ${fmt(
           percent,
-          1,
+          2,
         )}%`
       : ""
   }`;
@@ -335,6 +341,14 @@ function ImportarAntropogims() {
           player.birthDate,
     );
 
+  /*
+   * Los kg que mostramos son los
+   * finales después del reajuste
+   * por masa ósea de referencia.
+   *
+   * Si no existe MOR, usamos el
+   * reajuste al peso real.
+   */
   const finalMasses:
     FiveComponentMasses | null =
     preview
@@ -344,12 +358,18 @@ function ImportarAntropogims() {
           .weightAdjustedMassesKg
       : null;
 
+  /*
+   * Antropogims conserva los %
+   * correspondientes al primer
+   * reajuste al peso real.
+   *
+   * No vuelve a calcularlos después
+   * de aplicar la MOR.
+   */
   const finalPercentages:
     FiveComponentMasses | null =
     preview
       ? preview
-          .boneReferenceAdjustedMassesPercent ??
-        preview
           .weightAdjustedMassesPercent
       : null;
 
@@ -395,10 +415,6 @@ function ImportarAntropogims() {
     } finally {
       setParsing(false);
 
-      /*
-       * Permite volver a elegir
-       * exactamente el mismo archivo.
-       */
       if (
         inputRef.current
       ) {
@@ -484,13 +500,6 @@ function ImportarAntropogims() {
         sex:
           parsed.sex,
 
-        /*
-         * Preferimos la fecha
-         * del propio Antropogims.
-         *
-         * Si no existe, usamos
-         * la ficha de la jugadora.
-         */
         birthDate:
           effectiveBirthDate,
 
@@ -503,10 +512,6 @@ function ImportarAntropogims() {
         boneReferenceKg:
           parsed.boneReferenceKg,
 
-        /*
-         * La base vuelve a realizar
-         * todos los cálculos.
-         */
         results: null,
 
         linkedControlId:
@@ -896,24 +901,28 @@ function ImportarAntropogims() {
                             "34%",
                         }}
                       />
+
                       <col
                         style={{
                           width:
                             "14%",
                         }}
                       />
+
                       <col
                         style={{
                           width:
                             "14%",
                         }}
                       />
+
                       <col
                         style={{
                           width:
                             "14%",
                         }}
                       />
+
                       <col
                         style={{
                           width:
@@ -1149,15 +1158,21 @@ function ImportarAntropogims() {
                   }
                 />
 
+                {/*
+                 * El IMO que muestra
+                 * Antropogims corresponde
+                 * al cálculo anterior al
+                 * reajuste por MOR.
+                 */}
                 <SummaryCard
                   label="IMO"
                   value={
                     preview
-                      .muscleBoneIndexAdjusted !=
+                      .muscleBoneIndexRaw !=
                     null
                       ? fmt(
                           preview
-                            .muscleBoneIndexAdjusted,
+                            .muscleBoneIndexRaw,
                           2,
                         )
                       : "—"
