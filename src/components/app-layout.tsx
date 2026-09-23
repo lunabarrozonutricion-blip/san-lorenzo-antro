@@ -8,6 +8,7 @@ import {
   Menu,
   Scale,
   Target,
+  UtensilsCrossed,
   Users,
   X,
 } from "lucide-react";
@@ -41,6 +42,11 @@ export const NAV = [
     to: "/hidratacion",
     label: "Test de hidratación",
     icon: Droplets,
+  },
+  {
+    to: "/intercambios",
+    label: "Plan de intercambios",
+    icon: UtensilsCrossed,
   },
   {
     to: "/objetivos",
