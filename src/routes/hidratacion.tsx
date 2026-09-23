@@ -924,7 +924,7 @@ function HydrationPage() {
                   <th
                     className="text-left"
                     style={{
-                      width: "38%",
+                      width: "30%",
                     }}
                   >
                     Jugadora
@@ -933,7 +933,7 @@ function HydrationPage() {
                   <th
                     className="text-center"
                     style={{
-                      width: "11%",
+                      width: "12%",
                     }}
                   >
                     Valor
@@ -942,7 +942,7 @@ function HydrationPage() {
                   <th
                     className="text-center"
                     style={{
-                      width: "19%",
+                      width: "33%",
                     }}
                   >
                     Estado
@@ -951,7 +951,7 @@ function HydrationPage() {
                   <th
                     className="text-left"
                     style={{
-                      width: "32%",
+                      width: "25%",
                     }}
                   >
                     Observación
