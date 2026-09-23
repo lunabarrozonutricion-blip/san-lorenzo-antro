@@ -894,7 +894,6 @@ function HydrationPage() {
 
       {draft && (
         <div className="hydration-print hidden print:block">
-
           {printMode !== "chart" ? (
             <table className="hydration-values-table">
               <caption>
@@ -920,45 +919,16 @@ function HydrationPage() {
                 </div>
               </caption>
 
-         <thead>
-  <tr>
-    <th
-      className="text-left"
-      style={{
-        width: "38%",
-      }}
-    >
-      Jugadora
-    </th>
-
-    <th
-      className="text-center"
-      style={{
-        width: "11%",
-      }}
-    >
-      Valor
-    </th>
-
-    <th
-      className="text-center"
-      style={{
-        width: "19%",
-      }}
-    >
-      Estado
-    </th>
-
-    <th
-      className="text-left"
-      style={{
-        width: "32%",
-      }}
-    >
-      Observación
-    </th>
-  </tr>
-</thead>
+              <thead>
+                <tr>
+                  <th
+                    className="text-left"
+                    style={{
+                      width: "38%",
+                    }}
+                  >
+                    Jugadora
+                  </th>
 
                   <th
                     className="text-center"
@@ -972,7 +942,7 @@ function HydrationPage() {
                   <th
                     className="text-center"
                     style={{
-                      width: "18%",
+                      width: "19%",
                     }}
                   >
                     Estado
@@ -981,7 +951,7 @@ function HydrationPage() {
                   <th
                     className="text-left"
                     style={{
-                      width: "19%",
+                      width: "32%",
                     }}
                   >
                     Observación
