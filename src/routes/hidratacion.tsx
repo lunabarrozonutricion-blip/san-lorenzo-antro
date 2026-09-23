@@ -792,6 +792,13 @@ function HydrationPage() {
             font-weight: 700 !important;
           }
 
+          .hydration-values-table .print-spacer-column {
+            background: #ffffff !important;
+            border: 0 !important;
+            padding: 0 !important;
+            color: transparent !important;
+          }
+
           .print-report-header {
             border: 1px solid #cbd5e1 !important;
             background: #f8fafc !important;
@@ -924,7 +931,7 @@ function HydrationPage() {
                   <th
                     className="text-left"
                     style={{
-                      width: "30%",
+                      width: "22%",
                     }}
                   >
                     Jugadora
@@ -942,7 +949,7 @@ function HydrationPage() {
                   <th
                     className="text-center"
                     style={{
-                      width: "33%",
+                      width: "18%",
                     }}
                   >
                     Estado
@@ -951,11 +958,19 @@ function HydrationPage() {
                   <th
                     className="text-left"
                     style={{
-                      width: "25%",
+                      width: "16%",
                     }}
                   >
                     Observación
                   </th>
+
+                  <th
+                    aria-hidden="true"
+                    className="print-spacer-column"
+                    style={{
+                      width: "32%",
+                    }}
+                  />
                 </tr>
               </thead>
 
@@ -1003,6 +1018,11 @@ function HydrationPage() {
                           ) ??
                             "—"}
                         </td>
+
+                        <td
+                          aria-hidden="true"
+                          className="print-spacer-column"
+                        />
                       </tr>
                     );
                   },
