@@ -920,16 +920,45 @@ function HydrationPage() {
                 </div>
               </caption>
 
-              <thead>
-                <tr>
-                  <th
-                    className="text-left"
-                    style={{
-                      width: "52%",
-                    }}
-                  >
-                    Jugadora
-                  </th>
+         <thead>
+  <tr>
+    <th
+      className="text-left"
+      style={{
+        width: "38%",
+      }}
+    >
+      Jugadora
+    </th>
+
+    <th
+      className="text-center"
+      style={{
+        width: "11%",
+      }}
+    >
+      Valor
+    </th>
+
+    <th
+      className="text-center"
+      style={{
+        width: "19%",
+      }}
+    >
+      Estado
+    </th>
+
+    <th
+      className="text-left"
+      style={{
+        width: "32%",
+      }}
+    >
+      Observación
+    </th>
+  </tr>
+</thead>
 
                   <th
                     className="text-center"
