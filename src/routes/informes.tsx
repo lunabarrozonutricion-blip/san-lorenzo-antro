@@ -1,14 +1,31 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FileSpreadsheet, Printer } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  FileSpreadsheet,
+  Printer,
+  Share2,
+} from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { toast } from "sonner";
 
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
 import { PlayerNav } from "@/components/player-nav";
 import { Button } from "@/components/ui/button";
 import { exportXLSX } from "@/lib/backup";
-import { fmt, fmtDate, metricValue } from "@/lib/calc";
-import { useControls, usePlayers } from "@/lib/hooks";
+import {
+  fmt,
+  fmtDate,
+  metricValue,
+} from "@/lib/calc";
+import {
+  useControls,
+  usePlayers,
+} from "@/lib/hooks";
+import { createAnthroReportPdf } from "@/lib/report-pdf";
 import {
   GROUP_LABELS,
   METRICS,
@@ -56,6 +73,11 @@ function Informes() {
     selectedControls,
     setSelectedControls,
   ] = useState<number[]>([]);
+
+  const [
+    sharing,
+    setSharing,
+  ] = useState(false);
 
   useEffect(() => {
     if (
@@ -276,6 +298,91 @@ function Informes() {
             "corregidos",
       ).map((m) => m.key),
     );
+  }
+
+  async function compartirInforme() {
+    if (
+      !player ||
+      selectedMetrics.length ===
+        0 ||
+      reportControls.length ===
+        0
+    ) {
+      return;
+    }
+
+    setSharing(true);
+
+    try {
+      const {
+        blob,
+        fileName,
+      } =
+        createAnthroReportPdf({
+          playerName:
+            player.name,
+          controls:
+            reportControls,
+          selectedMetrics,
+        });
+
+      const file =
+        new File(
+          [blob],
+          fileName,
+          {
+            type:
+              "application/pdf",
+          },
+        );
+
+      if (
+        typeof navigator.share !==
+        "function"
+      ) {
+        toast.error(
+          "Este dispositivo no permite compartir archivos directamente.",
+        );
+
+        return;
+      }
+
+      if (
+        typeof navigator.canShare ===
+          "function" &&
+        !navigator.canShare({
+          files: [file],
+        })
+      ) {
+        toast.error(
+          "Este navegador no permite compartir el PDF directamente. Podés usar Exportar PDF / Imprimir.",
+        );
+
+        return;
+      }
+
+      await navigator.share({
+        title: `Informe antropométrico · ${player.name}`,
+        text: `Informe antropométrico de ${player.name}`,
+        files: [file],
+      });
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        error.name ===
+          "AbortError"
+      ) {
+        return;
+      }
+
+      console.error(error);
+
+      toast.error(
+        "No se pudo compartir el informe.",
+      );
+    } finally {
+      setSharing(false);
+    }
   }
 
   async function exportarExcel() {
@@ -730,37 +837,69 @@ function Informes() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={() =>
-              window.print()
-            }
-            disabled={
-              selectedMetrics.length ===
-                0 ||
-              reportControls.length ===
-                0
-            }
-          >
-            <Printer className="h-4 w-4" />
-            Exportar PDF / Imprimir
-          </Button>
+        <div className="rounded-lg border border-border bg-card p-4 shadow-panel">
+          <p className="panel-title text-xs text-muted-foreground">
+            Compartir o exportar
+          </p>
 
-          <Button
-            variant="outline"
-            onClick={() =>
-              void exportarExcel()
-            }
-            disabled={
-              selectedMetrics.length ===
-                0 ||
-              reportControls.length ===
-                0
-            }
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            Exportar Excel
-          </Button>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Compartir genera el PDF
+            temporalmente sin guardarlo
+            en Descargas.
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              onClick={() =>
+                void compartirInforme()
+              }
+              disabled={
+                sharing ||
+                selectedMetrics.length ===
+                  0 ||
+                reportControls.length ===
+                  0
+              }
+            >
+              <Share2 className="h-4 w-4" />
+
+              {sharing
+                ? "Preparando..."
+                : "Compartir informe"}
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() =>
+                window.print()
+              }
+              disabled={
+                selectedMetrics.length ===
+                  0 ||
+                reportControls.length ===
+                  0
+              }
+            >
+              <Printer className="h-4 w-4" />
+              Exportar PDF / Imprimir
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() =>
+                void exportarExcel()
+              }
+              disabled={
+                selectedMetrics.length ===
+                  0 ||
+                reportControls.length ===
+                  0
+              }
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Exportar Excel
+            </Button>
+          </div>
         </div>
       </div>
 
