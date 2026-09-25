@@ -7,7 +7,10 @@ import {
   FileText,
   FlaskConical,
   Plus,
+  Share2,
 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
@@ -20,9 +23,24 @@ import {
 } from "@/lib/calc";
 
 import {
+  calculateAntropogimsPresentation,
+} from "@/lib/antropogims-presentation";
+
+import {
+  createFiveComponentsReportPdf,
+} from "@/lib/five-components-report-pdf";
+
+import {
+  previousFullAnthropometry,
   useFullAnthropometries,
   usePlayer,
 } from "@/lib/hooks";
+
+import { shareFile } from "@/lib/share-file";
+
+import {
+  FULL_ANTHROPOMETRY_MEASURES,
+} from "@/lib/types";
 
 import type {
   FiveComponentMasses,
@@ -63,6 +81,32 @@ export const Route = createFileRoute(
   ),
 });
 
+const MASS_ROWS: Array<{
+  key: keyof FiveComponentMasses;
+  label: string;
+}> = [
+  {
+    key: "adipose",
+    label: "Masa adiposa",
+  },
+  {
+    key: "muscle",
+    label: "Masa muscular",
+  },
+  {
+    key: "residual",
+    label: "Masa residual",
+  },
+  {
+    key: "bone",
+    label: "Masa ósea",
+  },
+  {
+    key: "skin",
+    label: "Masa de la piel",
+  },
+];
+
 function finalMasses(
   anthropometry:
     FullAnthropometry,
@@ -91,6 +135,24 @@ function sourceLabel(
     : "Carga manual";
 }
 
+function pdfValue(
+  value:
+    | number
+    | null
+    | undefined,
+  decimals = 2,
+  unit = "",
+) {
+  if (value == null) {
+    return "—";
+  }
+
+  return `${fmt(
+    value,
+    decimals,
+  )}${unit}`;
+}
+
 function CincoComponentes() {
   const search =
     Route.useSearch();
@@ -105,6 +167,13 @@ function CincoComponentes() {
     useFullAnthropometries(
       playerId,
     );
+
+  const [
+    sharingId,
+    setSharingId,
+  ] = useState<
+    number | null
+  >(null);
 
   if (!playerId) {
     return (
@@ -154,6 +223,316 @@ function CincoComponentes() {
     latest
       ? finalMasses(latest)
       : null;
+
+  async function compartirEvaluacion(
+    anthropometry:
+      FullAnthropometry,
+  ) {
+    const shareId =
+      anthropometry.id ??
+      -1;
+
+    setSharingId(
+      shareId,
+    );
+
+    try {
+      const previous =
+        previousFullAnthropometry(
+          rows,
+          anthropometry,
+        );
+
+      const presentation =
+        calculateAntropogimsPresentation(
+          anthropometry,
+          previous,
+        );
+
+      const measurements =
+        FULL_ANTHROPOMETRY_MEASURES.map(
+          (
+            definition,
+          ) => ({
+            label:
+              definition.label,
+
+            unit:
+              definition.unit,
+
+            current:
+              anthropometry
+                .measures[
+                definition.key
+              ]?.median ??
+              null,
+
+            previous:
+              presentation
+                .previousValues[
+                definition.key
+              ] ??
+              null,
+
+            difference:
+              presentation
+                .measurementDifferences[
+                definition.key
+              ] ??
+              null,
+          }),
+        );
+
+      const masses =
+        MASS_ROWS.map(
+          (row) => ({
+            label:
+              row.label,
+
+            kg:
+              presentation
+                .massesKg[
+                row.key
+              ] ??
+              null,
+
+            percent:
+              presentation
+                .massPercentages[
+                row.key
+              ] ??
+              null,
+
+            scoreZ:
+              presentation
+                .massScoreZ[
+                row.key
+              ] ??
+              null,
+
+            previousKg:
+              presentation
+                .previousMassesKg?.[
+                row.key
+              ] ??
+              null,
+
+            differenceKg:
+              presentation
+                .massDifferencesKg?.[
+                row.key
+              ] ??
+              null,
+          }),
+        );
+
+      const additional =
+        presentation.additional;
+
+      const somatotype =
+        presentation.somatotype;
+
+      const extras = [
+        {
+          label:
+            "Relación cintura/cadera",
+          value:
+            pdfValue(
+              additional
+                .waistHipRatio,
+              2,
+            ),
+        },
+        {
+          label: "Sum6",
+          value:
+            pdfValue(
+              additional.sum6,
+              1,
+              " mm",
+            ),
+        },
+        {
+          label:
+            "Índice músculo/óseo",
+          value:
+            pdfValue(
+              additional
+                .muscleBoneIndex,
+              2,
+            ),
+        },
+        {
+          label:
+            "Índice adiposo/muscular",
+          value:
+            pdfValue(
+              additional
+                .adiposeMuscleIndex,
+              2,
+            ),
+        },
+        {
+          label: "IMC",
+          value:
+            pdfValue(
+              additional.bmi,
+              2,
+            ),
+        },
+        {
+          label:
+            "Talla sentado / talla",
+          value:
+            pdfValue(
+              additional
+                .sittingHeightStatureRatio,
+              3,
+            ),
+        },
+        {
+          label:
+            "Superficie corporal",
+          value:
+            pdfValue(
+              additional
+                .bodySurfaceArea,
+              3,
+              " m²",
+            ),
+        },
+        {
+          label:
+            "Superficie corporal / masa",
+          value:
+            pdfValue(
+              additional
+                .bodySurfaceAreaBodyMass,
+              2,
+            ),
+        },
+        {
+          label:
+            "Endomorfia",
+          value:
+            pdfValue(
+              somatotype
+                .endomorph,
+              2,
+            ),
+        },
+        {
+          label:
+            "Mesomorfia",
+          value:
+            pdfValue(
+              somatotype
+                .mesomorph,
+              2,
+            ),
+        },
+        {
+          label:
+            "Ectomorfia",
+          value:
+            pdfValue(
+              somatotype
+                .ectomorph,
+              2,
+            ),
+        },
+      ];
+
+      const {
+        blob,
+        fileName,
+      } =
+        createFiveComponentsReportPdf({
+          playerName:
+            player.name,
+
+          date:
+            fmtDate(
+              anthropometry.date,
+            ).replaceAll(
+              "/",
+              "-",
+            ),
+
+          source:
+            sourceLabel(
+              anthropometry.source,
+            ),
+
+          weight:
+            anthropometry
+              .measures
+              .weight
+              ?.median ??
+            null,
+
+          stature:
+            anthropometry
+              .measures
+              .stature
+              ?.median ??
+            null,
+
+          sum6:
+            anthropometry
+              .results
+              ?.sum6 ??
+            null,
+
+          muscleBoneIndex:
+            anthropometry
+              .results
+              ?.muscleBoneIndexRaw ??
+            null,
+
+          measurements,
+
+          masses,
+
+          extras,
+        });
+
+      const result =
+        await shareFile({
+          blob,
+          fileName,
+
+          title:
+            `5 componentes · ${player.name}`,
+
+          text:
+            `Evaluación de 5 componentes · ${player.name} · ${fmtDate(
+              anthropometry.date,
+            )}`,
+        });
+
+      if (
+        result.status ===
+        "unsupported"
+      ) {
+        toast.error(
+          result.message,
+        );
+      }
+    } catch (error) {
+      console.error(
+        error,
+      );
+
+      toast.error(
+        "No se pudo compartir la evaluación.",
+      );
+    } finally {
+      setSharingId(
+        null,
+      );
+    }
+  }
 
   return (
     <AppLayout
@@ -263,25 +642,48 @@ function CincoComponentes() {
 
           {latest?.id !=
             null && (
-            <Button
-              asChild
-              size="sm"
-              variant="outline"
-            >
-              <Link
-                to="/componentes-presentacion"
-                search={{
-                  player:
-                    playerId,
-
-                  id:
-                    latest.id,
-                }}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={
+                  sharingId ===
+                  latest.id
+                }
+                onClick={() =>
+                  void compartirEvaluacion(
+                    latest,
+                  )
+                }
               >
-                <FileText className="h-4 w-4" />
-                Ver presentación
-              </Link>
-            </Button>
+                <Share2 className="h-4 w-4" />
+
+                {sharingId ===
+                latest.id
+                  ? "Preparando..."
+                  : "Compartir"}
+              </Button>
+
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+              >
+                <Link
+                  to="/componentes-presentacion"
+                  search={{
+                    player:
+                      playerId,
+
+                    id:
+                      latest.id,
+                  }}
+                >
+                  <FileText className="h-4 w-4" />
+                  Ver presentación
+                </Link>
+              </Button>
+            </div>
           )}
         </div>
 
@@ -365,7 +767,7 @@ function CincoComponentes() {
 
         {rows.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1000px] text-sm">
+            <table className="w-full min-w-[1080px] text-sm">
               <thead className="bg-muted/70 text-left">
                 <tr>
                   <th className="px-3 py-2 font-semibold">
@@ -401,7 +803,7 @@ function CincoComponentes() {
                   </th>
 
                   <th className="px-3 py-2 text-right font-semibold">
-                    Presentación
+                    Acciones
                   </th>
                 </tr>
               </thead>
@@ -517,28 +919,51 @@ function CincoComponentes() {
                             : "—"}
                         </td>
 
-                        <td className="px-3 py-3 text-right">
+                        <td className="px-3 py-3">
                           {anthropometry.id !=
                           null ? (
-                            <Button
-                              asChild
-                              size="sm"
-                              variant="outline"
-                            >
-                              <Link
-                                to="/componentes-presentacion"
-                                search={{
-                                  player:
-                                    playerId,
-
-                                  id:
-                                    anthropometry.id,
-                                }}
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={
+                                  sharingId ===
+                                  anthropometry.id
+                                }
+                                onClick={() =>
+                                  void compartirEvaluacion(
+                                    anthropometry,
+                                  )
+                                }
                               >
-                                <FileText className="h-4 w-4" />
-                                Ver
-                              </Link>
-                            </Button>
+                                <Share2 className="h-4 w-4" />
+
+                                {sharingId ===
+                                anthropometry.id
+                                  ? "Preparando..."
+                                  : "Compartir"}
+                              </Button>
+
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                              >
+                                <Link
+                                  to="/componentes-presentacion"
+                                  search={{
+                                    player:
+                                      playerId,
+
+                                    id:
+                                      anthropometry.id,
+                                  }}
+                                >
+                                  <FileText className="h-4 w-4" />
+                                  Ver
+                                </Link>
+                              </Button>
+                            </div>
                           ) : (
                             "—"
                           )}
