@@ -228,6 +228,8 @@ function CincoComponentes() {
     anthropometry:
       FullAnthropometry,
   ) {
+    if (!player) return;
+
     const shareId =
       anthropometry.id ??
       -1;

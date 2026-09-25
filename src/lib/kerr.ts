@@ -82,7 +82,7 @@ function sumNumbers(
 
   const total =
     values.reduce(
-      (sum, value) =>
+      (sum: number, value) =>
         sum + (value as number),
       0,
     );

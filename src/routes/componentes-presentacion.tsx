@@ -250,7 +250,7 @@ function sumMasses(
   }
 
   return values.reduce(
-    (total, value) =>
+    (total: number, value) =>
       total +
       (value as number),
     0,
