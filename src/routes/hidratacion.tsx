@@ -4,6 +4,7 @@ import {
   Plus,
   Printer,
   Save,
+  Share2,
   Trash2,
 } from "lucide-react";
 import {
@@ -26,6 +27,8 @@ import {
   useHydrationTests,
   usePlayers,
 } from "@/lib/hooks";
+import { createHydrationReportPdf } from "@/lib/hydration-report-pdf";
+import { shareFile } from "@/lib/share-file";
 import {
   HYDRATION_CONTEXTS,
   HYDRATION_DAY_TYPES,
@@ -357,6 +360,9 @@ function HydrationPage() {
   const [saving, setSaving] =
     useState(false);
 
+  const [sharing, setSharing] =
+    useState(false);
+
   const [printMode, setPrintMode] =
     useState<PrintMode>("both");
 
@@ -649,6 +655,106 @@ function HydrationPage() {
     }
   }
 
+  async function shareHydrationTest() {
+    if (!draft) {
+      return;
+    }
+
+    setSharing(true);
+
+    try {
+      const roundText =
+        draft.round.trim();
+
+      const parsedRound =
+        roundText === ""
+          ? null
+          : Number(roundText);
+
+      const {
+        blob,
+        fileName,
+      } =
+        createHydrationReportPdf({
+          date:
+            draft.date,
+
+          rival:
+            draft.rival.trim() ||
+            null,
+
+          round:
+            parsedRound != null &&
+            Number.isFinite(
+              parsedRound,
+            )
+              ? parsedRound
+              : null,
+
+          dayType:
+            dayTypeLabel(
+              draft.dayType,
+            ),
+
+          context:
+            contextLabel(
+              draft.context,
+              draft.customContext,
+            ),
+
+          entries:
+            draft.entries.map(
+              (entry) => ({
+                playerName:
+                  entry.playerName,
+
+                value:
+                  parseHydrationValue(
+                    entry.value,
+                  ),
+
+                observation:
+                  savedObservation(
+                    entry,
+                  ),
+              }),
+            ),
+
+          mode:
+            printMode,
+        });
+
+      const result =
+        await shareFile({
+          blob,
+          fileName,
+          title: `Test de hidratación · ${fmtDate(
+            draft.date,
+          )}`,
+          text: `Test de hidratación · ${fmtDate(
+            draft.date,
+          )}`,
+        });
+
+      if (
+        result.status ===
+        "unsupported"
+      ) {
+        toast.error(
+          result.message,
+        );
+      }
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        "No se pudo compartir el test de hidratación.",
+      );
+    } finally {
+      setSharing(false);
+    }
+  }
+
   async function removeTest() {
     if (!draft?.id) {
       return;
@@ -713,6 +819,24 @@ function HydrationPage() {
                 Solo gráfico
               </option>
             </select>
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={
+                !draft ||
+                sharing
+              }
+              onClick={() =>
+                void shareHydrationTest()
+              }
+            >
+              <Share2 className="h-4 w-4" />
+
+              {sharing
+                ? "Preparando..."
+                : "Compartir"}
+            </Button>
 
             <Button
               type="button"
@@ -1172,7 +1296,7 @@ function HydrationPage() {
         </div>
       )}
 
-      <div className="no-print mb-4 flex gap-2 sm:hidden">
+      <div className="no-print mb-4 flex flex-wrap gap-2 sm:hidden">
         <select
           aria-label="Qué imprimir"
           value={printMode}
@@ -1195,6 +1319,24 @@ function HydrationPage() {
             Solo gráfico
           </option>
         </select>
+
+        <Button
+          type="button"
+          variant="outline"
+          disabled={
+            !draft ||
+            sharing
+          }
+          onClick={() =>
+            void shareHydrationTest()
+          }
+        >
+          <Share2 className="h-4 w-4" />
+
+          {sharing
+            ? "Preparando..."
+            : "Compartir"}
+        </Button>
 
         <Button
           type="button"
