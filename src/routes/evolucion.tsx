@@ -1,5 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { Share2 } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { toast } from "sonner";
 import {
   CartesianGrid,
   Line,
@@ -14,6 +20,7 @@ import {
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
 import { PlayerNav } from "@/components/player-nav";
+import { Button } from "@/components/ui/button";
 import {
   fmt,
   fmtDate,
@@ -21,12 +28,14 @@ import {
   metricValue,
   sortByDateAsc,
 } from "@/lib/calc";
+import { createEvolutionReportPdf } from "@/lib/evolution-report-pdf";
 import {
   useControls,
   usePlayer,
   usePlayers,
 } from "@/lib/hooks";
 import { best2025ForPlayer } from "@/lib/historical-best-2025";
+import { shareFile } from "@/lib/share-file";
 import {
   GROUP_LABELS,
   METRICS,
@@ -67,6 +76,9 @@ function Evolucion() {
     showBest2025,
     setShowBest2025,
   ] = useState(false);
+
+  const [sharing, setSharing] =
+    useState(false);
 
   const controls =
     useControls(playerId);
@@ -252,6 +264,92 @@ function Evolucion() {
         first.value
       : null;
 
+  async function compartirEvolucion() {
+    if (
+      !player ||
+      validData.length ===
+        0
+    ) {
+      toast.error(
+        "No hay datos para compartir.",
+      );
+
+      return;
+    }
+
+    setSharing(true);
+
+    try {
+      const {
+        blob,
+        fileName,
+      } =
+        createEvolutionReportPdf({
+          playerName:
+            player.name,
+
+          metricLabel:
+            metric.label,
+
+          unit:
+            metric.unit,
+
+          decimals:
+            metric.decimals,
+
+          data:
+            validData.map(
+              (item) => ({
+                date:
+                  item.date,
+                label:
+                  item.label,
+                value:
+                  item.value,
+              }),
+            ),
+
+          reference:
+            showReference &&
+            best2025 &&
+            ref2025Value !==
+              null
+              ? {
+                  value:
+                    ref2025Value,
+                  label:
+                    best2025.period,
+                }
+              : null,
+        });
+
+      const result =
+        await shareFile({
+          blob,
+          fileName,
+          title: `Evolución · ${player.name}`,
+          text: `Evolución de ${metric.label} · ${player.name}`,
+        });
+
+      if (
+        result.status ===
+        "unsupported"
+      ) {
+        toast.error(
+          result.message,
+        );
+      }
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        "No se pudo compartir la evolución.",
+      );
+    } finally {
+      setSharing(false);
+    }
+  }
+
   const groups = [
     "principal",
     "pliegues",
@@ -267,6 +365,27 @@ function Evolucion() {
           : "Evolución"
       }
       subtitle="Seguimiento temporal por jugadora y variable"
+      actions={
+        <Button
+          type="button"
+          variant="outline"
+          disabled={
+            !player ||
+            validData.length ===
+              0 ||
+            sharing
+          }
+          onClick={() =>
+            void compartirEvolucion()
+          }
+        >
+          <Share2 className="h-4 w-4" />
+
+          {sharing
+            ? "Preparando..."
+            : "Compartir"}
+        </Button>
+      }
     >
       <PlayerNav
         playerId={playerId}
