@@ -11,13 +11,22 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ComparativaRouteImport } from './routes/comparativa'
+import { Route as ComponentesRouteImport } from './routes/componentes'
+import { Route as ComponentesImportarRouteImport } from './routes/componentes-importar'
+import { Route as ComponentesNuevaRouteImport } from './routes/componentes-nueva'
+import { Route as ComponentesPresentacionRouteImport } from './routes/componentes-presentacion'
 import { Route as ControlRouteImport } from './routes/control'
 import { Route as DatosRouteImport } from './routes/datos'
 import { Route as EvolucionRouteImport } from './routes/evolucion'
+import { Route as HidratacionRouteImport } from './routes/hidratacion'
 import { Route as HistorialRouteImport } from './routes/historial'
 import { Route as InformesRouteImport } from './routes/informes'
+import { Route as IntercambiosRouteImport } from './routes/intercambios'
+import { Route as ObjetivosRouteImport } from './routes/objetivos'
+import { Route as ObjetivosJugadoraRouteImport } from './routes/objetivos-jugadora'
 import { Route as PesajesRouteImport } from './routes/pesajes'
 import { Route as PlantelRouteImport } from './routes/plantel'
+import { Route as SeguimientoRouteImport } from './routes/seguimiento'
 import { Route as JugadorasIndexRouteImport } from './routes/jugadoras.index'
 import { Route as JugadorasIdRouteImport } from './routes/jugadoras.$id'
 
@@ -29,6 +38,26 @@ const IndexRoute = IndexRouteImport.update({
 const ComparativaRoute = ComparativaRouteImport.update({
   id: '/comparativa',
   path: '/comparativa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComponentesRoute = ComponentesRouteImport.update({
+  id: '/componentes',
+  path: '/componentes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComponentesImportarRoute = ComponentesImportarRouteImport.update({
+  id: '/componentes-importar',
+  path: '/componentes-importar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComponentesNuevaRoute = ComponentesNuevaRouteImport.update({
+  id: '/componentes-nueva',
+  path: '/componentes-nueva',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComponentesPresentacionRoute = ComponentesPresentacionRouteImport.update({
+  id: '/componentes-presentacion',
+  path: '/componentes-presentacion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ControlRoute = ControlRouteImport.update({
@@ -46,6 +75,11 @@ const EvolucionRoute = EvolucionRouteImport.update({
   path: '/evolucion',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HidratacionRoute = HidratacionRouteImport.update({
+  id: '/hidratacion',
+  path: '/hidratacion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistorialRoute = HistorialRouteImport.update({
   id: '/historial',
   path: '/historial',
@@ -56,6 +90,21 @@ const InformesRoute = InformesRouteImport.update({
   path: '/informes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IntercambiosRoute = IntercambiosRouteImport.update({
+  id: '/intercambios',
+  path: '/intercambios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ObjetivosRoute = ObjetivosRouteImport.update({
+  id: '/objetivos',
+  path: '/objetivos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ObjetivosJugadoraRoute = ObjetivosJugadoraRouteImport.update({
+  id: '/objetivos-jugadora',
+  path: '/objetivos-jugadora',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PesajesRoute = PesajesRouteImport.update({
   id: '/pesajes',
   path: '/pesajes',
@@ -64,6 +113,11 @@ const PesajesRoute = PesajesRouteImport.update({
 const PlantelRoute = PlantelRouteImport.update({
   id: '/plantel',
   path: '/plantel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SeguimientoRoute = SeguimientoRouteImport.update({
+  id: '/seguimiento',
+  path: '/seguimiento',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JugadorasIndexRoute = JugadorasIndexRouteImport.update({
@@ -80,26 +134,44 @@ const JugadorasIdRoute = JugadorasIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/comparativa': typeof ComparativaRoute
+  '/componentes': typeof ComponentesRoute
+  '/componentes-importar': typeof ComponentesImportarRoute
+  '/componentes-nueva': typeof ComponentesNuevaRoute
+  '/componentes-presentacion': typeof ComponentesPresentacionRoute
   '/control': typeof ControlRoute
   '/datos': typeof DatosRoute
   '/evolucion': typeof EvolucionRoute
+  '/hidratacion': typeof HidratacionRoute
   '/historial': typeof HistorialRoute
   '/informes': typeof InformesRoute
+  '/intercambios': typeof IntercambiosRoute
+  '/objetivos': typeof ObjetivosRoute
+  '/objetivos-jugadora': typeof ObjetivosJugadoraRoute
   '/pesajes': typeof PesajesRoute
   '/plantel': typeof PlantelRoute
+  '/seguimiento': typeof SeguimientoRoute
   '/jugadoras/$id': typeof JugadorasIdRoute
   '/jugadoras/': typeof JugadorasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/comparativa': typeof ComparativaRoute
+  '/componentes': typeof ComponentesRoute
+  '/componentes-importar': typeof ComponentesImportarRoute
+  '/componentes-nueva': typeof ComponentesNuevaRoute
+  '/componentes-presentacion': typeof ComponentesPresentacionRoute
   '/control': typeof ControlRoute
   '/datos': typeof DatosRoute
   '/evolucion': typeof EvolucionRoute
+  '/hidratacion': typeof HidratacionRoute
   '/historial': typeof HistorialRoute
   '/informes': typeof InformesRoute
+  '/intercambios': typeof IntercambiosRoute
+  '/objetivos': typeof ObjetivosRoute
+  '/objetivos-jugadora': typeof ObjetivosJugadoraRoute
   '/pesajes': typeof PesajesRoute
   '/plantel': typeof PlantelRoute
+  '/seguimiento': typeof SeguimientoRoute
   '/jugadoras/$id': typeof JugadorasIdRoute
   '/jugadoras': typeof JugadorasIndexRoute
 }
@@ -107,13 +179,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/comparativa': typeof ComparativaRoute
+  '/componentes': typeof ComponentesRoute
+  '/componentes-importar': typeof ComponentesImportarRoute
+  '/componentes-nueva': typeof ComponentesNuevaRoute
+  '/componentes-presentacion': typeof ComponentesPresentacionRoute
   '/control': typeof ControlRoute
   '/datos': typeof DatosRoute
   '/evolucion': typeof EvolucionRoute
+  '/hidratacion': typeof HidratacionRoute
   '/historial': typeof HistorialRoute
   '/informes': typeof InformesRoute
+  '/intercambios': typeof IntercambiosRoute
+  '/objetivos': typeof ObjetivosRoute
+  '/objetivos-jugadora': typeof ObjetivosJugadoraRoute
   '/pesajes': typeof PesajesRoute
   '/plantel': typeof PlantelRoute
+  '/seguimiento': typeof SeguimientoRoute
   '/jugadoras/$id': typeof JugadorasIdRoute
   '/jugadoras/': typeof JugadorasIndexRoute
 }
@@ -122,39 +203,66 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/comparativa'
+    | '/componentes'
+    | '/componentes-importar'
+    | '/componentes-nueva'
+    | '/componentes-presentacion'
     | '/control'
     | '/datos'
     | '/evolucion'
+    | '/hidratacion'
     | '/historial'
     | '/informes'
+    | '/intercambios'
+    | '/objetivos'
+    | '/objetivos-jugadora'
     | '/pesajes'
     | '/plantel'
+    | '/seguimiento'
     | '/jugadoras/$id'
     | '/jugadoras/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/comparativa'
+    | '/componentes'
+    | '/componentes-importar'
+    | '/componentes-nueva'
+    | '/componentes-presentacion'
     | '/control'
     | '/datos'
     | '/evolucion'
+    | '/hidratacion'
     | '/historial'
     | '/informes'
+    | '/intercambios'
+    | '/objetivos'
+    | '/objetivos-jugadora'
     | '/pesajes'
     | '/plantel'
+    | '/seguimiento'
     | '/jugadoras/$id'
     | '/jugadoras'
   id:
     | '__root__'
     | '/'
     | '/comparativa'
+    | '/componentes'
+    | '/componentes-importar'
+    | '/componentes-nueva'
+    | '/componentes-presentacion'
     | '/control'
     | '/datos'
     | '/evolucion'
+    | '/hidratacion'
     | '/historial'
     | '/informes'
+    | '/intercambios'
+    | '/objetivos'
+    | '/objetivos-jugadora'
     | '/pesajes'
     | '/plantel'
+    | '/seguimiento'
     | '/jugadoras/$id'
     | '/jugadoras/'
   fileRoutesById: FileRoutesById
@@ -162,13 +270,22 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ComparativaRoute: typeof ComparativaRoute
+  ComponentesRoute: typeof ComponentesRoute
+  ComponentesImportarRoute: typeof ComponentesImportarRoute
+  ComponentesNuevaRoute: typeof ComponentesNuevaRoute
+  ComponentesPresentacionRoute: typeof ComponentesPresentacionRoute
   ControlRoute: typeof ControlRoute
   DatosRoute: typeof DatosRoute
   EvolucionRoute: typeof EvolucionRoute
+  HidratacionRoute: typeof HidratacionRoute
   HistorialRoute: typeof HistorialRoute
   InformesRoute: typeof InformesRoute
+  IntercambiosRoute: typeof IntercambiosRoute
+  ObjetivosRoute: typeof ObjetivosRoute
+  ObjetivosJugadoraRoute: typeof ObjetivosJugadoraRoute
   PesajesRoute: typeof PesajesRoute
   PlantelRoute: typeof PlantelRoute
+  SeguimientoRoute: typeof SeguimientoRoute
   JugadorasIdRoute: typeof JugadorasIdRoute
   JugadorasIndexRoute: typeof JugadorasIndexRoute
 }
@@ -187,6 +304,34 @@ declare module '@tanstack/react-router' {
       path: '/comparativa'
       fullPath: '/comparativa'
       preLoaderRoute: typeof ComparativaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/componentes': {
+      id: '/componentes'
+      path: '/componentes'
+      fullPath: '/componentes'
+      preLoaderRoute: typeof ComponentesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/componentes-importar': {
+      id: '/componentes-importar'
+      path: '/componentes-importar'
+      fullPath: '/componentes-importar'
+      preLoaderRoute: typeof ComponentesImportarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/componentes-nueva': {
+      id: '/componentes-nueva'
+      path: '/componentes-nueva'
+      fullPath: '/componentes-nueva'
+      preLoaderRoute: typeof ComponentesNuevaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/componentes-presentacion': {
+      id: '/componentes-presentacion'
+      path: '/componentes-presentacion'
+      fullPath: '/componentes-presentacion'
+      preLoaderRoute: typeof ComponentesPresentacionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/control': {
@@ -210,6 +355,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EvolucionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hidratacion': {
+      id: '/hidratacion'
+      path: '/hidratacion'
+      fullPath: '/hidratacion'
+      preLoaderRoute: typeof HidratacionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/historial': {
       id: '/historial'
       path: '/historial'
@@ -224,6 +376,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InformesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/intercambios': {
+      id: '/intercambios'
+      path: '/intercambios'
+      fullPath: '/intercambios'
+      preLoaderRoute: typeof IntercambiosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/objetivos': {
+      id: '/objetivos'
+      path: '/objetivos'
+      fullPath: '/objetivos'
+      preLoaderRoute: typeof ObjetivosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/objetivos-jugadora': {
+      id: '/objetivos-jugadora'
+      path: '/objetivos-jugadora'
+      fullPath: '/objetivos-jugadora'
+      preLoaderRoute: typeof ObjetivosJugadoraRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pesajes': {
       id: '/pesajes'
       path: '/pesajes'
@@ -236,6 +409,13 @@ declare module '@tanstack/react-router' {
       path: '/plantel'
       fullPath: '/plantel'
       preLoaderRoute: typeof PlantelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seguimiento': {
+      id: '/seguimiento'
+      path: '/seguimiento'
+      fullPath: '/seguimiento'
+      preLoaderRoute: typeof SeguimientoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/jugadoras/': {
@@ -258,13 +438,22 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ComparativaRoute: ComparativaRoute,
+  ComponentesRoute: ComponentesRoute,
+  ComponentesImportarRoute: ComponentesImportarRoute,
+  ComponentesNuevaRoute: ComponentesNuevaRoute,
+  ComponentesPresentacionRoute: ComponentesPresentacionRoute,
   ControlRoute: ControlRoute,
   DatosRoute: DatosRoute,
   EvolucionRoute: EvolucionRoute,
+  HidratacionRoute: HidratacionRoute,
   HistorialRoute: HistorialRoute,
   InformesRoute: InformesRoute,
+  IntercambiosRoute: IntercambiosRoute,
+  ObjetivosRoute: ObjetivosRoute,
+  ObjetivosJugadoraRoute: ObjetivosJugadoraRoute,
   PesajesRoute: PesajesRoute,
   PlantelRoute: PlantelRoute,
+  SeguimientoRoute: SeguimientoRoute,
   JugadorasIdRoute: JugadorasIdRoute,
   JugadorasIndexRoute: JugadorasIndexRoute,
 }
