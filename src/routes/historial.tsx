@@ -2,6 +2,7 @@ import {
   createFileRoute,
   Link,
 } from "@tanstack/react-router";
+import { Share2 } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -15,16 +16,25 @@ import { Value } from "@/components/metric-cells";
 import { PlayerNav } from "@/components/player-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
 import {
   fmtDate,
   metricValue,
 } from "@/lib/calc";
+
 import { deleteControl } from "@/lib/db";
+
+import {
+  createHistoryReportPdf,
+} from "@/lib/history-report-pdf";
+
 import {
   useControls,
   usePlayer,
   usePlayers,
 } from "@/lib/hooks";
+
+import { shareFile } from "@/lib/share-file";
 
 export const Route = createFileRoute(
   "/historial",
@@ -90,6 +100,11 @@ function Historial() {
   const [hasta, setHasta] =
     useState("");
 
+  const [
+    sharing,
+    setSharing,
+  ] = useState(false);
+
   const player =
     usePlayer(playerId);
 
@@ -130,6 +145,100 @@ function Historial() {
       hasta,
     ]);
 
+  async function compartirHistorial() {
+    if (!player) {
+      toast.error(
+        "Seleccioná una jugadora.",
+      );
+
+      return;
+    }
+
+    if (
+      rows.length === 0
+    ) {
+      toast.error(
+        "No hay controles para compartir con los filtros seleccionados.",
+      );
+
+      return;
+    }
+
+    setSharing(true);
+
+    try {
+      const {
+        blob,
+        fileName,
+      } =
+        createHistoryReportPdf({
+          playerName:
+            player.name,
+
+          from:
+            desde || null,
+
+          to:
+            hasta || null,
+
+          rows:
+            rows.map(
+              (control) => ({
+                date:
+                  control.date,
+
+                weight:
+                  metricValue(
+                    control,
+                    "weight",
+                  ),
+
+                sum6:
+                  metricValue(
+                    control,
+                    "sum6",
+                  ),
+
+                notes:
+                  control.notes ??
+                  null,
+              }),
+            ),
+        });
+
+      const result =
+        await shareFile({
+          blob,
+          fileName,
+
+          title:
+            `Historial · ${player.name}`,
+
+          text:
+            `Historial antropométrico · ${player.name}`,
+        });
+
+      if (
+        result.status ===
+        "unsupported"
+      ) {
+        toast.error(
+          result.message,
+        );
+      }
+    } catch (error) {
+      console.error(
+        error,
+      );
+
+      toast.error(
+        "No se pudo compartir el historial.",
+      );
+    } finally {
+      setSharing(false);
+    }
+  }
+
   async function eliminar(
     id: number,
   ) {
@@ -156,6 +265,26 @@ function Historial() {
           : "Historial"
       }
       subtitle="Controles antropométricos de la jugadora"
+      actions={
+        <Button
+          type="button"
+          variant="outline"
+          disabled={
+            !player ||
+            rows.length === 0 ||
+            sharing
+          }
+          onClick={() =>
+            void compartirHistorial()
+          }
+        >
+          <Share2 className="h-4 w-4" />
+
+          {sharing
+            ? "Preparando..."
+            : "Compartir historial"}
+        </Button>
+      }
     >
       <PlayerNav
         playerId={playerId}
