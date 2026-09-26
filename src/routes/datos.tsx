@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  CloudUpload,
   Database,
   Download,
   FileSpreadsheet,
@@ -31,6 +32,10 @@ import {
   usePlayers,
   useWeightRecords,
 } from "@/lib/hooks";
+
+import {
+  migrateLocalDataToSupabase,
+} from "@/lib/migrate-to-supabase";
 
 export const Route =
   createFileRoute("/datos")({
@@ -79,6 +84,18 @@ function Datos() {
     importingWeights,
     setImportingWeights,
   ] = useState(false);
+
+  const [
+    migrating,
+    setMigrating,
+  ] = useState(false);
+
+  const [
+    migrationProgress,
+    setMigrationProgress,
+  ] = useState<string | null>(
+    null,
+  );
 
   async function importar(
     file: File,
@@ -222,10 +239,99 @@ function Datos() {
     }
   }
 
+  async function migrarANube() {
+    const totalLocal =
+      (players?.length ?? 0) +
+      (controls?.length ?? 0) +
+      (weightRecords?.length ?? 0) +
+      (objectivePeriods?.length ?? 0) +
+      (hydrationTests?.length ?? 0) +
+      (fullAnthropometries?.length ?? 0);
+
+    if (
+      totalLocal === 0
+    ) {
+      window.alert(
+        "No hay datos locales para subir.",
+      );
+
+      return;
+    }
+
+    const confirmar =
+      window.confirm(
+        `Vas a copiar la base local completa a Supabase.\n\n` +
+          `Se van a subir:\n` +
+          `• ${players?.length ?? 0} jugadoras\n` +
+          `• ${controls?.length ?? 0} controles\n` +
+          `• ${weightRecords?.length ?? 0} pesajes\n` +
+          `• ${objectivePeriods?.length ?? 0} períodos de objetivos\n` +
+          `• ${hydrationTests?.length ?? 0} tests de hidratación\n` +
+          `• ${fullAnthropometries?.length ?? 0} antropometrías completas\n\n` +
+          `Tus datos locales NO se van a borrar.\n\n` +
+          `¿Ya descargaste el Backup JSON completo y querés continuar?`,
+      );
+
+    if (!confirmar) {
+      return;
+    }
+
+    try {
+      setMigrating(true);
+
+      setMigrationProgress(
+        "Preparando migración...",
+      );
+
+      const result =
+        await migrateLocalDataToSupabase(
+          (message) => {
+            setMigrationProgress(
+              message,
+            );
+          },
+        );
+
+      setMigrationProgress(
+        "Migración terminada correctamente.",
+      );
+
+      window.alert(
+        `Datos subidos correctamente a Supabase.\n\n` +
+          `Jugadoras: ${result.players}\n` +
+          `Controles: ${result.controls}\n` +
+          `Pesajes: ${result.weightRecords}\n` +
+          `Objetivos: ${result.objectivePeriods}\n` +
+          `Tests de hidratación: ${result.hydrationTests}\n` +
+          `Antropometrías completas: ${result.fullAnthropometries}\n\n` +
+          `La base local sigue intacta.`,
+      );
+    } catch (error) {
+      console.error(
+        error,
+      );
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Error desconocido.";
+
+      setMigrationProgress(
+        null,
+      );
+
+      window.alert(
+        `No se pudo completar la migración.\n\n${message}\n\nLa base local no fue modificada.`,
+      );
+    } finally {
+      setMigrating(false);
+    }
+  }
+
   return (
     <AppLayout
       title="Importar / Exportar"
-      subtitle="Administración y copia de seguridad completa de los datos locales"
+      subtitle="Administración y copia de seguridad completa de los datos"
     >
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border border-border bg-card p-5 shadow-panel">
@@ -304,7 +410,7 @@ function Datos() {
           </div>
 
           <p className="mt-4 text-sm text-muted-foreground">
-            Estos datos todavía están guardados localmente en este dispositivo.
+            Estos números corresponden a la base local de este dispositivo.
           </p>
         </div>
 
@@ -316,7 +422,7 @@ function Datos() {
           </h2>
 
           <p className="mt-2 text-sm text-muted-foreground">
-            Reemplaza los datos actuales por una copia de seguridad completa de la aplicación.
+            Reemplaza los datos locales actuales por una copia de seguridad completa de la aplicación.
           </p>
 
           <input
@@ -341,7 +447,10 @@ function Datos() {
             onClick={() =>
               fileRef.current?.click()
             }
-            disabled={importing}
+            disabled={
+              importing ||
+              migrating
+            }
           >
             <Upload className="h-4 w-4" />
 
@@ -351,7 +460,7 @@ function Datos() {
           </Button>
 
           <p className="mt-3 text-xs text-muted-foreground">
-            Esta opción reemplaza toda la base actual.
+            Esta opción reemplaza toda la base local actual.
           </p>
         </div>
 
@@ -390,7 +499,8 @@ function Datos() {
               weightFileRef.current?.click()
             }
             disabled={
-              importingWeights
+              importingWeights ||
+              migrating
             }
           >
             <Scale className="h-4 w-4" />
@@ -422,6 +532,7 @@ function Datos() {
             onClick={() =>
               void exportJSON()
             }
+            disabled={migrating}
           >
             <Download className="h-4 w-4" />
             Backup JSON completo
@@ -432,6 +543,7 @@ function Datos() {
             onClick={() =>
               void exportXLSX()
             }
+            disabled={migrating}
           >
             <FileSpreadsheet className="h-4 w-4" />
             Exportar Excel
@@ -442,11 +554,64 @@ function Datos() {
             onClick={() =>
               void exportCSV()
             }
+            disabled={migrating}
           >
             <FileSpreadsheet className="h-4 w-4" />
             Exportar CSV
           </Button>
         </div>
+      </div>
+
+      <div className="mt-4 rounded-lg border border-primary/30 bg-card p-5 shadow-panel">
+        <CloudUpload className="h-7 w-7 text-primary" />
+
+        <h2 className="mt-3 font-display text-xl font-semibold">
+          Migrar datos a la nube
+        </h2>
+
+        <p className="mt-2 text-sm text-muted-foreground">
+          Copia toda la información de este dispositivo a tu base segura de Supabase.
+        </p>
+
+        <p className="mt-2 text-sm text-muted-foreground">
+          Esta operación no borra ni modifica los datos locales. Si Supabase ya contiene información, la migración se detiene automáticamente para evitar duplicados.
+        </p>
+
+        <Button
+          className="mt-4"
+          onClick={() =>
+            void migrarANube()
+          }
+          disabled={
+            migrating ||
+            players == null ||
+            controls == null ||
+            weightRecords == null ||
+            objectivePeriods == null ||
+            hydrationTests == null ||
+            fullAnthropometries == null
+          }
+        >
+          <CloudUpload className="h-4 w-4" />
+
+          {migrating
+            ? "Subiendo datos..."
+            : "Subir datos a Supabase"}
+        </Button>
+
+        {migrationProgress && (
+          <div className="mt-4 rounded-md bg-muted p-3">
+            <p className="text-sm font-medium">
+              {migrationProgress}
+            </p>
+
+            {migrating && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                No cierres esta pestaña hasta que termine.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mt-4 rounded-lg border border-border bg-muted/50 p-4">
@@ -455,7 +620,7 @@ function Datos() {
         </p>
 
         <p className="mt-1 text-sm text-muted-foreground">
-          La información todavía vive en este navegador/dispositivo. Antes de migrarla a Supabase vamos a generar este Backup JSON completo para tener una copia de seguridad independiente.
+          Ya tenés un Backup JSON completo guardado. La migración a Supabase crea una copia en la nube y mantiene intacta la base local hasta que verifiquemos que todo se haya transferido correctamente.
         </p>
       </div>
     </AppLayout>
