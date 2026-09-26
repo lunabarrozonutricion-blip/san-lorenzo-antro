@@ -2,6 +2,8 @@ import { db, nowISO } from "./db";
 import {
   METRICS,
   type Control,
+  type FullAnthropometry,
+  type HydrationTest,
   type ObjectivePeriod,
   type Player,
   type WeightRecord,
@@ -10,13 +12,21 @@ import { fmtDate, metricValue } from "./calc";
 
 export interface BackupFile {
   app: "seguimiento-antropometrico-casla";
-  version: 1 | 2 | 3;
+  version: 1 | 2 | 3 | 4;
   exportedAt: string;
+
   players: Player[];
   controls: Control[];
+
   weightRecords?: WeightRecord[];
   objectivePeriods?: ObjectivePeriod[];
+  hydrationTests?: HydrationTest[];
+  fullAnthropometries?: FullAnthropometry[];
 }
+
+/* ============================================================
+   LEER TODA LA BASE LOCAL
+============================================================ */
 
 export async function readAll() {
   const d = db();
@@ -26,11 +36,15 @@ export async function readAll() {
     controls,
     weightRecords,
     objectivePeriods,
+    hydrationTests,
+    fullAnthropometries,
   ] = await Promise.all([
     d.players.toArray(),
     d.controls.toArray(),
     d.weightRecords.toArray(),
     d.objectivePeriods.toArray(),
+    d.hydrationTests.toArray(),
+    d.fullAnthropometries.toArray(),
   ]);
 
   return {
@@ -38,8 +52,14 @@ export async function readAll() {
     controls,
     weightRecords,
     objectivePeriods,
+    hydrationTests,
+    fullAnthropometries,
   };
 }
+
+/* ============================================================
+   CREAR BACKUP COMPLETO
+============================================================ */
 
 export async function buildBackup(): Promise<BackupFile> {
   const {
@@ -47,20 +67,32 @@ export async function buildBackup(): Promise<BackupFile> {
     controls,
     weightRecords,
     objectivePeriods,
+    hydrationTests,
+    fullAnthropometries,
   } = await readAll();
 
   return {
     app: "seguimiento-antropometrico-casla",
-    version: 3,
+    version: 4,
     exportedAt: nowISO(),
+
     players,
     controls,
     weightRecords,
     objectivePeriods,
+    hydrationTests,
+    fullAnthropometries,
   };
 }
 
-export function download(filename: string, blob: Blob) {
+/* ============================================================
+   DESCARGA
+============================================================ */
+
+export function download(
+  filename: string,
+  blob: Blob,
+) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
 
@@ -72,7 +104,9 @@ export function download(filename: string, blob: Blob) {
 }
 
 export function stamp() {
-  return new Date().toISOString().slice(0, 10);
+  return new Date()
+    .toISOString()
+    .slice(0, 10);
 }
 
 export async function exportJSON() {
@@ -80,78 +114,152 @@ export async function exportJSON() {
 
   download(
     `antropometria-backup-${stamp()}.json`,
-    new Blob([JSON.stringify(backup, null, 2)], {
-      type: "application/json",
-    }),
+    new Blob(
+      [
+        JSON.stringify(
+          backup,
+          null,
+          2,
+        ),
+      ],
+      {
+        type: "application/json",
+      },
+    ),
   );
 }
 
-/** Filas planas: una por control, con derivados calculados. */
+/* ============================================================
+   EXPORTACIÓN PLANA
+============================================================ */
+
+/**
+ * Filas planas:
+ * una por control,
+ * con derivados calculados.
+ */
 export async function flatRows() {
-  const { players, controls } = await readAll();
+  const {
+    players,
+    controls,
+  } = await readAll();
 
   const byId = new Map(
-    players.map((p) => [p.id!, p]),
+    players.map((p) => [
+      p.id!,
+      p,
+    ]),
   );
 
   return controls
-    .sort((a, b) => a.date.localeCompare(b.date))
+    .sort((a, b) =>
+      a.date.localeCompare(
+        b.date,
+      ),
+    )
     .map((c) => {
       const row: Record<
         string,
         string | number | null
       > = {
         Jugadora:
-          byId.get(c.playerId)?.name ?? "—",
-        Fecha: fmtDate(c.date),
+          byId.get(c.playerId)
+            ?.name ?? "—",
+
+        Fecha:
+          fmtDate(c.date),
       };
 
       for (const m of METRICS) {
-        row[`${m.label} (${m.unit})`] =
-          metricValue(c, m.key);
+        row[
+          `${m.label} (${m.unit})`
+        ] =
+          metricValue(
+            c,
+            m.key,
+          );
       }
 
-      row["Observaciones"] = c.notes ?? "";
+      row["Observaciones"] =
+        c.notes ?? "";
 
       return row;
     });
 }
 
 export async function exportCSV() {
-  const rows = await flatRows();
+  const rows =
+    await flatRows();
 
-  if (rows.length === 0) return;
+  if (rows.length === 0) {
+    return;
+  }
 
-  const headers = Object.keys(rows[0]);
+  const headers =
+    Object.keys(
+      rows[0],
+    );
 
-  const esc = (v: unknown) =>
-    `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const esc = (
+    v: unknown,
+  ) =>
+    `"${String(
+      v ?? "",
+    ).replace(
+      /"/g,
+      '""',
+    )}"`;
 
   const csv = [
-    headers.map(esc).join(";"),
+    headers
+      .map(esc)
+      .join(";"),
+
     ...rows.map((r) =>
-      headers.map((h) => esc(r[h])).join(";"),
+      headers
+        .map((h) =>
+          esc(r[h]),
+        )
+        .join(";"),
     ),
   ].join("\n");
 
   download(
     `antropometria-${stamp()}.csv`,
-    new Blob(["\uFEFF" + csv], {
-      type: "text/csv;charset=utf-8",
-    }),
+    new Blob(
+      [
+        "\uFEFF" +
+          csv,
+      ],
+      {
+        type:
+          "text/csv;charset=utf-8",
+      },
+    ),
   );
 }
 
 export async function exportXLSX(
-  rows?: Record<string, unknown>[],
+  rows?: Record<
+    string,
+    unknown
+  >[],
   filename?: string,
 ) {
-  const XLSX = await import("xlsx");
+  const XLSX =
+    await import("xlsx");
 
-  const data = rows ?? (await flatRows());
+  const data =
+    rows ??
+    (await flatRows());
 
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
+  const ws =
+    XLSX.utils.json_to_sheet(
+      data,
+    );
+
+  const wb =
+    XLSX.utils.book_new();
 
   XLSX.utils.book_append_sheet(
     wb,
@@ -159,239 +267,663 @@ export async function exportXLSX(
     "Antropometría",
   );
 
-  const out = XLSX.write(wb, {
-    bookType: "xlsx",
-    type: "array",
-  }) as ArrayBuffer;
+  const out = XLSX.write(
+    wb,
+    {
+      bookType: "xlsx",
+      type: "array",
+    },
+  ) as ArrayBuffer;
 
   download(
     filename ??
       `antropometria-${stamp()}.xlsx`,
-    new Blob([out], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    }),
+
+    new Blob(
+      [out],
+      {
+        type:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      },
+    ),
   );
 }
 
+/* ============================================================
+   IMPORTAR BACKUP
+============================================================ */
+
 export async function importBackup(
   file: File,
-  mode: "replace" | "merge",
+  mode:
+    | "replace"
+    | "merge",
 ) {
-  const text = await file.text();
-  const parsed = JSON.parse(text) as BackupFile;
+  const text =
+    await file.text();
+
+  const parsed =
+    JSON.parse(
+      text,
+    ) as BackupFile;
 
   if (
     !parsed ||
-    !Array.isArray(parsed.players) ||
-    !Array.isArray(parsed.controls)
+    !Array.isArray(
+      parsed.players,
+    ) ||
+    !Array.isArray(
+      parsed.controls,
+    )
   ) {
     throw new Error(
       "El archivo no tiene el formato de backup esperado.",
     );
   }
 
+  /*
+   * Backups anteriores a versión 4
+   * pueden no tener estas tablas.
+   */
   const incomingWeights =
-    parsed.weightRecords ?? [];
+    parsed.weightRecords ??
+    [];
 
   const incomingObjectives =
-    parsed.objectivePeriods ?? [];
+    parsed.objectivePeriods ??
+    [];
+
+  const incomingHydration =
+    parsed.hydrationTests ??
+    [];
+
+  const incomingFullAnthropometries =
+    parsed.fullAnthropometries ??
+    [];
 
   const d = db();
 
   await d.transaction(
     "rw",
+
     d.players,
     d.controls,
     d.weightRecords,
     d.objectivePeriods,
+    d.hydrationTests,
+    d.fullAnthropometries,
+
     async () => {
-      if (mode === "replace") {
+      /* ======================================================
+         REEMPLAZAR BASE COMPLETA
+      ====================================================== */
+
+      if (
+        mode ===
+        "replace"
+      ) {
+        /*
+         * Primero borramos tablas dependientes.
+         */
+        await d.fullAnthropometries.clear();
+        await d.hydrationTests.clear();
         await d.controls.clear();
         await d.weightRecords.clear();
         await d.objectivePeriods.clear();
         await d.players.clear();
 
-        await d.players.bulkAdd(parsed.players);
-        await d.controls.bulkAdd(parsed.controls);
+        /*
+         * Después restauramos respetando
+         * los IDs originales.
+         */
+        if (
+          parsed.players
+            .length > 0
+        ) {
+          await d.players.bulkAdd(
+            parsed.players,
+          );
+        }
 
-        if (incomingWeights.length > 0) {
+        if (
+          parsed.controls
+            .length > 0
+        ) {
+          await d.controls.bulkAdd(
+            parsed.controls,
+          );
+        }
+
+        if (
+          incomingWeights
+            .length > 0
+        ) {
           await d.weightRecords.bulkAdd(
             incomingWeights,
           );
         }
 
-        if (incomingObjectives.length > 0) {
+        if (
+          incomingObjectives
+            .length > 0
+        ) {
           await d.objectivePeriods.bulkAdd(
             incomingObjectives,
+          );
+        }
+
+        if (
+          incomingHydration
+            .length > 0
+        ) {
+          await d.hydrationTests.bulkAdd(
+            incomingHydration,
+          );
+        }
+
+        if (
+          incomingFullAnthropometries
+            .length > 0
+        ) {
+          await d.fullAnthropometries.bulkAdd(
+            incomingFullAnthropometries,
           );
         }
 
         return;
       }
 
-      const existing =
+      /* ======================================================
+         MERGE
+      ====================================================== */
+
+      const existingPlayers =
         await d.players.toArray();
 
-      const byName = new Map(
-        existing.map((p) => [
-          p.name.toLowerCase(),
-          p.id!,
-        ]),
-      );
+      const byName =
+        new Map(
+          existingPlayers.map(
+            (p) => [
+              p.name
+                .trim()
+                .toLowerCase(),
+              p.id!,
+            ],
+          ),
+        );
 
-      const idMap = new Map<
-        number,
-        number
-      >();
+      /*
+       * ID de jugadora del backup
+       * -> ID actual de la base.
+       */
+      const playerIdMap =
+        new Map<
+          number,
+          number
+        >();
 
-      for (const p of parsed.players) {
-        const key = p.name.toLowerCase();
+      /* --------------------------
+         JUGADORAS
+      --------------------------- */
 
-        let id = byName.get(key);
+      for (
+        const p
+        of parsed.players
+      ) {
+        const key =
+          p.name
+            .trim()
+            .toLowerCase();
 
-        if (!id) {
-          const { id: _omit, ...rest } = p;
+        let id =
+          byName.get(key);
 
-          id = (await d.players.add({
-            ...rest,
-            createdAt:
-              rest.createdAt ?? nowISO(),
-            updatedAt: nowISO(),
-          })) as number;
+        if (
+          id == null
+        ) {
+          const {
+            id: _omit,
+            ...rest
+          } = p;
 
-          byName.set(key, id);
+          id =
+            await d.players.add(
+              {
+                ...rest,
+
+                createdAt:
+                  rest.createdAt ??
+                  nowISO(),
+
+                updatedAt:
+                  nowISO(),
+              },
+            );
+
+          byName.set(
+            key,
+            Number(id),
+          );
         }
 
-        if (p.id) {
-          idMap.set(p.id, id);
+        if (
+          p.id != null
+        ) {
+          playerIdMap.set(
+            p.id,
+            Number(id),
+          );
         }
       }
 
-      for (const c of parsed.controls) {
+      /*
+       * ID de control del backup
+       * -> ID actual.
+       */
+      const controlIdMap =
+        new Map<
+          number,
+          number
+        >();
+
+      /* --------------------------
+         CONTROLES
+      --------------------------- */
+
+      for (
+        const c
+        of parsed.controls
+      ) {
         const playerId =
-          idMap.get(c.playerId);
+          playerIdMap.get(
+            c.playerId,
+          );
 
-        if (!playerId) continue;
+        if (
+          playerId == null
+        ) {
+          continue;
+        }
 
-        const dup = await d.controls
-          .where("[playerId+date]")
-          .equals([playerId, c.date])
-          .first();
+        const existing =
+          await d.controls
+            .where(
+              "[playerId+date]",
+            )
+            .equals([
+              playerId,
+              c.date,
+            ])
+            .first();
 
-        if (dup) continue;
+        let finalId:
+          number;
 
-        const { id: _omit, ...rest } = c;
+        if (
+          existing?.id !=
+          null
+        ) {
+          finalId =
+            existing.id;
+        } else {
+          const {
+            id: _omit,
+            ...rest
+          } = c;
 
-        await d.controls.add({
-          ...rest,
-          playerId,
-          createdAt:
-            rest.createdAt ?? nowISO(),
-          updatedAt: nowISO(),
-        });
+          const added =
+            await d.controls.add(
+              {
+                ...rest,
+
+                playerId,
+
+                createdAt:
+                  rest.createdAt ??
+                  nowISO(),
+
+                updatedAt:
+                  nowISO(),
+              },
+            );
+
+          finalId =
+            Number(added);
+        }
+
+        if (
+          c.id != null
+        ) {
+          controlIdMap.set(
+            c.id,
+            finalId,
+          );
+        }
       }
 
-      for (const record of incomingWeights) {
+      /* --------------------------
+         PESAJES
+      --------------------------- */
+
+      for (
+        const record
+        of incomingWeights
+      ) {
         const playerId =
-          idMap.get(record.playerId);
+          playerIdMap.get(
+            record.playerId,
+          );
 
-        if (!playerId) continue;
+        if (
+          playerId == null
+        ) {
+          continue;
+        }
 
-        const dup = await d.weightRecords
-          .where("[playerId+date]")
-          .equals([
-            playerId,
-            record.date,
-          ])
-          .first();
+        const existing =
+          await d.weightRecords
+            .where(
+              "[playerId+date]",
+            )
+            .equals([
+              playerId,
+              record.date,
+            ])
+            .first();
 
-        if (dup) continue;
+        if (existing) {
+          continue;
+        }
 
         const {
           id: _omit,
           ...rest
         } = record;
 
-        await d.weightRecords.add({
-          ...rest,
-          playerId,
-          createdAt:
-            rest.createdAt ?? nowISO(),
-          updatedAt: nowISO(),
-        });
+        await d.weightRecords.add(
+          {
+            ...rest,
+
+            playerId,
+
+            createdAt:
+              rest.createdAt ??
+              nowISO(),
+
+            updatedAt:
+              nowISO(),
+          },
+        );
       }
 
-      for (const period of incomingObjectives) {
-        const remappedTargets = period.targets
-          .map((target) => {
-            const playerId =
-              idMap.get(target.playerId);
+      /* --------------------------
+         OBJETIVOS
+      --------------------------- */
 
-            if (!playerId) return null;
+      for (
+        const period
+        of incomingObjectives
+      ) {
+        const remappedTargets =
+          period.targets
+            .map(
+              (
+                target,
+              ) => {
+                const playerId =
+                  playerIdMap.get(
+                    target.playerId,
+                  );
 
-            return {
-              ...target,
-              playerId,
-            };
-          })
-          .filter(
-            (
-              target,
-            ): target is NonNullable<typeof target> =>
-              target !== null,
-          );
+                if (
+                  playerId ==
+                  null
+                ) {
+                  return null;
+                }
 
-        const existingPeriod =
+                return {
+                  ...target,
+                  playerId,
+                };
+              },
+            )
+            .filter(
+              (
+                target,
+              ): target is NonNullable<
+                typeof target
+              > =>
+                target !==
+                null,
+            );
+
+        const existing =
           await d.objectivePeriods
             .where("key")
-            .equals(period.key)
+            .equals(
+              period.key,
+            )
             .first();
 
         const nextPeriod = {
           ...period,
-          targets: remappedTargets,
-          updatedAt: nowISO(),
+
+          targets:
+            remappedTargets,
+
+          updatedAt:
+            nowISO(),
         };
 
-        if (existingPeriod?.id) {
+        if (
+          existing?.id !=
+          null
+        ) {
           await d.objectivePeriods.update(
-            existingPeriod.id,
+            existing.id,
             nextPeriod,
           );
         } else {
-          const { id: _omit, ...rest } =
+          const {
+            id: _omit,
+            ...rest
+          } =
             nextPeriod;
 
-          await d.objectivePeriods.add({
-            ...rest,
-            createdAt:
-              rest.createdAt ?? nowISO(),
-          });
+          await d.objectivePeriods.add(
+            {
+              ...rest,
+
+              createdAt:
+                rest.createdAt ??
+                nowISO(),
+            },
+          );
         }
+      }
+
+      /* --------------------------
+         HIDRATACIÓN
+      --------------------------- */
+
+      for (
+        const test
+        of incomingHydration
+      ) {
+        const remappedEntries =
+          test.entries.map(
+            (entry) => ({
+              ...entry,
+
+              playerId:
+                entry.playerId ==
+                null
+                  ? null
+                  : playerIdMap.get(
+                      entry.playerId,
+                    ) ??
+                    null,
+            }),
+          );
+
+        const existing =
+          await d.hydrationTests
+            .where("date")
+            .equals(
+              test.date,
+            )
+            .filter(
+              (current) =>
+                current.round ===
+                  test.round &&
+                current.dayType ===
+                  test.dayType &&
+                current.context ===
+                  test.context &&
+                current.customContext ===
+                  test.customContext &&
+                current.rival ===
+                  test.rival,
+            )
+            .first();
+
+        if (existing) {
+          continue;
+        }
+
+        const {
+          id: _omit,
+          ...rest
+        } = test;
+
+        await d.hydrationTests.add(
+          {
+            ...rest,
+
+            entries:
+              remappedEntries,
+
+            createdAt:
+              rest.createdAt ??
+              nowISO(),
+
+            updatedAt:
+              nowISO(),
+          },
+        );
+      }
+
+      /* --------------------------
+         ANTROPOMETRÍAS COMPLETAS
+      --------------------------- */
+
+      for (
+        const anthropometry
+        of incomingFullAnthropometries
+      ) {
+        const playerId =
+          playerIdMap.get(
+            anthropometry.playerId,
+          );
+
+        if (
+          playerId == null
+        ) {
+          continue;
+        }
+
+        const existing =
+          await d.fullAnthropometries
+            .where(
+              "[playerId+date]",
+            )
+            .equals([
+              playerId,
+              anthropometry.date,
+            ])
+            .first();
+
+        if (existing) {
+          continue;
+        }
+
+        const {
+          id: _omit,
+          ...rest
+        } =
+          anthropometry;
+
+        const linkedControlId =
+          rest.linkedControlId ==
+          null
+            ? null
+            : controlIdMap.get(
+                rest.linkedControlId,
+              ) ??
+              null;
+
+        await d.fullAnthropometries.add(
+          {
+            ...rest,
+
+            playerId,
+
+            linkedControlId,
+
+            createdAt:
+              rest.createdAt ??
+              nowISO(),
+
+            updatedAt:
+              nowISO(),
+          },
+        );
       }
     },
   );
 
   return {
-    players: parsed.players.length,
-    controls: parsed.controls.length,
+    players:
+      parsed.players.length,
+
+    controls:
+      parsed.controls.length,
+
     weightRecords:
       incomingWeights.length,
+
     objectivePeriods:
       incomingObjectives.length,
+
+    hydrationTests:
+      incomingHydration.length,
+
+    fullAnthropometries:
+      incomingFullAnthropometries.length,
   };
 }
+
+/* ============================================================
+   BORRAR TODA LA BASE LOCAL
+============================================================ */
 
 export async function wipeAll() {
   const d = db();
 
   await d.transaction(
     "rw",
+
     d.players,
     d.controls,
     d.weightRecords,
     d.objectivePeriods,
+    d.hydrationTests,
+    d.fullAnthropometries,
+
     async () => {
+      await d.fullAnthropometries.clear();
+      await d.hydrationTests.clear();
       await d.controls.clear();
       await d.weightRecords.clear();
       await d.objectivePeriods.clear();
