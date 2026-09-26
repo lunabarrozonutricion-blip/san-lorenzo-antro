@@ -15,6 +15,7 @@ import {
 import { useState, type ReactNode } from "react";
 
 import { OfflineBadge } from "./offline-badge";
+import { SignOutButton } from "./auth-gate";
 import { cn } from "@/lib/utils";
 
 export const NAV = [
@@ -151,6 +152,7 @@ export function AppLayout({
         </div>
 
         <OfflineBadge variant="sidebar" />
+        <SignOutButton />
       </aside>
 
       {open && (
@@ -192,6 +194,7 @@ export function AppLayout({
             </div>
 
             <OfflineBadge variant="sidebar" />
+            <SignOutButton />
           </div>
         </div>
       )}
