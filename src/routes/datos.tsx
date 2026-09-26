@@ -11,68 +11,125 @@ import { useRef, useState } from "react";
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
 import { Button } from "@/components/ui/button";
+
 import {
   exportCSV,
   exportJSON,
   exportXLSX,
   importBackup,
 } from "@/lib/backup";
-import { importWeightHistory } from "@/lib/import-weights";
+
+import {
+  importWeightHistory,
+} from "@/lib/import-weights";
+
 import {
   useControls,
+  useFullAnthropometries,
+  useHydrationTests,
+  useObjectivePeriods,
   usePlayers,
   useWeightRecords,
 } from "@/lib/hooks";
 
-export const Route = createFileRoute("/datos")({
-  component: () => (
-    <ClientOnly>
-      <Datos />
-    </ClientOnly>
-  ),
-});
+export const Route =
+  createFileRoute("/datos")({
+    component: () => (
+      <ClientOnly>
+        <Datos />
+      </ClientOnly>
+    ),
+  });
 
 function Datos() {
-  const players = usePlayers();
-  const controls = useControls();
-  const weightRecords = useWeightRecords();
+  const players =
+    usePlayers();
 
-  const fileRef = useRef<HTMLInputElement>(null);
-  const weightFileRef = useRef<HTMLInputElement>(null);
+  const controls =
+    useControls();
 
-  const [importing, setImporting] = useState(false);
-  const [importingWeights, setImportingWeights] = useState(false);
+  const weightRecords =
+    useWeightRecords();
 
-  async function importar(file: File) {
-    const confirmar = window.confirm(
-      `Vas a reemplazar la base actual por los datos de "${file.name}".\n\n` +
-        `Actualmente hay ${players?.length ?? 0} jugadoras, ${
-          controls?.length ?? 0
-        } controles y ${
-          weightRecords?.length ?? 0
-        } registros de pesaje.\n\n¿Querés continuar?`,
+  const objectivePeriods =
+    useObjectivePeriods();
+
+  const hydrationTests =
+    useHydrationTests();
+
+  const fullAnthropometries =
+    useFullAnthropometries();
+
+  const fileRef =
+    useRef<HTMLInputElement>(
+      null,
     );
 
+  const weightFileRef =
+    useRef<HTMLInputElement>(
+      null,
+    );
+
+  const [
+    importing,
+    setImporting,
+  ] = useState(false);
+
+  const [
+    importingWeights,
+    setImportingWeights,
+  ] = useState(false);
+
+  async function importar(
+    file: File,
+  ) {
+    const confirmar =
+      window.confirm(
+        `Vas a reemplazar la base actual por los datos de "${file.name}".\n\n` +
+          `Actualmente hay:\n` +
+          `• ${players?.length ?? 0} jugadoras\n` +
+          `• ${controls?.length ?? 0} controles\n` +
+          `• ${weightRecords?.length ?? 0} pesajes\n` +
+          `• ${objectivePeriods?.length ?? 0} períodos de objetivos\n` +
+          `• ${hydrationTests?.length ?? 0} tests de hidratación\n` +
+          `• ${fullAnthropometries?.length ?? 0} antropometrías completas\n\n` +
+          `¿Querés continuar?`,
+      );
+
     if (!confirmar) {
-      if (fileRef.current) fileRef.current.value = "";
+      if (fileRef.current) {
+        fileRef.current.value =
+          "";
+      }
+
       return;
     }
 
     try {
       setImporting(true);
 
-      const result = await importBackup(file, "replace");
+      const result =
+        await importBackup(
+          file,
+          "replace",
+        );
 
       window.alert(
         `Importación terminada correctamente.\n\n` +
           `Jugadoras: ${result.players}\n` +
           `Controles: ${result.controls}\n` +
-          `Pesajes: ${result.weightRecords}`,
+          `Pesajes: ${result.weightRecords}\n` +
+          `Objetivos: ${result.objectivePeriods}\n` +
+          `Tests de hidratación: ${result.hydrationTests}\n` +
+          `Antropometrías completas: ${result.fullAnthropometries}`,
       );
 
-      window.location.href = "/";
+      window.location.href =
+        "/";
     } catch (error) {
-      console.error(error);
+      console.error(
+        error,
+      );
 
       window.alert(
         "No se pudo importar el archivo. Verificá que sea un backup válido de esta aplicación.",
@@ -81,31 +138,43 @@ function Datos() {
       setImporting(false);
 
       if (fileRef.current) {
-        fileRef.current.value = "";
+        fileRef.current.value =
+          "";
       }
     }
   }
 
-  async function importarPesajes(file: File) {
-    const confirmar = window.confirm(
-      `Vas a importar el historial de pesajes desde "${file.name}".\n\n` +
-        `Esto NO borra tus jugadoras ni los controles antropométricos.\n\n` +
-        `Los pesajes ya existentes para la misma jugadora y fecha se actualizarán.\n\n` +
-        `¿Querés continuar?`,
-    );
+  async function importarPesajes(
+    file: File,
+  ) {
+    const confirmar =
+      window.confirm(
+        `Vas a importar el historial de pesajes desde "${file.name}".\n\n` +
+          `Esto NO borra tus jugadoras ni los controles antropométricos.\n\n` +
+          `Los pesajes ya existentes para la misma jugadora y fecha se actualizarán.\n\n` +
+          `¿Querés continuar?`,
+      );
 
     if (!confirmar) {
-      if (weightFileRef.current) {
-        weightFileRef.current.value = "";
+      if (
+        weightFileRef.current
+      ) {
+        weightFileRef.current.value =
+          "";
       }
 
       return;
     }
 
     try {
-      setImportingWeights(true);
+      setImportingWeights(
+        true,
+      );
 
-      const result = await importWeightHistory(file);
+      const result =
+        await importWeightHistory(
+          file,
+        );
 
       let message =
         `Importación de pesajes terminada.\n\n` +
@@ -114,26 +183,41 @@ function Datos() {
         `Actualizados: ${result.updated}\n` +
         `Omitidos: ${result.skipped}`;
 
-      if (result.unmatched.length > 0) {
+      if (
+        result.unmatched.length >
+        0
+      ) {
         message +=
           `\n\nJugadoras no encontradas:\n` +
-          result.unmatched.join("\n");
+          result.unmatched.join(
+            "\n",
+          );
       }
 
-      window.alert(message);
+      window.alert(
+        message,
+      );
 
-      window.location.href = "/pesajes";
+      window.location.href =
+        "/pesajes";
     } catch (error) {
-      console.error(error);
+      console.error(
+        error,
+      );
 
       window.alert(
         "No se pudo importar el historial de pesajes. Verificá que sea el archivo JSON preparado para Pesajes.",
       );
     } finally {
-      setImportingWeights(false);
+      setImportingWeights(
+        false,
+      );
 
-      if (weightFileRef.current) {
-        weightFileRef.current.value = "";
+      if (
+        weightFileRef.current
+      ) {
+        weightFileRef.current.value =
+          "";
       }
     }
   }
@@ -141,7 +225,7 @@ function Datos() {
   return (
     <AppLayout
       title="Importar / Exportar"
-      subtitle="Administración y copia de seguridad de los datos locales"
+      subtitle="Administración y copia de seguridad completa de los datos locales"
     >
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border border-border bg-card p-5 shadow-panel">
@@ -158,7 +242,8 @@ function Datos() {
               </p>
 
               <p className="numeric mt-1 text-2xl font-bold">
-                {players?.length ?? "—"}
+                {players?.length ??
+                  "—"}
               </p>
             </div>
 
@@ -168,7 +253,8 @@ function Datos() {
               </p>
 
               <p className="numeric mt-1 text-2xl font-bold">
-                {controls?.length ?? "—"}
+                {controls?.length ??
+                  "—"}
               </p>
             </div>
 
@@ -178,13 +264,47 @@ function Datos() {
               </p>
 
               <p className="numeric mt-1 text-2xl font-bold">
-                {weightRecords?.length ?? "—"}
+                {weightRecords?.length ??
+                  "—"}
+              </p>
+            </div>
+
+            <div className="rounded-md bg-muted p-3">
+              <p className="panel-title text-xs text-muted-foreground">
+                Períodos de objetivos
+              </p>
+
+              <p className="numeric mt-1 text-2xl font-bold">
+                {objectivePeriods?.length ??
+                  "—"}
+              </p>
+            </div>
+
+            <div className="rounded-md bg-muted p-3">
+              <p className="panel-title text-xs text-muted-foreground">
+                Tests de hidratación
+              </p>
+
+              <p className="numeric mt-1 text-2xl font-bold">
+                {hydrationTests?.length ??
+                  "—"}
+              </p>
+            </div>
+
+            <div className="rounded-md bg-muted p-3">
+              <p className="panel-title text-xs text-muted-foreground">
+                Antropometrías completas
+              </p>
+
+              <p className="numeric mt-1 text-2xl font-bold">
+                {fullAnthropometries?.length ??
+                  "—"}
               </p>
             </div>
           </div>
 
           <p className="mt-4 text-sm text-muted-foreground">
-            Estos datos están guardados localmente en este dispositivo.
+            Estos datos todavía están guardados localmente en este dispositivo.
           </p>
         </div>
 
@@ -196,8 +316,7 @@ function Datos() {
           </h2>
 
           <p className="mt-2 text-sm text-muted-foreground">
-            Reemplaza los datos actuales por una copia de seguridad completa
-            de la aplicación.
+            Reemplaza los datos actuales por una copia de seguridad completa de la aplicación.
           </p>
 
           <input
@@ -206,17 +325,22 @@ function Datos() {
             accept=".json,application/json"
             className="hidden"
             onChange={(e) => {
-              const file = e.target.files?.[0];
+              const file =
+                e.target.files?.[0];
 
               if (file) {
-                void importar(file);
+                void importar(
+                  file,
+                );
               }
             }}
           />
 
           <Button
             className="mt-4"
-            onClick={() => fileRef.current?.click()}
+            onClick={() =>
+              fileRef.current?.click()
+            }
             disabled={importing}
           >
             <Upload className="h-4 w-4" />
@@ -239,8 +363,7 @@ function Datos() {
           </h2>
 
           <p className="mt-2 text-sm text-muted-foreground">
-            Agrega el historial de pesajes sin borrar las jugadoras ni los
-            controles antropométricos.
+            Agrega el historial de pesajes sin borrar las jugadoras ni los controles antropométricos.
           </p>
 
           <input
@@ -249,10 +372,13 @@ function Datos() {
             accept=".json,application/json"
             className="hidden"
             onChange={(e) => {
-              const file = e.target.files?.[0];
+              const file =
+                e.target.files?.[0];
 
               if (file) {
-                void importarPesajes(file);
+                void importarPesajes(
+                  file,
+                );
               }
             }}
           />
@@ -263,7 +389,9 @@ function Datos() {
             onClick={() =>
               weightFileRef.current?.click()
             }
-            disabled={importingWeights}
+            disabled={
+              importingWeights
+            }
           >
             <Scale className="h-4 w-4" />
 
@@ -286,19 +414,24 @@ function Datos() {
         </h2>
 
         <p className="mt-2 text-sm text-muted-foreground">
-          Guardá una copia de tus datos en la computadora. El Backup JSON
-          incluye jugadoras, antropometría y pesajes.
+          El Backup JSON guarda una copia completa de la base local: jugadoras, controles antropométricos, pesajes, objetivos, tests de hidratación y antropometrías completas de 5 componentes.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button onClick={() => void exportJSON()}>
+          <Button
+            onClick={() =>
+              void exportJSON()
+            }
+          >
             <Download className="h-4 w-4" />
-            Backup JSON
+            Backup JSON completo
           </Button>
 
           <Button
             variant="outline"
-            onClick={() => void exportXLSX()}
+            onClick={() =>
+              void exportXLSX()
+            }
           >
             <FileSpreadsheet className="h-4 w-4" />
             Exportar Excel
@@ -306,7 +439,9 @@ function Datos() {
 
           <Button
             variant="outline"
-            onClick={() => void exportCSV()}
+            onClick={() =>
+              void exportCSV()
+            }
           >
             <FileSpreadsheet className="h-4 w-4" />
             Exportar CSV
@@ -320,9 +455,7 @@ function Datos() {
         </p>
 
         <p className="mt-1 text-sm text-muted-foreground">
-          La información vive en este navegador/dispositivo. Conviene generar
-          periódicamente un Backup JSON y guardarlo también fuera de la
-          notebook.
+          La información todavía vive en este navegador/dispositivo. Antes de migrarla a Supabase vamos a generar este Backup JSON completo para tener una copia de seguridad independiente.
         </p>
       </div>
     </AppLayout>
