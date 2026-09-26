@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { AuthGate } from "../components/auth-gate";
 
 const OFFLINE_CACHE_NAME =
   "san-lorenzo-antro-v12";
@@ -377,7 +378,9 @@ function RootComponent() {
     <QueryClientProvider
       client={queryClient}
     >
-      <Outlet />
+      <AuthGate>
+        <Outlet />
+      </AuthGate>
     </QueryClientProvider>
   );
 }
