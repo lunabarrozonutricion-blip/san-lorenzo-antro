@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { FileSpreadsheet, Printer } from "lucide-react";
-import { useMemo, useState } from "react";
+import { FileSpreadsheet, Printer, Share2 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+
 
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
@@ -29,12 +30,15 @@ import {
   usePlayers,
 } from "@/lib/hooks";
 import { best2025ForPlayer } from "@/lib/historical-best-2025";
+import { createPrintAreaPdf } from "@/lib/print-area-pdf";
+import { shareFile } from "@/lib/share-file";
 import {
   GROUP_LABELS,
   METRICS,
   type Control,
   type MetricKey,
 } from "@/lib/types";
+
 
 export const Route = createFileRoute("/plantel")({
   component: () => (
@@ -44,6 +48,7 @@ export const Route = createFileRoute("/plantel")({
   ),
 });
 
+
 type HistoricalSum6 = {
   inicio: number | null;
   abril: number | null;
@@ -52,12 +57,14 @@ type HistoricalSum6 = {
   agosto: number | null;
 };
 
+
 type PrintSections = {
   groupSummary: boolean;
   playerSummary: boolean;
   anthropometricReport: boolean;
   charts: boolean;
 };
+
 
 const HISTORY_ORDER = [
   "Sanabria",
@@ -91,6 +98,7 @@ const HISTORY_ORDER = [
   "Rodriguez",
   "Altamirano",
 ] as const;
+
 
 const HISTORICAL_SUM6: Record<string, HistoricalSum6> = {
   sanabria: {
@@ -305,6 +313,7 @@ const HISTORICAL_SUM6: Record<string, HistoricalSum6> = {
   },
 };
 
+
 function normalizeName(value: string) {
   return value
     .toLowerCase()
@@ -314,6 +323,7 @@ function normalizeName(value: string) {
     .trim();
 }
 
+
 function nameMatches(
   playerName: string,
   referenceName: string,
@@ -322,13 +332,16 @@ function nameMatches(
     normalizeName(playerName).split(" "),
   );
 
+
   const referenceTokens =
     normalizeName(referenceName).split(" ");
+
 
   return referenceTokens.every((token) =>
     playerTokens.has(token),
   );
 }
+
 
 function historicalFor(name: string) {
   const key = Object.keys(
@@ -337,10 +350,12 @@ function historicalFor(name: string) {
     nameMatches(name, reference),
   );
 
+
   return key
     ? HISTORICAL_SUM6[key]
     : null;
 }
+
 
 function metricDifference(
   current: Control,
@@ -349,11 +364,14 @@ function metricDifference(
 ) {
   if (!previous) return null;
 
+
   const currentValue =
     metricValue(current, key);
 
+
   const previousValue =
     metricValue(previous, key);
+
 
   return diff(
     currentValue,
@@ -361,41 +379,51 @@ function metricDifference(
   );
 }
 
+
 function sum6Band(
   value: number | null,
 ) {
   if (value === null) return null;
 
+
   if (value < 70) {
     return "green" as const;
   }
+
 
   if (value <= 90) {
     return "yellow" as const;
   }
 
+
   return "red" as const;
 }
+
 
 function bandCellClass(
   value: number | null,
 ) {
   const band = sum6Band(value);
 
+
   if (band === "green") {
     return "bg-green-100 text-green-950";
   }
+
 
   if (band === "yellow") {
     return "bg-amber-100 text-amber-950";
   }
 
+
   if (band === "red") {
     return "bg-red-100 text-red-950";
   }
 
+
   return "bg-card text-muted-foreground";
 }
+
 
 function augustDeltaClass(
   value: number | null,
@@ -404,12 +432,15 @@ function augustDeltaClass(
     return "text-muted-foreground";
   }
 
+
   if (value > 0) {
     return "bg-rose-50 text-rose-700";
   }
 
+
   return "bg-emerald-50 text-emerald-700";
 }
+
 
 function sectionVisibilityClass(
   screenVisible: boolean,
@@ -422,12 +453,14 @@ function sectionVisibilityClass(
     return "";
   }
 
+
   if (
     screenVisible &&
     !printVisible
   ) {
     return "print:hidden";
   }
+
 
   if (
     !screenVisible &&
@@ -436,8 +469,10 @@ function sectionVisibilityClass(
     return "hidden print:block";
   }
 
+
   return "hidden";
 }
+
 
 function chartDomain(
   values: number[],
@@ -446,6 +481,7 @@ function chartDomain(
   > = [],
 ): [number, number] {
   const all = [...values];
+
 
   for (const reference of references) {
     if (
@@ -456,13 +492,16 @@ function chartDomain(
     }
   }
 
+
   if (all.length === 0) {
     return [0, 1];
   }
 
+
   const min = Math.min(...all);
   const max = Math.max(...all);
   const span = max - min;
+
 
   const padding =
     span > 0
@@ -471,6 +510,7 @@ function chartDomain(
           1,
         )
       : 2;
+
 
   return [
     Math.floor(
@@ -482,12 +522,15 @@ function chartDomain(
   ];
 }
 
+
 function InformeGrupal() {
   const players = usePlayers();
   const controls = useControls();
 
+
   const objectivePeriods =
     useObjectivePeriods();
+
 
   const latestObjectivePeriod =
     useMemo(() => {
@@ -498,6 +541,7 @@ function InformeGrupal() {
         return null;
       }
 
+
       return (
         [...objectivePeriods]
           .sort((a, b) =>
@@ -507,12 +551,14 @@ function InformeGrupal() {
       );
     }, [objectivePeriods]);
 
+
   const objectiveTargetByPlayerId =
     useMemo(() => {
       const map = new Map<
         number,
         number | null
       >();
+
 
       for (
         const target of
@@ -525,27 +571,33 @@ function InformeGrupal() {
         );
       }
 
+
       return map;
     }, [
       latestObjectivePeriod,
     ]);
 
+
   const objectivePeriodLabel =
     latestObjectivePeriod?.label ??
     "Sin período";
 
+
   const [search, setSearch] =
     useState("");
+
 
   const [
     selectedPlayerIds,
     setSelectedPlayerIds,
   ] = useState<number[]>([]);
 
+
   const [
     selectedControlIds,
     setSelectedControlIds,
   ] = useState<number[]>([]);
+
 
   const [
     selectedMetrics,
@@ -555,30 +607,36 @@ function InformeGrupal() {
     "sum6",
   ]);
 
+
   const [
     showGroupSummary,
     setShowGroupSummary,
   ] = useState(true);
+
 
   const [
     showObjectives,
     setShowObjectives,
   ] = useState(true);
 
+
   const [
     showCharts,
     setShowCharts,
   ] = useState(false);
+
 
   const [
     summaryOnlySelected,
     setSummaryOnlySelected,
   ] = useState(false);
 
+
   const [
     printDialogOpen,
     setPrintDialogOpen,
   ] = useState(false);
+
 
   const [
     printSections,
@@ -590,14 +648,37 @@ function InformeGrupal() {
     charts: true,
   });
 
+
+  const printAreaRef =
+    useRef<HTMLDivElement | null>(
+      null,
+    );
+
+
+  const [
+    sharing,
+    setSharing,
+  ] = useState(false);
+
+
+  const [
+    shareMessage,
+    setShareMessage,
+  ] = useState<string | null>(
+    null,
+  );
+
+
   const filteredPlayers =
     useMemo(() => {
       const text =
         search.trim().toLowerCase();
 
+
       if (!text) {
         return players ?? [];
       }
+
 
       return (
         players ?? []
@@ -607,6 +688,7 @@ function InformeGrupal() {
           .includes(text),
       );
     }, [players, search]);
+
 
   const selectedPlayers =
     useMemo(() => {
@@ -624,10 +706,12 @@ function InformeGrupal() {
       selectedPlayerIds,
     ]);
 
+
   const controlsByPlayer =
     useMemo(() => {
       const map =
         new Map<number, Control[]>();
+
 
       for (
         const control of
@@ -638,13 +722,16 @@ function InformeGrupal() {
             control.playerId,
           ) ?? [];
 
+
         list.push(control);
+
 
         map.set(
           control.playerId,
           list,
         );
       }
+
 
       for (
         const list of
@@ -656,9 +743,11 @@ function InformeGrupal() {
               a.date,
             );
 
+
           if (byDate !== 0) {
             return byDate;
           }
+
 
           return (
             (b.id ?? 0) -
@@ -667,8 +756,10 @@ function InformeGrupal() {
         });
       }
 
+
       return map;
     }, [controls]);
+
 
   const reportGroups =
     useMemo(() => {
@@ -680,6 +771,7 @@ function InformeGrupal() {
                   player.id,
                 ) ?? []
               : [];
+
 
           return {
             player,
@@ -704,6 +796,7 @@ function InformeGrupal() {
       selectedControlIds,
     ]);
 
+
   const groupSummaryRows =
     useMemo(() => {
       return HISTORY_ORDER.map(
@@ -717,9 +810,11 @@ function InformeGrupal() {
             ),
           );
 
+
           if (!player?.id) {
             return null;
           }
+
 
           if (
             summaryOnlySelected &&
@@ -730,14 +825,17 @@ function InformeGrupal() {
             return null;
           }
 
+
           const history =
             historicalFor(
               player.name,
             );
 
+
           if (!history) {
             return null;
           }
+
 
           const septemberControl =
             (
@@ -755,6 +853,7 @@ function InformeGrupal() {
                 ) !== null,
             );
 
+
           const september =
             septemberControl
               ? metricValue(
@@ -763,10 +862,12 @@ function InformeGrupal() {
                 )
               : null;
 
+
           const target =
             objectiveTargetByPlayerId.get(
               player.id,
             ) ?? null;
+
 
           return {
             player,
@@ -819,6 +920,7 @@ function InformeGrupal() {
       objectiveTargetByPlayerId,
     ]);
 
+
   const bandCounts =
     useMemo(() => {
       const periods = [
@@ -829,6 +931,7 @@ function InformeGrupal() {
         "agosto",
         "september",
       ] as const;
+
 
       const result: Record<
         (typeof periods)[number],
@@ -870,6 +973,7 @@ function InformeGrupal() {
         },
       };
 
+
       for (
         const row of
         groupSummaryRows
@@ -880,6 +984,7 @@ function InformeGrupal() {
           const band =
             sum6Band(row[period]);
 
+
           if (band) {
             result[period][
               band
@@ -888,8 +993,10 @@ function InformeGrupal() {
         }
       }
 
+
       return result;
     }, [groupSummaryRows]);
+
 
   const latestSummaries =
     useMemo(() => {
@@ -908,6 +1015,7 @@ function InformeGrupal() {
             };
           }
 
+
           const validControls =
             (
               controlsByPlayer.get(
@@ -921,11 +1029,14 @@ function InformeGrupal() {
                 ) !== null,
             );
 
+
           const current =
             validControls[0];
 
+
           const previous =
             validControls[1];
+
 
           const currentSum6 =
             current
@@ -935,6 +1046,7 @@ function InformeGrupal() {
                 )
               : null;
 
+
           const previousSum6 =
             previous
               ? metricValue(
@@ -943,10 +1055,12 @@ function InformeGrupal() {
                 )
               : null;
 
+
           const target =
             objectiveTargetByPlayerId.get(
               player.id,
             ) ?? null;
+
 
           return {
             player,
@@ -964,6 +1078,7 @@ function InformeGrupal() {
       objectiveTargetByPlayerId,
     ]);
 
+
   function togglePlayer(
     id: number,
   ) {
@@ -971,6 +1086,7 @@ function InformeGrupal() {
       selectedPlayerIds.includes(
         id,
       );
+
 
     if (selected) {
       setSelectedPlayerIds(
@@ -980,6 +1096,7 @@ function InformeGrupal() {
               item !== id,
           ),
       );
+
 
       const idsToRemove =
         new Set(
@@ -997,6 +1114,7 @@ function InformeGrupal() {
                 control.id!,
             ),
         );
+
 
       setSelectedControlIds(
         (current) =>
@@ -1017,6 +1135,7 @@ function InformeGrupal() {
     }
   }
 
+
   function toggleControl(
     id: number,
   ) {
@@ -1033,6 +1152,7 @@ function InformeGrupal() {
             ],
     );
   }
+
 
   function toggleMetric(
     key: MetricKey,
@@ -1051,6 +1171,7 @@ function InformeGrupal() {
     );
   }
 
+
   function seleccionarTodasLasJugadoras() {
     setSelectedPlayerIds(
       (players ?? [])
@@ -1065,6 +1186,7 @@ function InformeGrupal() {
     );
   }
 
+
   function seleccionarVisibles() {
     const ids =
       filteredPlayers
@@ -1077,6 +1199,7 @@ function InformeGrupal() {
             player.id!,
         );
 
+
     setSelectedPlayerIds(
       (current) => [
         ...new Set([
@@ -1087,15 +1210,18 @@ function InformeGrupal() {
     );
   }
 
+
   function ningunaJugadora() {
     setSelectedPlayerIds([]);
     setSelectedControlIds([]);
   }
 
+
   function seleccionarUltimosPorJugadora(
     count: number,
   ) {
     const ids: number[] = [];
+
 
     for (
       const playerId of
@@ -1108,6 +1234,7 @@ function InformeGrupal() {
             0,
             count,
           ) ?? [];
+
 
       for (
         const control of
@@ -1123,13 +1250,16 @@ function InformeGrupal() {
       }
     }
 
+
     setSelectedControlIds(
       ids,
     );
   }
 
+
   function seleccionarTodosLosControles() {
     const ids: number[] = [];
+
 
     for (
       const playerId of
@@ -1151,10 +1281,12 @@ function InformeGrupal() {
       }
     }
 
+
     setSelectedControlIds(
       ids,
     );
   }
+
 
   function togglePrintSection(
     key: keyof PrintSections,
@@ -1168,6 +1300,7 @@ function InformeGrupal() {
     );
   }
 
+
   function imprimirSeleccion() {
     if (
       !Object.values(
@@ -1177,16 +1310,20 @@ function InformeGrupal() {
       return;
     }
 
+
     const previousTitle =
       document.title;
 
+
     document.title =
       "Informe antropométrico · San Lorenzo";
+
 
     const restoreTitle =
       () => {
         document.title =
           previousTitle;
+
 
         window.removeEventListener(
           "afterprint",
@@ -1194,19 +1331,101 @@ function InformeGrupal() {
         );
       };
 
+
     window.addEventListener(
       "afterprint",
       restoreTitle,
     );
 
+
     setPrintDialogOpen(
       false,
     );
+
 
     window.setTimeout(() => {
       window.print();
     }, 150);
   }
+
+
+  async function compartirSeleccion() {
+    if (
+      !Object.values(
+        printSections,
+      ).some(Boolean)
+    ) {
+      return;
+    }
+
+
+    const element =
+      printAreaRef.current;
+
+
+    if (!element) {
+      setShareMessage(
+        "No se pudo preparar el informe para compartir.",
+      );
+      return;
+    }
+
+
+    setSharing(true);
+    setShareMessage(null);
+
+
+    try {
+      const date =
+        new Date()
+          .toISOString()
+          .slice(0, 10);
+
+
+      const {
+        blob,
+        fileName,
+      } =
+        await createPrintAreaPdf({
+          element,
+          selectedSections:
+            printSections,
+          fileName:
+            `informe-plantel-san-lorenzo-${date}.pdf`,
+        });
+
+
+      const result =
+        await shareFile({
+          blob,
+          fileName,
+          title:
+            "Informe antropométrico · San Lorenzo",
+          text:
+            "Informe antropométrico grupal · San Lorenzo",
+        });
+
+
+      if (
+        result.status ===
+        "unsupported"
+      ) {
+        setShareMessage(
+          result.message,
+        );
+      }
+    } catch (error) {
+      console.error(error);
+
+
+      setShareMessage(
+        "No se pudo generar el PDF para compartir.",
+      );
+    } finally {
+      setSharing(false);
+    }
+  }
+
 
   async function exportarExcel() {
     if (
@@ -1218,10 +1437,12 @@ function InformeGrupal() {
       return;
     }
 
+
     const rows: Record<
       string,
       unknown
     >[] = [];
+
 
     for (
       const group of
@@ -1237,6 +1458,7 @@ function InformeGrupal() {
               controlIndex + 1
             ];
 
+
           const row: Record<
             string,
             unknown
@@ -1248,6 +1470,7 @@ function InformeGrupal() {
             ),
           };
 
+
           for (
             const key of
             selectedMetrics
@@ -1258,15 +1481,18 @@ function InformeGrupal() {
                   m.key === key,
               );
 
+
             if (!metric) {
               continue;
             }
+
 
             const value =
               metricValue(
                 control,
                 key,
               );
+
 
             const difference =
               metricDifference(
@@ -1275,9 +1501,11 @@ function InformeGrupal() {
                 key,
               );
 
+
             row[
               `${metric.label} (${metric.unit})`
             ] = value;
+
 
             row[
               `Δ ${metric.label} vs anterior (${metric.unit})`
@@ -1285,6 +1513,7 @@ function InformeGrupal() {
               difference ??
               "";
           }
+
 
           if (
             showObjectives
@@ -1298,16 +1527,19 @@ function InformeGrupal() {
                   ) ?? null
                 : null;
 
+
             const sum6 =
               metricValue(
                 control,
                 "sum6",
               );
 
+
             row[
               `Objetivo Sum6 ${objectivePeriodLabel} (mm)`
             ] =
               target ?? "";
+
 
             row[
               "Δ Sum6 vs objetivo (mm)"
@@ -1321,10 +1553,12 @@ function InformeGrupal() {
                 : "";
           }
 
+
           rows.push(row);
         },
       );
     }
+
 
     await exportXLSX(
       rows,
@@ -1334,6 +1568,7 @@ function InformeGrupal() {
     );
   }
 
+
   const groups = [
     "principal",
     "pliegues",
@@ -1341,9 +1576,11 @@ function InformeGrupal() {
     "corregidos",
   ] as const;
 
+
   const ready =
     reportGroups.length > 0 &&
     selectedMetrics.length > 0;
+
 
   const septemberMeasured =
     groupSummaryRows.filter(
@@ -1351,11 +1588,13 @@ function InformeGrupal() {
         row.september !== null,
     ).length;
 
+
   return (
     <AppLayout
       title="Informe grupal"
       subtitle="Seleccioná jugadoras, controles y variables para presentar"
     >
+      <div ref={printAreaRef}>
       <div className="no-print space-y-4">
         <div className="rounded-lg border border-border bg-card p-4 shadow-panel">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1364,6 +1603,7 @@ function InformeGrupal() {
                 1. Jugadoras a incluir
               </p>
 
+
               <p className="mt-1 text-sm">
                 {
                   selectedPlayerIds.length
@@ -1371,6 +1611,7 @@ function InformeGrupal() {
                 seleccionadas
               </p>
             </div>
+
 
             <div className="flex flex-wrap gap-2">
               <Button
@@ -1384,6 +1625,7 @@ function InformeGrupal() {
                 visibles
               </Button>
 
+
               <Button
                 size="sm"
                 variant="outline"
@@ -1393,6 +1635,7 @@ function InformeGrupal() {
               >
                 Seleccionar todas
               </Button>
+
 
               <Button
                 size="sm"
@@ -1406,6 +1649,7 @@ function InformeGrupal() {
             </div>
           </div>
 
+
           <input
             value={search}
             onChange={(e) =>
@@ -1417,6 +1661,7 @@ function InformeGrupal() {
             className="mt-4 h-10 w-full rounded-md border border-input bg-background px-3 text-sm md:max-w-md"
           />
 
+
           <div className="mt-4 grid max-h-[300px] gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
             {filteredPlayers.map(
               (player) => {
@@ -1426,10 +1671,12 @@ function InformeGrupal() {
                   return null;
                 }
 
+
                 const selected =
                   selectedPlayerIds.includes(
                     player.id,
                   );
+
 
                 return (
                   <label
@@ -1455,6 +1702,7 @@ function InformeGrupal() {
                       className="h-4 w-4"
                     />
 
+
                     <span className="font-medium">
                       {
                         player.name
@@ -1467,12 +1715,14 @@ function InformeGrupal() {
           </div>
         </div>
 
+
         <div className="rounded-lg border border-border bg-card p-4 shadow-panel">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="panel-title text-xs text-muted-foreground">
                 2. Controles a comparar
               </p>
+
 
               <p className="mt-1 text-sm">
                 {
@@ -1482,6 +1732,7 @@ function InformeGrupal() {
                 seleccionados
               </p>
             </div>
+
 
             <div className="flex flex-wrap gap-2">
               <Button
@@ -1500,6 +1751,7 @@ function InformeGrupal() {
                 Último de cada una
               </Button>
 
+
               <Button
                 size="sm"
                 variant="outline"
@@ -1515,6 +1767,7 @@ function InformeGrupal() {
               >
                 Últimos 2
               </Button>
+
 
               <Button
                 size="sm"
@@ -1532,6 +1785,7 @@ function InformeGrupal() {
                 Últimos 4
               </Button>
 
+
               <Button
                 size="sm"
                 variant="outline"
@@ -1546,6 +1800,7 @@ function InformeGrupal() {
                 Todos
               </Button>
 
+
               <Button
                 size="sm"
                 variant="outline"
@@ -1559,6 +1814,7 @@ function InformeGrupal() {
               </Button>
             </div>
           </div>
+
 
           {selectedPlayers.length ===
           0 ? (
@@ -1578,10 +1834,12 @@ function InformeGrupal() {
                     return null;
                   }
 
+
                   const playerControls =
                     controlsByPlayer.get(
                       player.id,
                     ) ?? [];
+
 
                   return (
                     <div
@@ -1597,6 +1855,7 @@ function InformeGrupal() {
                           }
                         </span>
 
+
                         <span className="text-xs text-white/70">
                           {
                             playerControls.length
@@ -1604,6 +1863,7 @@ function InformeGrupal() {
                           controles
                         </span>
                       </div>
+
 
                       {playerControls.length ===
                       0 ? (
@@ -1625,10 +1885,12 @@ function InformeGrupal() {
                                 return null;
                               }
 
+
                               const selected =
                                 selectedControlIds.includes(
                                   control.id,
                                 );
+
 
                               return (
                                 <label
@@ -1654,6 +1916,7 @@ function InformeGrupal() {
                                     className="h-4 w-4"
                                   />
 
+
                                   <span className="font-medium">
                                     {fmtDate(
                                       control.date,
@@ -1673,10 +1936,12 @@ function InformeGrupal() {
           )}
         </div>
 
+
         <div className="rounded-lg border border-border bg-card p-4 shadow-panel">
           <p className="panel-title text-xs text-muted-foreground">
             3. Variables a mostrar
           </p>
+
 
           <div className="mt-3 flex flex-wrap gap-2">
             <Button
@@ -1693,6 +1958,7 @@ function InformeGrupal() {
             >
               Peso + Sum6P
             </Button>
+
 
             <Button
               size="sm"
@@ -1712,6 +1978,7 @@ function InformeGrupal() {
             >
               Pliegues
             </Button>
+
 
             <Button
               size="sm"
@@ -1735,6 +2002,7 @@ function InformeGrupal() {
               corregidos
             </Button>
 
+
             <Button
               size="sm"
               variant="outline"
@@ -1751,6 +2019,7 @@ function InformeGrupal() {
               completa
             </Button>
 
+
             <Button
               size="sm"
               variant="outline"
@@ -1764,6 +2033,7 @@ function InformeGrupal() {
             </Button>
           </div>
 
+
           <div className="mt-5 grid gap-4 lg:grid-cols-4">
             {groups.map(
               (group) => (
@@ -1775,6 +2045,7 @@ function InformeGrupal() {
                       ]
                     }
                   </p>
+
 
                   <div className="space-y-2">
                     {METRICS.filter(
@@ -1802,6 +2073,7 @@ function InformeGrupal() {
                             className="h-4 w-4"
                           />
 
+
                           <span>
                             {
                               metric.label
@@ -1824,10 +2096,12 @@ function InformeGrupal() {
           </div>
         </div>
 
+
         <div className="rounded-lg border border-border bg-card p-4 shadow-panel">
           <p className="panel-title text-xs text-muted-foreground">
             4. Presentación
           </p>
+
 
           <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3">
@@ -1845,11 +2119,13 @@ function InformeGrupal() {
                 className="mt-0.5 h-4 w-4"
               />
 
+
               <span>
                 <span className="block text-sm font-semibold">
                   Comparativa
                   grupal
                 </span>
+
 
                 <span className="text-xs text-muted-foreground">
                   Inicio a
@@ -1857,6 +2133,7 @@ function InformeGrupal() {
                 </span>
               </span>
             </label>
+
 
             <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3">
               <input
@@ -1873,17 +2150,20 @@ function InformeGrupal() {
                 className="mt-0.5 h-4 w-4"
               />
 
+
               <span>
                 <span className="block text-sm font-semibold">
                   Mostrar
                   objetivos
                 </span>
 
+
                 <span className="text-xs text-muted-foreground">
                   {`Objetivo Sum6 ${objectivePeriodLabel}`}
                 </span>
               </span>
             </label>
+
 
             <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3">
               <input
@@ -1900,11 +2180,13 @@ function InformeGrupal() {
                 className="mt-0.5 h-4 w-4"
               />
 
+
               <span>
                 <span className="block text-sm font-semibold">
                   Gráficos de
                   evolución Sum6
                 </span>
+
 
                 <span className="text-xs text-muted-foreground">
                   Usa todas las
@@ -1914,6 +2196,7 @@ function InformeGrupal() {
                 </span>
               </span>
             </label>
+
 
             <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border p-3">
               <input
@@ -1930,11 +2213,13 @@ function InformeGrupal() {
                 className="mt-0.5 h-4 w-4"
               />
 
+
               <span>
                 <span className="block text-sm font-semibold">
                   Resumen sólo
                   seleccionadas
                 </span>
+
 
                 <span className="text-xs text-muted-foreground">
                   Filtra la
@@ -1945,6 +2230,7 @@ function InformeGrupal() {
             </label>
           </div>
         </div>
+
 
         <div className="flex flex-wrap gap-2">
           <Button
@@ -1958,6 +2244,7 @@ function InformeGrupal() {
             Elegir qué imprimir
           </Button>
 
+
           <Button
             variant="outline"
             disabled={!ready}
@@ -1970,6 +2257,7 @@ function InformeGrupal() {
           </Button>
         </div>
 
+
         {printDialogOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
             <div className="w-full max-w-lg rounded-xl border border-border bg-card p-5 shadow-2xl">
@@ -1979,10 +2267,12 @@ function InformeGrupal() {
                   impresión
                 </p>
 
+
                 <h2 className="mt-1 font-display text-2xl font-semibold">
                   ¿Qué querés
                   incluir?
                 </h2>
+
 
                 <p className="mt-1 text-sm text-muted-foreground">
                   Tildá solamente
@@ -1992,6 +2282,7 @@ function InformeGrupal() {
                   imprimir.
                 </p>
               </div>
+
 
               <div className="mt-5 space-y-2">
                 <PrintOption
@@ -2006,6 +2297,7 @@ function InformeGrupal() {
                     )
                   }
                 />
+
 
                 <PrintOption
                   label="Resumen por jugadora"
@@ -2024,6 +2316,7 @@ function InformeGrupal() {
                   }
                 />
 
+
                 <PrintOption
                   label="Informe antropométrico grupal"
                   description="Tabla de controles y variables seleccionadas"
@@ -2037,6 +2330,7 @@ function InformeGrupal() {
                     )
                   }
                 />
+
 
                 <PrintOption
                   label="Gráficos de evolución Sum6"
@@ -2055,6 +2349,7 @@ function InformeGrupal() {
                   }
                 />
               </div>
+
 
               <div className="mt-5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
                 Para que no
@@ -2075,6 +2370,14 @@ function InformeGrupal() {
                 .
               </div>
 
+
+              {shareMessage && (
+                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  {shareMessage}
+                </div>
+              )}
+
+
               <div className="mt-5 flex flex-wrap justify-end gap-2">
                 <Button
                   variant="outline"
@@ -2086,6 +2389,28 @@ function InformeGrupal() {
                 >
                   Cancelar
                 </Button>
+
+
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    void compartirSeleccion()
+                  }
+                  disabled={
+                    sharing ||
+                    !Object.values(
+                      printSections,
+                    ).some(
+                      Boolean,
+                    )
+                  }
+                >
+                  <Share2 className="h-4 w-4" />
+                  {sharing
+                    ? "Preparando..."
+                    : "Compartir selección"}
+                </Button>
+
 
                 <Button
                   onClick={
@@ -2109,7 +2434,9 @@ function InformeGrupal() {
         )}
       </div>
 
+
       <section
+        data-print-section="groupSummary"
         className={`mt-6 overflow-hidden rounded-lg border border-border bg-card shadow-panel ${sectionVisibilityClass(
           showGroupSummary,
           printSections.groupSummary,
@@ -2125,10 +2452,12 @@ function InformeGrupal() {
             Almagro
           </p>
 
+
           <h2 className="mt-1 font-display text-2xl font-semibold">
             Comparativa grupal ·
             Sum 6 pliegues
           </h2>
+
 
           <p className="mt-1 text-sm text-muted-foreground">
             Inicio de temporada
@@ -2137,6 +2466,7 @@ function InformeGrupal() {
             último control con
             Sum6 cargado.
           </p>
+
 
           <p className="mt-2 text-xs text-muted-foreground">
             Referencia visual:
@@ -2150,6 +2480,7 @@ function InformeGrupal() {
           </p>
         </div>
 
+
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1050px] text-sm">
             <thead className="bg-muted/80">
@@ -2158,39 +2489,48 @@ function InformeGrupal() {
                   Jugadora
                 </th>
 
+
                 <th className="px-3 py-3 text-right font-semibold">
                   Inicio
                 </th>
+
 
                 <th className="px-3 py-3 text-right font-semibold">
                   Abril
                 </th>
 
+
                 <th className="px-3 py-3 text-right font-semibold">
                   Junio
                 </th>
+
 
                 <th className="px-3 py-3 text-right font-semibold">
                   Julio
                 </th>
 
+
                 <th className="px-3 py-3 text-right font-semibold">
                   Agosto
                 </th>
+
 
                 <th className="px-3 py-3 text-right font-semibold">
                   Septiembre
                 </th>
 
+
                 <th className="px-3 py-3 text-right font-semibold">
                   Δ vs Agosto
                 </th>
+
 
                 {showObjectives && (
                   <>
                     <th className="px-3 py-3 text-right font-semibold">
                       {`Objetivo ${objectivePeriodLabel}`}
                     </th>
+
 
                     <th className="px-3 py-3 text-right font-semibold">
                       Δ vs
@@ -2200,6 +2540,7 @@ function InformeGrupal() {
                 )}
               </tr>
             </thead>
+
 
             <tbody>
               {groupSummaryRows.map(
@@ -2217,11 +2558,13 @@ function InformeGrupal() {
                       }
                     </td>
 
+
                     <BandCell
                       value={
                         row.inicio
                       }
                     />
+
 
                     <BandCell
                       value={
@@ -2229,11 +2572,13 @@ function InformeGrupal() {
                       }
                     />
 
+
                     <BandCell
                       value={
                         row.junio
                       }
                     />
+
 
                     <BandCell
                       value={
@@ -2241,11 +2586,13 @@ function InformeGrupal() {
                       }
                     />
 
+
                     <BandCell
                       value={
                         row.agosto
                       }
                     />
+
 
                     <BandCell
                       value={
@@ -2261,6 +2608,7 @@ function InformeGrupal() {
                       emphasize
                     />
 
+
                     <td
                       className={`numeric whitespace-nowrap px-3 py-2.5 text-right font-semibold ${augustDeltaClass(
                         row.vsAugust,
@@ -2272,6 +2620,7 @@ function InformeGrupal() {
                       )}
                     </td>
 
+
                     {showObjectives && (
                       <>
                         <td className="numeric whitespace-nowrap px-3 py-2.5 text-right">
@@ -2280,6 +2629,7 @@ function InformeGrupal() {
                             1,
                           )}
                         </td>
+
 
                         <td className="numeric whitespace-nowrap px-3 py-2.5 text-right font-semibold">
                           {fmtDiff(
@@ -2296,6 +2646,7 @@ function InformeGrupal() {
           </table>
         </div>
 
+
         <div className="border-t border-border p-5">
           <div className="mb-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
@@ -2303,10 +2654,12 @@ function InformeGrupal() {
               plantel
             </p>
 
+
             <h3 className="mt-1 font-display text-xl font-semibold">
               Porcentaje por
               rango de Sum6
             </h3>
+
 
             <p className="mt-1 text-xs text-muted-foreground">
               Los porcentajes se
@@ -2317,15 +2670,18 @@ function InformeGrupal() {
             </p>
           </div>
 
+
           <BandDistributionChart
             counts={bandCounts}
           />
         </div>
       </section>
 
+
       {selectedPlayers.length >
         0 && (
         <section
+          data-print-section="playerSummary"
           className={`mt-6 ${sectionVisibilityClass(
             true,
             printSections.playerSummary,
@@ -2337,11 +2693,13 @@ function InformeGrupal() {
               mediciones
             </p>
 
+
             <h2 className="mt-1 font-display text-2xl font-semibold">
               Resumen por
               jugadora
             </h2>
           </div>
+
 
           <div className="grid gap-4 xl:grid-cols-2">
             {latestSummaries.map(
@@ -2357,6 +2715,7 @@ function InformeGrupal() {
                       )
                     : null;
 
+
                 const deltaTarget =
                   summary.currentSum6 !==
                     null &&
@@ -2367,6 +2726,7 @@ function InformeGrupal() {
                         summary.target,
                       )
                     : null;
+
 
                 return (
                   <div
@@ -2392,6 +2752,7 @@ function InformeGrupal() {
                           }
                         </h3>
 
+
                         <p className="text-xs text-muted-foreground">
                           {summary.current
                             ? `Último control ${fmtDate(
@@ -2402,6 +2763,7 @@ function InformeGrupal() {
                             : "Sin control con Sum6"}
                         </p>
                       </div>
+
 
                       {summary.currentSum6 !==
                         null && (
@@ -2420,6 +2782,7 @@ function InformeGrupal() {
                       )}
                     </div>
 
+
                     <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
                       <MiniStat
                         label="Actual"
@@ -2433,6 +2796,7 @@ function InformeGrupal() {
                             : "—"
                         }
                       />
+
 
                       <MiniStat
                         label="Anterior"
@@ -2456,6 +2820,7 @@ function InformeGrupal() {
                         }
                       />
 
+
                       <MiniStat
                         label="Δ vs anterior"
                         value={
@@ -2468,6 +2833,7 @@ function InformeGrupal() {
                             : "—"
                         }
                       />
+
 
                       {showObjectives && (
                         <>
@@ -2483,6 +2849,7 @@ function InformeGrupal() {
                                 : "—"
                             }
                           />
+
 
                           <MiniStat
                             label="Δ vs objetivo"
@@ -2507,7 +2874,9 @@ function InformeGrupal() {
         </section>
       )}
 
+
       <div
+        data-print-section="anthropometricReport"
         className={`mt-6 overflow-hidden rounded-lg border border-border bg-card shadow-panel ${sectionVisibilityClass(
           true,
           printSections.anthropometricReport,
@@ -2519,16 +2888,19 @@ function InformeGrupal() {
             Almagro
           </p>
 
+
           <h2 className="mt-1 font-display text-2xl font-semibold">
             Informe
             antropométrico
             grupal
           </h2>
 
+
           <p className="mt-1 text-sm text-muted-foreground">
             Primera División –
             Fútbol Femenino
           </p>
+
 
           {ready && (
             <>
@@ -2543,6 +2915,7 @@ function InformeGrupal() {
                 controles
               </p>
 
+
               <p className="mt-2 text-xs text-muted-foreground">
                 Δ: diferencia
                 respecto del
@@ -2555,6 +2928,7 @@ function InformeGrupal() {
             </>
           )}
         </div>
+
 
         {selectedPlayers.length ===
         0 ? (
@@ -2574,9 +2948,11 @@ function InformeGrupal() {
                     Jugadora
                   </th>
 
+
                   <th className="whitespace-nowrap px-4 py-3 text-left font-semibold">
                     Fecha
                   </th>
+
 
                   {selectedMetrics.map(
                     (key) => {
@@ -2586,6 +2962,7 @@ function InformeGrupal() {
                             m.key ===
                             key,
                         )!;
+
 
                       return (
                         <th
@@ -2597,6 +2974,7 @@ function InformeGrupal() {
                           {
                             metric.label
                           }
+
 
                           <span className="ml-1 text-xs font-normal text-muted-foreground">
                             (
@@ -2612,6 +2990,7 @@ function InformeGrupal() {
                 </tr>
               </thead>
 
+
               <tbody>
                 {reportGroups.map(
                   (group) =>
@@ -2626,6 +3005,7 @@ function InformeGrupal() {
                             controlIndex +
                               1
                           ];
+
 
                         return (
                           <tr
@@ -2657,6 +3037,7 @@ function InformeGrupal() {
                               </td>
                             )}
 
+
                             <td className="whitespace-nowrap px-4 py-3">
                               <span
                                 className={
@@ -2672,6 +3053,7 @@ function InformeGrupal() {
                               </span>
                             </td>
 
+
                             {selectedMetrics.map(
                               (
                                 key,
@@ -2685,11 +3067,13 @@ function InformeGrupal() {
                                       key,
                                   )!;
 
+
                                 const value =
                                   metricValue(
                                     control,
                                     key,
                                   );
+
 
                                 const difference =
                                   metricDifference(
@@ -2697,6 +3081,7 @@ function InformeGrupal() {
                                     previousControl,
                                     key,
                                   );
+
 
                                 return (
                                   <td
@@ -2718,6 +3103,7 @@ function InformeGrupal() {
                                         metric.decimals,
                                       )}
                                     </div>
+
 
                                     {difference !==
                                       null && (
@@ -2744,9 +3130,11 @@ function InformeGrupal() {
         )}
       </div>
 
+
       {selectedPlayers.length >
         0 && (
         <section
+          data-print-section="charts"
           className={`mt-6 ${sectionVisibilityClass(
             showCharts,
             printSections.charts,
@@ -2757,11 +3145,13 @@ function InformeGrupal() {
               Evolución Sum6
             </p>
 
+
             <h2 className="mt-1 font-display text-2xl font-semibold">
               Gráficos de las
               jugadoras
               seleccionadas
             </h2>
+
 
             <p className="mt-1 text-sm text-muted-foreground">
               Cada gráfico
@@ -2776,6 +3166,7 @@ function InformeGrupal() {
             </p>
           </div>
 
+
           <div className="space-y-6">
             {selectedPlayers.map(
               (player) => {
@@ -2786,15 +3177,18 @@ function InformeGrupal() {
                   return null;
                 }
 
+
                 const allPlayerControls =
                   controlsByPlayer.get(
                     player.id,
                   ) ?? [];
 
+
                 const best2025 =
                   best2025ForPlayer(
                     player,
                   );
+
 
                 return (
                   <div
@@ -2814,6 +3208,7 @@ function InformeGrupal() {
                         player.name
                       }
                     </h3>
+
 
                     <div className="mt-4">
                       <EvolutionChart
@@ -2845,9 +3240,11 @@ function InformeGrupal() {
           </div>
         </section>
       )}
+      </div>
     </AppLayout>
   );
 }
+
 
 function PrintOption({
   label,
@@ -2878,10 +3275,12 @@ function PrintOption({
         className="mt-0.5 h-4 w-4"
       />
 
+
       <span>
         <span className="block text-sm font-semibold">
           {label}
         </span>
+
 
         <span className="text-xs text-muted-foreground">
           {description}
@@ -2890,6 +3289,7 @@ function PrintOption({
     </label>
   );
 }
+
 
 function BandCell({
   value,
@@ -2914,6 +3314,7 @@ function BandCell({
         {fmt(value, 1)}
       </div>
 
+
       {sub &&
         value !== null && (
           <div className="mt-0.5 text-[10px] font-normal opacity-70">
@@ -2923,6 +3324,7 @@ function BandCell({
     </td>
   );
 }
+
 
 function BandDistributionChart({
   counts,
@@ -2953,6 +3355,7 @@ function BandDistributionChart({
     ],
   ] as const;
 
+
   return (
     <div className="space-y-4">
       {periods.map(
@@ -2960,10 +3363,12 @@ function BandDistributionChart({
           const values =
             counts[key];
 
+
           const total =
             values.green +
             values.yellow +
             values.red;
+
 
           const green =
             total > 0
@@ -2972,6 +3377,7 @@ function BandDistributionChart({
                 100
               : 0;
 
+
           const yellow =
             total > 0
               ? (values.yellow /
@@ -2979,12 +3385,14 @@ function BandDistributionChart({
                 100
               : 0;
 
+
           const red =
             total > 0
               ? (values.red /
                   total) *
                 100
               : 0;
+
 
           return (
             <div
@@ -2994,6 +3402,7 @@ function BandDistributionChart({
               <p className="text-sm font-semibold">
                 {label}
               </p>
+
 
               <div>
                 <div className="flex h-5 w-full overflow-hidden rounded-full bg-muted">
@@ -3010,6 +3419,7 @@ function BandDistributionChart({
                     />
                   )}
 
+
                   {yellow >
                     0 && (
                     <div
@@ -3022,6 +3432,7 @@ function BandDistributionChart({
                       )}%`}
                     />
                   )}
+
 
                   {red > 0 && (
                     <div
@@ -3036,6 +3447,7 @@ function BandDistributionChart({
                   )}
                 </div>
 
+
                 <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-semibold">
                   <span className="text-emerald-700">
                     Verde{" "}
@@ -3045,6 +3457,7 @@ function BandDistributionChart({
                     %
                   </span>
 
+
                   <span className="text-amber-700">
                     Amarillo{" "}
                     {yellow.toFixed(
@@ -3052,6 +3465,7 @@ function BandDistributionChart({
                     )}
                     %
                   </span>
+
 
                   <span className="text-rose-700">
                     Rojo{" "}
@@ -3070,6 +3484,7 @@ function BandDistributionChart({
   );
 }
 
+
 function MiniStat({
   label,
   value,
@@ -3085,9 +3500,11 @@ function MiniStat({
         {label}
       </p>
 
+
       <p className="numeric mt-1 text-sm font-semibold">
         {value}
       </p>
+
 
       {sub && (
         <p className="mt-0.5 text-[10px] text-muted-foreground">
@@ -3097,6 +3514,7 @@ function MiniStat({
     </div>
   );
 }
+
 
 function EvolutionChart({
   controls,
@@ -3119,6 +3537,7 @@ function EvolutionChart({
         item.key ===
         metricKey,
     )!;
+
 
   const data = [
     ...controls,
@@ -3148,6 +3567,7 @@ function EvolutionChart({
         null,
     );
 
+
   const domain =
     chartDomain(
       data.map(
@@ -3160,6 +3580,7 @@ function EvolutionChart({
       ],
     );
 
+
   return (
     <div className="rounded-md border border-border p-3">
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
@@ -3168,12 +3589,14 @@ function EvolutionChart({
             {metric.label}
           </p>
 
+
           <p className="text-xs text-muted-foreground">
             {metric.unit} ·{" "}
             {data.length}{" "}
             controles con dato
           </p>
         </div>
+
 
         <div className="flex flex-wrap items-center justify-end gap-2">
           {best2025Value !==
@@ -3191,6 +3614,7 @@ function EvolutionChart({
             </span>
           )}
 
+
           {target !== null && (
             <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
               Objetivo{" "}
@@ -3203,6 +3627,7 @@ function EvolutionChart({
           )}
         </div>
       </div>
+
 
       {data.length >= 2 ? (
         <div className="h-[280px] w-full">
@@ -3226,6 +3651,7 @@ function EvolutionChart({
                 }
               />
 
+
               <XAxis
                 dataKey="label"
                 tick={{
@@ -3236,6 +3662,7 @@ function EvolutionChart({
                 }
               />
 
+
               <YAxis
                 domain={
                   domain
@@ -3245,6 +3672,7 @@ function EvolutionChart({
                 }}
                 width={52}
               />
+
 
               <Tooltip
                 formatter={(
@@ -3262,6 +3690,7 @@ function EvolutionChart({
                 ]}
               />
 
+
               <Line
                 type="monotone"
                 dataKey="value"
@@ -3277,6 +3706,7 @@ function EvolutionChart({
                 }}
               />
 
+
               {best2025Value !==
                 null && (
                 <ReferenceLine
@@ -3291,6 +3721,7 @@ function EvolutionChart({
                   isFront
                 />
               )}
+
 
               {target !==
                 null && (
@@ -3318,6 +3749,7 @@ function EvolutionChart({
     </div>
   );
 }
+
 
 function Empty({
   text,
