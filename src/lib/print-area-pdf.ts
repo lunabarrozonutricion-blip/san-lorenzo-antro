@@ -489,10 +489,28 @@ async function renderSectionToCanvas(
       },
     );
 
-    const url =
-      URL.createObjectURL(
-        svgBlob,
+  const url = await new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    if (typeof reader.result === "string") {
+      resolve(reader.result);
+    } else {
+      reject(
+        new Error("No se pudo convertir el SVG a Data URL."),
       );
+    }
+  };
+
+  reader.onerror = () => {
+    reject(
+      reader.error ??
+        new Error("No se pudo leer el SVG."),
+    );
+  };
+
+  reader.readAsDataURL(svgBlob);
+});
 
     console.log(
       "[PDF] Blob URL:",
