@@ -24,6 +24,15 @@ const PDF_MARGIN = 52;
 const PDF_WIDTH = 595;
 const PDF_HEIGHT = 842;
 
+/**
+ * Espera dos ciclos de renderizado.
+ *
+ * Esto permite que el navegador termine de calcular:
+ * - estilos
+ * - fuentes
+ * - dimensiones
+ * - layout
+ */
 function nextPaint() {
   return new Promise<void>(
     (resolve) => {
@@ -36,6 +45,14 @@ function nextPaint() {
   );
 }
 
+/**
+ * Copia todos los estilos computados desde el elemento
+ * original hacia el clon.
+ *
+ * Esto es importante porque el SVG/foreignObject no
+ * necesariamente tiene acceso a todos los estilos CSS
+ * externos de la página.
+ */
 function inlineComputedStyles(
   source: Element,
   target: Element,
@@ -99,6 +116,10 @@ function inlineComputedStyles(
   }
 }
 
+/**
+ * Prepara el clon de una sección para ser convertido
+ * en una imagen.
+ */
 function prepareSectionClone(
   root: HTMLElement,
 ) {
@@ -120,6 +141,9 @@ function prepareSectionClone(
   root.style.background =
     "#ffffff";
 
+  root.style.overflow =
+    "visible";
+
   root
     .querySelectorAll<HTMLElement>(
       ".no-print",
@@ -139,6 +163,12 @@ function prepareSectionClone(
       (element) => {
         element.style.overflow =
           "visible";
+
+        element.style.maxWidth =
+          "none";
+
+        element.style.width =
+          "100%";
       },
     );
 
@@ -162,6 +192,9 @@ function prepareSectionClone(
 
         table.style.fontSize =
           "9px";
+
+        table.style.borderCollapse =
+          "collapse";
       },
     );
 
@@ -179,13 +212,42 @@ function prepareSectionClone(
 
         cell.style.wordBreak =
           "break-word";
+
+        cell.style.overflowWrap =
+          "anywhere";
       },
     );
 }
 
+/**
+ * Convierte una sección HTML en Canvas.
+ *
+ * Flujo:
+ *
+ * HTML
+ *   ↓
+ * clone
+ *   ↓
+ * estilos inline
+ *   ↓
+ * SVG + foreignObject
+ *   ↓
+ * Image
+ *   ↓
+ * Canvas
+ */
 async function renderSectionToCanvas(
   section: HTMLElement,
 ) {
+  const sectionKey =
+    section.dataset
+      .printSection ??
+    "unknown";
+
+  console.group(
+    `[PDF] Generando sección: ${sectionKey}`,
+  );
+
   const host =
     document.createElement(
       "div",
@@ -230,11 +292,38 @@ async function renderSectionToCanvas(
   );
 
   try {
+    console.log(
+      "[PDF] Clon creado:",
+      {
+        sectionKey,
+        tagName:
+          workingClone.tagName,
+        width:
+          workingClone.offsetWidth,
+        height:
+          workingClone.offsetHeight,
+      },
+    );
+
+    /**
+     * Esperamos las fuentes.
+     */
     if (
       "fonts" in
       document
     ) {
-      await document.fonts.ready;
+      try {
+        await document.fonts.ready;
+
+        console.log(
+          "[PDF] Fuentes listas.",
+        );
+      } catch (fontError) {
+        console.warn(
+          "[PDF] No se pudieron esperar las fuentes:",
+          fontError,
+        );
+      }
     }
 
     await nextPaint();
@@ -242,7 +331,7 @@ async function renderSectionToCanvas(
     const width =
       CAPTURE_WIDTH;
 
-    const height =
+    const measuredHeight =
       Math.max(
         1,
         Math.ceil(
@@ -254,37 +343,132 @@ async function renderSectionToCanvas(
         ),
       );
 
+    const height =
+      measuredHeight;
+
+    console.log(
+      "[PDF] Dimensiones calculadas:",
+      {
+        sectionKey,
+        width,
+        height,
+        scrollHeight:
+          workingClone.scrollHeight,
+        clientHeight:
+          workingClone.clientHeight,
+        offsetHeight:
+          workingClone.offsetHeight,
+      },
+    );
+
+    if (
+      !Number.isFinite(
+        height,
+      ) ||
+      height <= 0
+    ) {
+      throw new Error(
+        `La sección "${sectionKey}" tiene una altura inválida: ${height}.`,
+      );
+    }
+
     if (
       height > 30000
     ) {
       throw new Error(
-        "Una de las secciones seleccionadas es demasiado larga para generar el PDF de una sola vez.",
+        `La sección "${sectionKey}" es demasiado larga (${height}px) para generar el PDF de una sola vez.`,
       );
     }
 
+    /**
+     * Segundo clon.
+     *
+     * Este será el que serializamos.
+     */
     const snapshot =
       workingClone.cloneNode(
         true,
       ) as HTMLElement;
 
+    /**
+     * Copiamos estilos computados.
+     */
     inlineComputedStyles(
       workingClone,
       snapshot,
     );
 
+    /**
+     * Namespace XHTML.
+     *
+     * Esto es importante cuando el HTML se introduce
+     * dentro de un SVG foreignObject.
+     */
     snapshot.setAttribute(
       "xmlns",
       "http://www.w3.org/1999/xhtml",
     );
 
+    /**
+     * Serializamos el HTML.
+     */
     const serialized =
       new XMLSerializer().serializeToString(
         snapshot,
       );
 
-    const svg =
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="100%" height="100%">${serialized}</foreignObject></svg>`;
+    console.log(
+      "[PDF] HTML serializado:",
+      {
+        sectionKey,
+        serializedLength:
+          serialized.length,
+        preview:
+          serialized.slice(
+            0,
+            500,
+          ),
+      },
+    );
 
+    if (
+      !serialized ||
+      serialized.length <
+        20
+    ) {
+      throw new Error(
+        `La sección "${sectionKey}" produjo un HTML serializado vacío o inválido.`,
+      );
+    }
+
+    /**
+     * Construimos el SVG.
+     */
+    const svg =
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${serialized}</foreignObject></svg>`;
+
+    console.log(
+      "[PDF] SVG generado:",
+      {
+        sectionKey,
+        width,
+        height,
+        svgLength:
+          svg.length,
+        startsWithSvg:
+          svg.startsWith(
+            "<svg",
+          ),
+        hasForeignObject:
+          svg.includes(
+            "<foreignObject",
+          ),
+      },
+    );
+
+    /**
+     * Blob del SVG.
+     */
     const svgBlob =
       new Blob(
         [svg],
@@ -294,36 +478,168 @@ async function renderSectionToCanvas(
         },
       );
 
+    console.log(
+      "[PDF] SVG Blob creado:",
+      {
+        sectionKey,
+        size:
+          svgBlob.size,
+        type:
+          svgBlob.type,
+      },
+    );
+
     const url =
       URL.createObjectURL(
         svgBlob,
       );
 
+    console.log(
+      "[PDF] Blob URL:",
+      url,
+    );
+
     try {
       const image =
         new Image();
+
+      /**
+       * Algunos navegadores pueden tardar en cargar
+       * un SVG grande.
+       *
+       * Ponemos un timeout para no dejar el proceso
+       * bloqueado indefinidamente.
+       */
+      const IMAGE_TIMEOUT =
+        15000;
 
       await new Promise<void>(
         (
           resolve,
           reject,
         ) => {
-          image.onload =
-            () => resolve();
+          let finished =
+            false;
 
-          image.onerror =
-            () =>
-              reject(
-                new Error(
-                  "No se pudo convertir una sección del informe a imagen.",
-                ),
+          const timeout =
+            window.setTimeout(
+              () => {
+                if (
+                  finished
+                ) {
+                  return;
+                }
+
+                finished =
+                  true;
+
+                console.error(
+                  "[PDF] Timeout cargando SVG:",
+                  {
+                    sectionKey,
+                    width,
+                    height,
+                    svgSize:
+                      svgBlob.size,
+                  },
+                );
+
+                reject(
+                  new Error(
+                    `El navegador tardó demasiado en convertir la sección "${sectionKey}" a imagen.`,
+                  ),
+                );
+              },
+              IMAGE_TIMEOUT,
+            );
+
+          image.onload =
+            () => {
+              if (
+                finished
+              ) {
+                return;
+              }
+
+              finished =
+                true;
+
+              window.clearTimeout(
+                timeout,
               );
 
+              console.log(
+                "[PDF] SVG cargado correctamente:",
+                {
+                  sectionKey,
+                  imageWidth:
+                    image.naturalWidth,
+                  imageHeight:
+                    image.naturalHeight,
+                },
+              );
+
+              resolve();
+            };
+
+          image.onerror =
+            (
+              event,
+            ) => {
+              if (
+                finished
+              ) {
+                return;
+              }
+
+              finished =
+                true;
+
+              window.clearTimeout(
+                timeout,
+              );
+
+              console.error(
+                "[PDF] ERROR cargando SVG:",
+                {
+                  sectionKey,
+                  event,
+                  width,
+                  height,
+                  serializedLength:
+                    serialized.length,
+                  svgLength:
+                    svg.length,
+                  blobSize:
+                    svgBlob.size,
+                  blobType:
+                    svgBlob.type,
+                  url,
+                },
+              );
+
+              reject(
+                new Error(
+                  `El navegador no pudo cargar el SVG de la sección "${sectionKey}".`,
+                ),
+              );
+            };
+
+          /**
+           * Importante:
+           *
+           * No usamos crossOrigin aquí porque el SVG
+           * se encuentra en un Blob URL generado
+           * localmente.
+           */
           image.src =
             url;
         },
       );
 
+      /**
+       * Creamos el Canvas final de la sección.
+       */
       const canvas =
         document.createElement(
           "canvas",
@@ -345,10 +661,13 @@ async function renderSectionToCanvas(
 
       if (!context) {
         throw new Error(
-          "No se pudo preparar el PDF.",
+          `No se pudo obtener el contexto Canvas para la sección "${sectionKey}".`,
         );
       }
 
+      /**
+       * Fondo blanco.
+       */
       context.fillStyle =
         "#ffffff";
 
@@ -359,6 +678,9 @@ async function renderSectionToCanvas(
         height,
       );
 
+      /**
+       * Dibujamos la imagen.
+       */
       context.drawImage(
         image,
         0,
@@ -367,17 +689,78 @@ async function renderSectionToCanvas(
         height,
       );
 
+      console.log(
+        "[PDF] Canvas generado correctamente:",
+        {
+          sectionKey,
+          width:
+            canvas.width,
+          height:
+            canvas.height,
+        },
+      );
+
+      /**
+       * Comprobamos que el canvas realmente tenga
+       * contenido.
+       */
+      try {
+        const testPixel =
+          context.getImageData(
+            0,
+            0,
+            1,
+            1,
+          );
+
+        console.log(
+          "[PDF] Canvas accesible:",
+          {
+            sectionKey,
+            pixel: Array.from(
+              testPixel.data,
+            ),
+          },
+        );
+      } catch (canvasError) {
+        console.error(
+          "[PDF] No se pudo leer el Canvas:",
+          canvasError,
+        );
+
+        throw new Error(
+          `El navegador generó el Canvas de "${sectionKey}", pero no permite leer su contenido.`,
+        );
+      }
+
       return canvas;
     } finally {
       URL.revokeObjectURL(
         url,
       );
+
+      console.log(
+        "[PDF] Blob URL liberado.",
+      );
     }
+  } catch (error) {
+    console.error(
+      `[PDF] ERROR GENERAL en sección "${sectionKey}":`,
+      error,
+    );
+
+    throw error;
   } finally {
     host.remove();
+
+    console.groupEnd();
   }
 }
 
+/**
+ * Calcula qué porcentaje de una fila del canvas
+ * es prácticamente blanca.
+ */
 function rowWhiteScore(
   data: Uint8ClampedArray,
   width: number,
@@ -427,6 +810,10 @@ function rowWhiteScore(
     : 0;
 }
 
+/**
+ * Busca un punto razonable para realizar un salto
+ * de página.
+ */
 function choosePageBreak(
   source:
     HTMLCanvasElement,
@@ -544,6 +931,9 @@ function choosePageBreak(
   );
 }
 
+/**
+ * Convierte Base64 en bytes.
+ */
 function base64ToBytes(
   value: string,
 ) {
@@ -570,6 +960,9 @@ function base64ToBytes(
   return bytes;
 }
 
+/**
+ * Convierte Canvas a JPEG.
+ */
 function canvasToJpeg(
   canvas:
     HTMLCanvasElement,
@@ -580,13 +973,25 @@ function canvasToJpeg(
       0.9,
     );
 
-  return base64ToBytes(
+  const base64 =
     dataUrl.split(
       ",",
-    )[1],
+    )[1];
+
+  if (!base64) {
+    throw new Error(
+      "No se pudo convertir una página del Canvas a JPEG.",
+    );
+  }
+
+  return base64ToBytes(
+    base64,
   );
 }
 
+/**
+ * Divide una sección grande en páginas A4.
+ */
 function splitToJpegs(
   source:
     HTMLCanvasElement,
@@ -704,6 +1109,9 @@ function splitToJpegs(
   return images;
 }
 
+/**
+ * Convierte texto ASCII en bytes.
+ */
 function asciiBytes(
   value: string,
 ) {
@@ -727,6 +1135,9 @@ function asciiBytes(
   return bytes;
 }
 
+/**
+ * Une varios Uint8Array.
+ */
 function concatBytes(
   parts:
     Uint8Array[],
@@ -765,6 +1176,9 @@ function concatBytes(
   return result;
 }
 
+/**
+ * Construye un PDF directamente a partir de JPEGs.
+ */
 function buildImagePdf(
   images:
     Uint8Array[],
@@ -839,6 +1253,19 @@ function buildImagePdf(
         contentObjectNumbers[
           index
         ];
+
+      if (
+        pageObject ===
+          undefined ||
+        imageObject ===
+          undefined ||
+        contentObject ===
+          undefined
+      ) {
+        throw new Error(
+          "Error interno al construir los objetos del PDF.",
+        );
+      }
 
       objectParts.set(
         pageObject,
@@ -1022,6 +1449,10 @@ function buildImagePdf(
   );
 }
 
+/**
+ * Obtiene las secciones seleccionadas en el orden
+ * establecido para el PDF.
+ */
 function selectedSectionElements({
   element,
   selectedSections,
@@ -1060,12 +1491,19 @@ function selectedSectionElements({
       sections.push(
         section,
       );
+    } else {
+      console.warn(
+        `[PDF] No se encontró la sección "${key}".`,
+      );
     }
   }
 
   return sections;
 }
 
+/**
+ * Genera el PDF.
+ */
 export async function createPrintAreaPdf({
   element,
   selectedSections,
@@ -1076,63 +1514,187 @@ export async function createPrintAreaPdf({
     PrintableSectionSelection;
   fileName: string;
 }): Promise<PdfResult> {
-  if (
-    !Object.values(
+  console.group(
+    "[PDF] Inicio generación PDF",
+  );
+
+  try {
+    console.log(
+      "[PDF] Secciones seleccionadas:",
       selectedSections,
-    ).some(Boolean)
-  ) {
-    throw new Error(
-      "Elegí al menos una sección para compartir.",
     );
-  }
 
-  const sections =
-    selectedSectionElements({
-      element,
-      selectedSections,
-    });
-
-  if (
-    sections.length ===
-    0
-  ) {
-    throw new Error(
-      "No se encontraron las secciones seleccionadas.",
-    );
-  }
-
-  const images:
-    Uint8Array[] = [];
-
-  for (
-    const section of
-    sections
-  ) {
-    const canvas =
-      await renderSectionToCanvas(
-        section,
+    if (
+      !Object.values(
+        selectedSections,
+      ).some(Boolean)
+    ) {
+      throw new Error(
+        "Elegí al menos una sección para compartir.",
       );
+    }
 
-    images.push(
-      ...splitToJpegs(
-        canvas,
+    const sections =
+      selectedSectionElements({
+        element,
+        selectedSections,
+      });
+
+    console.log(
+      "[PDF] Secciones encontradas:",
+      sections.map(
+        (section) =>
+          section.dataset
+            .printSection ??
+          "unknown",
       ),
     );
-  }
 
-  const bytes =
-    buildImagePdf(
-      images,
+    if (
+      sections.length ===
+      0
+    ) {
+      throw new Error(
+        "No se encontraron las secciones seleccionadas.",
+      );
+    }
+
+    const images:
+      Uint8Array[] = [];
+
+    for (
+      const section of
+      sections
+    ) {
+      const sectionKey =
+        section.dataset
+          .printSection ??
+        "unknown";
+
+      console.group(
+        `[PDF] Procesando "${sectionKey}"`,
+      );
+
+      try {
+        const canvas =
+          await renderSectionToCanvas(
+            section,
+          );
+
+        console.log(
+          "[PDF] Canvas listo:",
+          {
+            sectionKey,
+            width:
+              canvas.width,
+            height:
+              canvas.height,
+          },
+        );
+
+        const sectionImages =
+          splitToJpegs(
+            canvas,
+          );
+
+        console.log(
+          "[PDF] Páginas generadas:",
+          {
+            sectionKey,
+            pages:
+              sectionImages.length,
+          },
+        );
+
+        images.push(
+          ...sectionImages,
+        );
+      } catch (error) {
+        console.error(
+          `[PDF] Falló la sección "${sectionKey}":`,
+          error,
+        );
+
+        if (
+          error instanceof
+          Error
+        ) {
+          throw new Error(
+            `No se pudo generar la sección "${sectionKey}". ${error.message}`,
+          );
+        }
+
+        throw new Error(
+          `No se pudo generar la sección "${sectionKey}".`,
+        );
+      } finally {
+        console.groupEnd();
+      }
+    }
+
+    if (
+      images.length ===
+      0
+    ) {
+      throw new Error(
+        "No se generaron páginas para el PDF.",
+      );
+    }
+
+    console.log(
+      "[PDF] Total de páginas:",
+      images.length,
     );
 
-  return {
-    blob: new Blob(
-      [bytes],
+    const bytes =
+      buildImagePdf(
+        images,
+      );
+
+    console.log(
+      "[PDF] PDF construido:",
       {
-        type:
-          "application/pdf",
+        bytes:
+          bytes.length,
+        kb:
+          Math.round(
+            bytes.length /
+              1024,
+          ),
       },
-    ),
-    fileName,
-  };
+    );
+
+    const blob =
+      new Blob(
+        [bytes],
+        {
+          type:
+            "application/pdf",
+        },
+      );
+
+    console.log(
+      "[PDF] Blob final:",
+      {
+        size:
+          blob.size,
+        type:
+          blob.type,
+      },
+    );
+
+    return {
+      blob,
+      fileName,
+    };
+  } catch (error) {
+    console.error(
+      "[PDF] ERROR FINAL:",
+      error,
+    );
+
+    throw error;
+  } finally {
+    console.groupEnd();
+  }
 }
