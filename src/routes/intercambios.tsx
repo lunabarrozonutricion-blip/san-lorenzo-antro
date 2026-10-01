@@ -8,6 +8,9 @@ import {
   ExternalLink,
   MessageCircle,
   Plus,
+  Save,
+  History,
+  FolderOpen,
   Printer,
   Ruler,
   Scale,
@@ -104,6 +107,71 @@ type MealLines = Record<
   MealKey,
   PlanLine[]
 >;
+
+type SavedExchangePlan = {
+  key: string;
+  playerId: number;
+  playerName: string;
+  planDate: string;
+  weight: string;
+  height: string;
+  ageInput: string;
+  sex: Sex;
+  activityFactor: string;
+  adjustmentOne: string;
+  adjustmentTwo: string;
+  carbsPerKg: string;
+  proteinPerKg: string;
+  portions: Record<ExchangeGroupKey, number>;
+  meals: MealLines;
+  planNotes: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const SAVED_PLANS_STORAGE_KEY =
+  "san-lorenzo-exchange-plans-v1";
+
+function savedPlanKey(
+  playerId: number,
+  planDate: string,
+) {
+  return `${playerId}::${planDate}`;
+}
+
+function readSavedPlans(): SavedExchangePlan[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(
+      SAVED_PLANS_STORAGE_KEY,
+    );
+
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSavedPlans(
+  plans: SavedExchangePlan[],
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(
+    SAVED_PLANS_STORAGE_KEY,
+    JSON.stringify(plans),
+  );
+}
 
 const EXCHANGE_GROUPS:
   ExchangeGroup[] = [
@@ -677,6 +745,21 @@ function ExchangePlansPage() {
     setShowExchangeNutrition,
   ] = useState(false);
 
+  const [
+    savedPlans,
+    setSavedPlans,
+  ] = useState<SavedExchangePlan[]>(
+    () => readSavedPlans(),
+  );
+
+  const [
+    saveMessage,
+    setSaveMessage,
+  ] = useState("");
+
+  const lastLoadedPlanKeyRef =
+    useRef<string | null>(null);
+
   const controls =
     useControls(
       selectedPlayerId,
@@ -994,6 +1077,133 @@ function ExchangePlansPage() {
     calculatedAge,
   ]);
 
+  const currentPlanKey =
+    selectedPlayerId == null
+      ? null
+      : savedPlanKey(
+          selectedPlayerId,
+          planDate,
+        );
+
+  const currentSavedPlan =
+    useMemo(
+      () =>
+        currentPlanKey
+          ? savedPlans.find(
+              (plan) =>
+                plan.key ===
+                currentPlanKey,
+            ) ?? null
+          : null,
+      [
+        currentPlanKey,
+        savedPlans,
+      ],
+    );
+
+  const playerSavedPlans =
+    useMemo(() => {
+      if (selectedPlayerId == null) {
+        return [];
+      }
+
+      return savedPlans
+        .filter(
+          (plan) =>
+            plan.playerId ===
+            selectedPlayerId,
+        )
+        .sort((a, b) =>
+          b.planDate.localeCompare(
+            a.planDate,
+          ),
+        );
+    }, [
+      savedPlans,
+      selectedPlayerId,
+    ]);
+
+  useEffect(() => {
+    if (
+      selectedPlayerId == null ||
+      !currentPlanKey
+    ) {
+      lastLoadedPlanKeyRef.current =
+        null;
+      return;
+    }
+
+    if (
+      lastLoadedPlanKeyRef.current ===
+      currentPlanKey
+    ) {
+      return;
+    }
+
+    lastLoadedPlanKeyRef.current =
+      currentPlanKey;
+
+    const saved = savedPlans.find(
+      (plan) =>
+        plan.key === currentPlanKey,
+    );
+
+    setSaveMessage("");
+
+    if (saved) {
+      setWeight(saved.weight);
+      setHeight(saved.height);
+      setAgeInput(saved.ageInput);
+      setSex(saved.sex);
+      setActivityFactor(
+        saved.activityFactor,
+      );
+      setAdjustmentOne(
+        saved.adjustmentOne,
+      );
+      setAdjustmentTwo(
+        saved.adjustmentTwo,
+      );
+      setCarbsPerKg(
+        saved.carbsPerKg,
+      );
+      setProteinPerKg(
+        saved.proteinPerKg,
+      );
+      setPortions(
+        saved.portions ??
+          emptyPortions(),
+      );
+      setMeals(
+        saved.meals ?? emptyMeals(),
+      );
+      setPlanNotes(
+        saved.planNotes ?? "",
+      );
+      setSaveMessage(
+        `Plan del ${fmtDate(
+          saved.planDate,
+        )} cargado.`,
+      );
+      return;
+    }
+
+    /* Fecha sin plan guardado: empezamos uno nuevo. */
+    setSex("F");
+    setActivityFactor("1.5");
+    setAdjustmentOne("0");
+    setAdjustmentTwo("0");
+    setCarbsPerKg("");
+    setProteinPerKg("");
+    setPortions(emptyPortions());
+    setMeals(emptyMeals());
+    setPlanNotes("");
+  }, [
+    selectedPlayerId,
+    currentPlanKey,
+    savedPlans,
+  ]);
+
   const weightValue =
     parseNumber(weight);
 
@@ -1220,10 +1430,110 @@ function ExchangePlansPage() {
       return result;
     }, [meals]);
 
+  function saveCurrentPlan() {
+    if (
+      !selectedPlayer ||
+      selectedPlayer.id == null
+    ) {
+      return;
+    }
+
+    const key = savedPlanKey(
+      selectedPlayer.id,
+      planDate,
+    );
+
+    const existing = savedPlans.find(
+      (plan) => plan.key === key,
+    );
+
+    const timestamp =
+      new Date().toISOString();
+
+    const saved: SavedExchangePlan = {
+      key,
+      playerId: selectedPlayer.id,
+      playerName: selectedPlayer.name,
+      planDate,
+      weight,
+      height,
+      ageInput,
+      sex,
+      activityFactor,
+      adjustmentOne,
+      adjustmentTwo,
+      carbsPerKg,
+      proteinPerKg,
+      portions,
+      meals,
+      planNotes,
+      createdAt:
+        existing?.createdAt ??
+        timestamp,
+      updatedAt: timestamp,
+    };
+
+    const next = [
+      ...savedPlans.filter(
+        (plan) => plan.key !== key,
+      ),
+      saved,
+    ];
+
+    writeSavedPlans(next);
+    setSavedPlans(next);
+    setSaveMessage(
+      existing
+        ? "Plan actualizado correctamente ✓"
+        : "Plan guardado correctamente ✓",
+    );
+  }
+
+  function openSavedPlan(
+    plan: SavedExchangePlan,
+  ) {
+    lastLoadedPlanKeyRef.current =
+      null;
+    setPlanDate(plan.planDate);
+  }
+
+  function deleteSavedPlan(
+    plan: SavedExchangePlan,
+  ) {
+    const accepted = window.confirm(
+      `¿Eliminar el plan de ${plan.playerName} del ${fmtDate(
+        plan.planDate,
+      )}?`,
+    );
+
+    if (!accepted) {
+      return;
+    }
+
+    const next = savedPlans.filter(
+      (item) => item.key !== plan.key,
+    );
+
+    writeSavedPlans(next);
+    setSavedPlans(next);
+
+    if (
+      currentPlanKey === plan.key
+    ) {
+      lastLoadedPlanKeyRef.current =
+        null;
+      setSaveMessage(
+        "Plan eliminado. Esta fecha quedó como plan nuevo.",
+      );
+    }
+  }
+
   function choosePlayer(
     playerId: number,
     playerName: string,
   ) {
+    lastLoadedPlanKeyRef.current =
+      null;
     setSelectedPlayerId(
       playerId,
     );
@@ -1244,6 +1554,9 @@ function ExchangePlansPage() {
   }
 
   function clearPlayer() {
+    lastLoadedPlanKeyRef.current =
+      null;
+
     setSelectedPlayerId(
       null,
     );
@@ -1530,7 +1843,7 @@ function ExchangePlansPage() {
           </div>
 
           <div className="p-5">
-            <div className="grid gap-4 lg:grid-cols-[1fr_220px]">
+            <div className="grid gap-4 lg:grid-cols-[1fr_220px_auto]">
               <div className="relative">
                 <label className="text-sm">
                   <span className="panel-title text-xs text-muted-foreground">
@@ -1637,17 +1950,55 @@ function ExchangePlansPage() {
                   }
                   onChange={(
                     event,
-                  ) =>
+                  ) => {
+                    lastLoadedPlanKeyRef.current =
+                      null;
                     setPlanDate(
                       event
                         .target
                         .value,
-                    )
-                  }
+                    );
+                  }}
                   className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3"
                 />
               </label>
+
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={saveCurrentPlan}
+                  disabled={!selectedPlayer}
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#0B234A] px-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 lg:w-auto"
+                >
+                  <Save className="h-4 w-4" />
+                  {currentSavedPlan
+                    ? "Actualizar plan"
+                    : "Guardar plan"}
+                </button>
+              </div>
             </div>
+
+            {selectedPlayer && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                <span
+                  className={`rounded-full px-3 py-1.5 font-semibold ${
+                    currentSavedPlan
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  {currentSavedPlan
+                    ? `Guardado · ${fmtDate(planDate)}`
+                    : "Todavía sin guardar"}
+                </span>
+
+                {saveMessage && (
+                  <span className="text-muted-foreground">
+                    {saveMessage}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
@@ -1740,6 +2091,90 @@ function ExchangePlansPage() {
                     : "Carga manual disponible"
                 }
               />
+            </section>
+
+            <section className="rounded-xl border border-border bg-card p-5 shadow-panel">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-[#0B234A]" />
+                    <h3 className="font-display text-lg font-semibold">
+                      Planes guardados
+                    </h3>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Se guardan por jugadora y fecha. Elegí uno para volver a abrirlo y editarlo.
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+                  {playerSavedPlans.length} {playerSavedPlans.length === 1 ? "plan" : "planes"}
+                </span>
+              </div>
+
+              {playerSavedPlans.length === 0 ? (
+                <div className="mt-4 rounded-lg border border-dashed border-border bg-muted/20 px-4 py-5 text-center text-sm text-muted-foreground">
+                  Todavía no hay planes guardados para esta jugadora.
+                </div>
+              ) : (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {playerSavedPlans.map((plan) => (
+                    <div
+                      key={plan.key}
+                      className={`rounded-lg border p-3 ${
+                        plan.key === currentPlanKey
+                          ? "border-[#0B234A]/30 bg-[#0B234A]/5"
+                          : "border-border bg-background"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold">
+                            {fmtDate(plan.planDate)}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            Actualizado {new Date(plan.updatedAt).toLocaleString("es-AR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+
+                        {plan.key === currentPlanKey && (
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                            ABIERTO
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openSavedPlan(plan)}
+                          className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs font-semibold hover:bg-muted"
+                        >
+                          <FolderOpen className="h-3.5 w-3.5" />
+                          Abrir
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteSavedPlan(plan)}
+                          className="inline-flex h-8 w-9 items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                          title="Eliminar plan"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
+                <strong>Importante:</strong> esta versión guarda los planes en este dispositivo y no se pierden al actualizar la página. La sincronización entre PC y celular la conectamos a Supabase en el siguiente paso.
+              </div>
             </section>
 
             <section className="rounded-xl border border-border bg-card p-5 shadow-panel">
