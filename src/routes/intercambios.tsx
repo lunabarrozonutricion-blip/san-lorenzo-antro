@@ -665,6 +665,11 @@ function ExchangePlansPage() {
     setPlanNotes,
   ] = useState("");
 
+  const [
+    showMacroTable,
+    setShowMacroTable,
+  ] = useState(false);
+
   const controls =
     useControls(
       selectedPlayerId,
@@ -1157,6 +1162,33 @@ function ExchangePlansPage() {
       prescription != null
         ? exchangeTotals.kcal -
           prescription
+        : null,
+  };
+
+  /*
+   * SALDO IC del Excel:
+   * HC / 15, proteínas / 7 y grasas / 5.
+   * Acá lo mostramos en sentido intuitivo:
+   * positivo = faltan IC; negativo = sobran.
+   */
+  const exchangeBalance = {
+    carbs:
+      targetCarbs != null
+        ? (targetCarbs -
+            exchangeTotals.carbs) /
+          15
+        : null,
+    protein:
+      targetProtein != null
+        ? (targetProtein -
+            exchangeTotals.protein) /
+          7
+        : null,
+    fat:
+      targetFat != null
+        ? (targetFat -
+            exchangeTotals.fat) /
+          5
         : null,
   };
 
@@ -1883,6 +1915,29 @@ function ExchangePlansPage() {
                 />
               </div>
 
+              <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={showMacroTable}
+                  onChange={(event) =>
+                    setShowMacroTable(
+                      event.target.checked,
+                    )
+                  }
+                  className="h-4 w-4 accent-[#0B234A]"
+                />
+
+                <div>
+                  <p className="text-sm font-semibold">
+                    Mostrar tabla de kcal y macronutrientes
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    La podés abrir cuando quieras comprobar objetivos, plan actual y diferencias.
+                  </p>
+                </div>
+              </label>
+
+              {showMacroTable && (
               <div className="mt-4 overflow-x-auto rounded-lg border border-border">
                 <table className="w-full min-w-[680px] text-sm">
                   <thead className="bg-muted/60">
@@ -1969,6 +2024,7 @@ function ExchangePlansPage() {
                   </tbody>
                 </table>
               </div>
+              )}
             </section>
 
             <section className="rounded-xl border border-border bg-card p-5 shadow-panel">
@@ -1978,6 +2034,50 @@ function ExchangePlansPage() {
                 title="Intercambios por grupo"
                 description="Cargá la cantidad de intercambios de cada grupo. La tabla calcula automáticamente HC, proteínas, grasas y kcal."
               />
+
+              <div className="mt-5 rounded-xl border border-[#0B234A]/15 bg-gradient-to-r from-[#0B234A]/5 via-background to-[#C8102E]/5 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-red-600">
+                      Saldo de intercambios
+                    </p>
+                    <h4 className="mt-1 font-display text-lg font-semibold">
+                      ¿Cuánto me falta agregar?
+                    </h4>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Se actualiza solo cada vez que cambiás los IC de la tabla. Es la misma lógica de “SALDO IC” de tu Excel.
+                    </p>
+                  </div>
+
+                  <span className="rounded-full bg-muted px-3 py-1 text-[11px] font-semibold text-muted-foreground">
+                    HC ÷ 15 · PR ÷ 7 · GR ÷ 5
+                  </span>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <ExchangeBalanceCard
+                    label="Hidratos"
+                    value={exchangeBalance.carbs}
+                    colorClass="border-blue-200 bg-blue-50/70 text-blue-900"
+                  />
+
+                  <ExchangeBalanceCard
+                    label="Proteínas"
+                    value={exchangeBalance.protein}
+                    colorClass="border-red-200 bg-red-50/70 text-red-900"
+                  />
+
+                  <ExchangeBalanceCard
+                    label="Grasas"
+                    value={exchangeBalance.fat}
+                    colorClass="border-amber-200 bg-amber-50/70 text-amber-900"
+                  />
+                </div>
+
+                <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                  Es una guía para orientarte mientras armás el plan: después elegís vos qué grupo de alimentos usar para completar ese saldo.
+                </p>
+              </div>
 
               <div className="mt-5 overflow-x-auto rounded-lg border border-border">
                 <table className="w-full min-w-[850px] text-sm">
@@ -2802,6 +2902,60 @@ function MacroCheckRow({
         )}
       </td>
     </tr>
+  );
+}
+
+function ExchangeBalanceCard({
+  label,
+  value,
+  colorClass,
+}: {
+  label: string;
+  value: number | null;
+  colorClass: string;
+}) {
+  const tolerance = 0.05;
+
+  let status =
+    "Primero definí el objetivo";
+
+  let amount = "—";
+
+  if (value != null) {
+    const absolute =
+      Math.abs(value);
+
+    amount = `${formatNumber(
+      absolute,
+      2,
+    )} IC`;
+
+    if (absolute <= tolerance) {
+      status = "Saldo cubierto ✓";
+      amount = "0 IC";
+    } else if (value > 0) {
+      status = "Faltan aprox.";
+    } else {
+      status = "Sobran aprox.";
+    }
+  }
+
+  return (
+    <div
+      className={`rounded-xl border p-4 ${colorClass}`}
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
+        {label}
+      </p>
+
+      <p className="mt-2 text-2xl font-bold">
+        {amount}
+      </p>
+
+      <p className="mt-1 text-xs font-semibold">
+        {status}
+      </p>
+    </div>
   );
 }
 
