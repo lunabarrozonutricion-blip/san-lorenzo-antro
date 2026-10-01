@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ComparativaRouteImport } from './routes/comparativa'
 import { Route as ComponentesRouteImport } from './routes/componentes'
+import { Route as ComponentesEditarRouteImport } from './routes/componentes-editar'
 import { Route as ComponentesImportarRouteImport } from './routes/componentes-importar'
 import { Route as ComponentesNuevaRouteImport } from './routes/componentes-nueva'
 import { Route as ComponentesPresentacionRouteImport } from './routes/componentes-presentacion'
@@ -43,6 +44,11 @@ const ComparativaRoute = ComparativaRouteImport.update({
 const ComponentesRoute = ComponentesRouteImport.update({
   id: '/componentes',
   path: '/componentes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComponentesEditarRoute = ComponentesEditarRouteImport.update({
+  id: '/componentes-editar',
+  path: '/componentes-editar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComponentesImportarRoute = ComponentesImportarRouteImport.update({
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/comparativa': typeof ComparativaRoute
   '/componentes': typeof ComponentesRoute
+  '/componentes-editar': typeof ComponentesEditarRoute
   '/componentes-importar': typeof ComponentesImportarRoute
   '/componentes-nueva': typeof ComponentesNuevaRoute
   '/componentes-presentacion': typeof ComponentesPresentacionRoute
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/comparativa': typeof ComparativaRoute
   '/componentes': typeof ComponentesRoute
+  '/componentes-editar': typeof ComponentesEditarRoute
   '/componentes-importar': typeof ComponentesImportarRoute
   '/componentes-nueva': typeof ComponentesNuevaRoute
   '/componentes-presentacion': typeof ComponentesPresentacionRoute
@@ -180,6 +188,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/comparativa': typeof ComparativaRoute
   '/componentes': typeof ComponentesRoute
+  '/componentes-editar': typeof ComponentesEditarRoute
   '/componentes-importar': typeof ComponentesImportarRoute
   '/componentes-nueva': typeof ComponentesNuevaRoute
   '/componentes-presentacion': typeof ComponentesPresentacionRoute
@@ -204,6 +213,7 @@ export interface FileRouteTypes {
     | '/'
     | '/comparativa'
     | '/componentes'
+    | '/componentes-editar'
     | '/componentes-importar'
     | '/componentes-nueva'
     | '/componentes-presentacion'
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
     | '/'
     | '/comparativa'
     | '/componentes'
+    | '/componentes-editar'
     | '/componentes-importar'
     | '/componentes-nueva'
     | '/componentes-presentacion'
@@ -248,6 +259,7 @@ export interface FileRouteTypes {
     | '/'
     | '/comparativa'
     | '/componentes'
+    | '/componentes-editar'
     | '/componentes-importar'
     | '/componentes-nueva'
     | '/componentes-presentacion'
@@ -271,6 +283,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ComparativaRoute: typeof ComparativaRoute
   ComponentesRoute: typeof ComponentesRoute
+  ComponentesEditarRoute: typeof ComponentesEditarRoute
   ComponentesImportarRoute: typeof ComponentesImportarRoute
   ComponentesNuevaRoute: typeof ComponentesNuevaRoute
   ComponentesPresentacionRoute: typeof ComponentesPresentacionRoute
@@ -311,6 +324,13 @@ declare module '@tanstack/react-router' {
       path: '/componentes'
       fullPath: '/componentes'
       preLoaderRoute: typeof ComponentesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/componentes-editar': {
+      id: '/componentes-editar'
+      path: '/componentes-editar'
+      fullPath: '/componentes-editar'
+      preLoaderRoute: typeof ComponentesEditarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/componentes-importar': {
@@ -439,6 +459,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ComparativaRoute: ComparativaRoute,
   ComponentesRoute: ComponentesRoute,
+  ComponentesEditarRoute: ComponentesEditarRoute,
   ComponentesImportarRoute: ComponentesImportarRoute,
   ComponentesNuevaRoute: ComponentesNuevaRoute,
   ComponentesPresentacionRoute: ComponentesPresentacionRoute,

@@ -124,12 +124,14 @@ async function remapLocalEntityId(
   if (entity === "player") {
     await d.transaction(
       "rw",
-      d.players,
-      d.controls,
-      d.weightRecords,
-      d.objectivePeriods,
-      d.hydrationTests,
-      d.fullAnthropometries,
+      [
+        d.players,
+        d.controls,
+        d.weightRecords,
+        d.objectivePeriods,
+        d.hydrationTests,
+        d.fullAnthropometries,
+      ],
       async () => {
         const player =
           await d.players.get(oldId);
@@ -895,12 +897,14 @@ export async function syncCloudToLocal(
 
   await d.transaction(
     "rw",
-    d.players,
-    d.controls,
-    d.weightRecords,
-    d.objectivePeriods,
-    d.hydrationTests,
-    d.fullAnthropometries,
+    [
+      d.players,
+      d.controls,
+      d.weightRecords,
+      d.objectivePeriods,
+      d.hydrationTests,
+      d.fullAnthropometries,
+    ],
     async () => {
       await d.fullAnthropometries.clear();
       await d.hydrationTests.clear();
