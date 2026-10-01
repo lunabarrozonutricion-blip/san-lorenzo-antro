@@ -346,12 +346,14 @@ export async function importBackup(
   await d.transaction(
     "rw",
 
-    d.players,
-    d.controls,
-    d.weightRecords,
-    d.objectivePeriods,
-    d.hydrationTests,
-    d.fullAnthropometries,
+    [
+      d.players,
+      d.controls,
+      d.weightRecords,
+      d.objectivePeriods,
+      d.hydrationTests,
+      d.fullAnthropometries,
+    ],
 
     async () => {
       /* ======================================================
@@ -914,12 +916,14 @@ export async function wipeAll() {
   await d.transaction(
     "rw",
 
-    d.players,
-    d.controls,
-    d.weightRecords,
-    d.objectivePeriods,
-    d.hydrationTests,
-    d.fullAnthropometries,
+    [
+      d.players,
+      d.controls,
+      d.weightRecords,
+      d.objectivePeriods,
+      d.hydrationTests,
+      d.fullAnthropometries,
+    ],
 
     async () => {
       await d.fullAnthropometries.clear();

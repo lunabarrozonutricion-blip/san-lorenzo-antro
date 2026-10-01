@@ -212,10 +212,10 @@ function sumMasses(
     return null;
   }
 
-  return values.reduce(
+  return values.reduce<number>(
     (total, value) =>
       total +
-      (value as number),
+      (value ?? 0),
     0,
   );
 }
