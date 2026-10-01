@@ -17,6 +17,7 @@ import {
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -26,6 +27,7 @@ import {
   fmtDate,
   todayISO,
 } from "@/lib/calc";
+import { upsertPlayer } from "@/lib/db";
 import {
   useControls,
   useFullAnthropometries,
@@ -855,10 +857,88 @@ function ExchangePlansPage() {
       fullAnthropometries,
     ]);
 
+  /*
+   * Si la ficha de la jugadora no tiene
+   * fecha de nacimiento, usamos la más
+   * reciente cargada en una antropometría
+   * completa.
+   */
+  const fallbackBirthDate =
+    useMemo(() => {
+      if (
+        selectedPlayer?.birthDate
+      ) {
+        return null;
+      }
+
+      for (
+        const anthropometry of
+        fullAnthropometries ?? []
+      ) {
+        if (
+          anthropometry.birthDate
+        ) {
+          return anthropometry.birthDate;
+        }
+      }
+
+      return null;
+    }, [
+      selectedPlayer?.birthDate,
+      fullAnthropometries,
+    ]);
+
+  const effectiveBirthDate =
+    selectedPlayer?.birthDate ||
+    fallbackBirthDate;
+
+  /*
+   * Persistimos el respaldo una sola vez
+   * por jugadora, sin pisar un valor
+   * existente.
+   */
+  const persistedBirthDateFor =
+    useRef<number | null>(null);
+
+  useEffect(() => {
+    if (
+      !selectedPlayer ||
+      selectedPlayer.id == null ||
+      selectedPlayer.birthDate ||
+      !fallbackBirthDate
+    ) {
+      return;
+    }
+
+    if (
+      persistedBirthDateFor.current ===
+      selectedPlayer.id
+    ) {
+      return;
+    }
+
+    persistedBirthDateFor.current =
+      selectedPlayer.id;
+
+    void upsertPlayer({
+      ...selectedPlayer,
+      birthDate: fallbackBirthDate,
+    }).catch((error) => {
+      persistedBirthDateFor.current =
+        null;
+      console.warn(
+        "No se pudo guardar la fecha de nacimiento en la ficha.",
+        error,
+      );
+    });
+  }, [
+    selectedPlayer,
+    fallbackBirthDate,
+  ]);
+
   const calculatedAge =
     calculateAge(
-      selectedPlayer
-        ?.birthDate,
+      effectiveBirthDate,
       planDate,
     );
 
@@ -1506,9 +1586,9 @@ function ExchangePlansPage() {
                 }
                 label="Fecha de nacimiento"
                 value={
-                  selectedPlayer.birthDate
+                  effectiveBirthDate
                     ? fmtDate(
-                        selectedPlayer.birthDate,
+                        effectiveBirthDate,
                       )
                     : "Sin dato"
                 }
