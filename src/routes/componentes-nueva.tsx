@@ -23,6 +23,7 @@ import {
   fmt,
   fmtDate,
   parseNum,
+  sum6,
   todayISO,
 } from "@/lib/calc";
 
@@ -37,6 +38,7 @@ import {
 } from "@/lib/kerr";
 
 import {
+  useControls,
   useFullAnthropometries,
   usePlayer,
 } from "@/lib/hooks";
@@ -116,6 +118,38 @@ const COPY_PREVIOUS_KEYS =
     "femoral",
     "head",
   ]);
+
+/*
+ * Los seis pliegues que usamos para
+ * la referencia rápida de la última
+ * medición disponible.
+ */
+const SKINFOLD_DISPLAY = [
+  {
+    key: "triceps",
+    label: "Tríceps",
+  },
+  {
+    key: "subscapular",
+    label: "Subescapular",
+  },
+  {
+    key: "supraespinal",
+    label: "Supraespinal",
+  },
+  {
+    key: "abdominal",
+    label: "Abdominal",
+  },
+  {
+    key: "thighSkinfold",
+    label: "Muslo",
+  },
+  {
+    key: "calfSkinfold",
+    label: "Pierna",
+  },
+] as const;
 
 /* ============================================================
    HELPERS
@@ -360,6 +394,53 @@ function NuevaAntropometria() {
         fullAnthropometries,
         date,
       ],
+    );
+
+  /*
+   * Controles habituales de la jugadora.
+   * Acá pueden existir controles de pliegues
+   * más recientes que el último 5 componentes.
+   */
+  const controls =
+    useControls(playerId);
+
+  const [
+    showLatestSkinfolds,
+    setShowLatestSkinfolds,
+  ] = useState(false);
+
+  /*
+   * Busca el control más reciente hasta
+   * la fecha de la evaluación actual que
+   * tenga al menos un pliegue cargado.
+   *
+   * Como useControls ya devuelve los
+   * controles del más reciente al más
+   * antiguo, find() nos da el último.
+   */
+  const latestSkinfoldControl =
+    useMemo(
+      () =>
+        controls?.find(
+          (row) =>
+            row.date <= date &&
+            SKINFOLD_DISPLAY.some(
+              ({ key }) =>
+                row[key] != null,
+            ),
+        ),
+      [controls, date],
+    );
+
+  const latestSkinfoldSum6 =
+    useMemo(
+      () =>
+        latestSkinfoldControl
+          ? sum6(
+              latestSkinfoldControl,
+            )
+          : null,
+      [latestSkinfoldControl],
     );
 
   const [
@@ -944,6 +1025,100 @@ function NuevaAntropometria() {
                       )}`
                     : "Todavía no hay una evaluación anterior para comparar."}
                 </p>
+
+                {group ===
+                  "pliegues" && (
+                  <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold">
+                          Última medición de pliegues
+                        </p>
+
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {latestSkinfoldControl
+                            ? `Último control disponible: ${fmtDate(
+                                latestSkinfoldControl.date,
+                              )}`
+                            : "Todavía no hay una medición de pliegues disponible."}
+                        </p>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={
+                          !latestSkinfoldControl
+                        }
+                        onClick={() =>
+                          setShowLatestSkinfolds(
+                            (value) =>
+                              !value,
+                          )
+                        }
+                      >
+                        {showLatestSkinfolds
+                          ? "Ocultar pliegues"
+                          : "Ver últimos pliegues"}
+                      </Button>
+                    </div>
+
+                    {showLatestSkinfolds &&
+                      latestSkinfoldControl && (
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                          {SKINFOLD_DISPLAY.map(
+                            ({
+                              key,
+                              label,
+                            }) => {
+                              const value =
+                                latestSkinfoldControl[
+                                  key
+                                ];
+
+                              return (
+                                <div
+                                  key={key}
+                                  className="rounded-md border border-border bg-background px-3 py-2"
+                                >
+                                  <p className="text-[11px] font-medium text-muted-foreground">
+                                    {label}
+                                  </p>
+
+                                  <p className="numeric mt-0.5 text-sm font-semibold">
+                                    {value !=
+                                    null
+                                      ? `${fmt(
+                                          value,
+                                          1,
+                                        )} mm`
+                                      : "—"}
+                                  </p>
+                                </div>
+                              );
+                            },
+                          )}
+
+                          <div className="rounded-md border border-primary/20 bg-primary/10 px-3 py-2">
+                            <p className="text-[11px] font-semibold text-primary">
+                              Sum6
+                            </p>
+
+                            <p className="numeric mt-0.5 text-sm font-bold text-primary">
+                              {latestSkinfoldSum6 !=
+                              null
+                                ? `${fmt(
+                                    latestSkinfoldSum6,
+                                    1,
+                                  )} mm`
+                                : "—"}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                )}
               </div>
 
               <div className="overflow-x-auto">
