@@ -5,6 +5,8 @@ import {
   CalendarDays,
   CheckCircle2,
   CircleAlert,
+  ExternalLink,
+  MessageCircle,
   Plus,
   Printer,
   Ruler,
@@ -668,6 +670,11 @@ function ExchangePlansPage() {
   const [
     showMacroTable,
     setShowMacroTable,
+  ] = useState(false);
+
+  const [
+    showExchangeNutrition,
+    setShowExchangeNutrition,
   ] = useState(false);
 
   const controls =
@@ -1403,6 +1410,28 @@ function ExchangePlansPage() {
     window.print();
   }
 
+  function openExchangeGuide() {
+    window.open(
+      "/guia-intercambios",
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
+
+  function shareExchangeGuideWhatsApp() {
+    const guideUrl =
+      `${window.location.origin}/guia-intercambios`;
+
+    const message =
+      `Guía visual de intercambios de alimentos\n${guideUrl}`;
+
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(message)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
+
   const allDistributionOk =
     EXCHANGE_GROUPS.every(
       (group) =>
@@ -1423,27 +1452,55 @@ function ExchangePlansPage() {
     >
       <style>{`
         @media print {
-          body * {
-            visibility: hidden !important;
+          html,
+          body {
+            background: white !important;
           }
 
-          .player-plan-print,
-          .player-plan-print * {
-            visibility: visible !important;
+          body {
+            margin: 0 !important;
+          }
+
+          .plan-editor-only,
+          .print-hide {
+            display: none !important;
           }
 
           .player-plan-print {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            display: block !important;
+            position: static !important;
             width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
             background: white !important;
-            color: black !important;
-            padding: 18mm !important;
+            color: #172033 !important;
+            padding: 10mm 11mm !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
 
-          .print-hide {
-            display: none !important;
+          .player-plan-print * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          .plan-print-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+
+          .plan-print-card {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          .plan-print-summary {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
           }
 
           @page {
@@ -2079,40 +2136,79 @@ function ExchangePlansPage() {
                 </p>
               </div>
 
-              <div className="mt-5 overflow-x-auto rounded-lg border border-border">
-                <table className="w-full min-w-[850px] text-sm">
+              <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={showExchangeNutrition}
+                  onChange={(event) =>
+                    setShowExchangeNutrition(
+                      event.target.checked,
+                    )
+                  }
+                  className="h-4 w-4 accent-[#0B234A]"
+                />
+
+                <div>
+                  <p className="text-sm font-semibold">
+                    Mostrar tabla nutricional completa
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Por defecto ves solo los grupos y cargás los IC. Al tildar se muestran HC/IC, PR/IC, Gr/IC, kcal/IC y los totales calculados.
+                  </p>
+                </div>
+              </label>
+
+              <div className="mt-4 overflow-x-auto rounded-lg border border-border">
+                <table
+                  className={`w-full text-sm ${
+                    showExchangeNutrition
+                      ? "min-w-[850px]"
+                      : "min-w-[420px]"
+                  }`}
+                >
                   <thead className="bg-muted/60">
                     <tr>
-                      <th className="px-3 py-3 text-left">
+                      <th className="px-4 py-3 text-left">
                         Grupo
                       </th>
-                      <th className="px-3 py-3 text-center">
-                        HC/IC
+
+                      {showExchangeNutrition && (
+                        <>
+                          <th className="px-3 py-3 text-center">
+                            HC/IC
+                          </th>
+                          <th className="px-3 py-3 text-center">
+                            PR/IC
+                          </th>
+                          <th className="px-3 py-3 text-center">
+                            Gr/IC
+                          </th>
+                          <th className="px-3 py-3 text-center">
+                            Kcal/IC
+                          </th>
+                        </>
+                      )}
+
+                      <th className="px-4 py-3 text-center">
+                        Intercambios (IC)
                       </th>
-                      <th className="px-3 py-3 text-center">
-                        PR/IC
-                      </th>
-                      <th className="px-3 py-3 text-center">
-                        Gr/IC
-                      </th>
-                      <th className="px-3 py-3 text-center">
-                        Kcal/IC
-                      </th>
-                      <th className="px-3 py-3 text-center">
-                        IC
-                      </th>
-                      <th className="px-3 py-3 text-right">
-                        HC
-                      </th>
-                      <th className="px-3 py-3 text-right">
-                        PR
-                      </th>
-                      <th className="px-3 py-3 text-right">
-                        Gr
-                      </th>
-                      <th className="px-3 py-3 text-right">
-                        Kcal
-                      </th>
+
+                      {showExchangeNutrition && (
+                        <>
+                          <th className="px-3 py-3 text-right">
+                            HC
+                          </th>
+                          <th className="px-3 py-3 text-right">
+                            PR
+                          </th>
+                          <th className="px-3 py-3 text-right">
+                            Gr
+                          </th>
+                          <th className="px-3 py-3 text-right">
+                            Kcal
+                          </th>
+                        </>
+                      )}
                     </tr>
                   </thead>
 
@@ -2131,37 +2227,30 @@ function ExchangePlansPage() {
                             }
                             className="border-t border-border"
                           >
-                            <td className="px-3 py-2 font-medium">
+                            <td className="px-4 py-3 font-medium">
                               {
                                 group.label
                               }
                             </td>
 
-                            <td className="numeric px-3 py-2 text-center text-muted-foreground">
-                              {
-                                group.carbs
-                              }
-                            </td>
+                            {showExchangeNutrition && (
+                              <>
+                                <td className="numeric px-3 py-3 text-center text-muted-foreground">
+                                  {group.carbs}
+                                </td>
+                                <td className="numeric px-3 py-3 text-center text-muted-foreground">
+                                  {group.protein}
+                                </td>
+                                <td className="numeric px-3 py-3 text-center text-muted-foreground">
+                                  {group.fat}
+                                </td>
+                                <td className="numeric px-3 py-3 text-center text-muted-foreground">
+                                  {group.kcal}
+                                </td>
+                              </>
+                            )}
 
-                            <td className="numeric px-3 py-2 text-center text-muted-foreground">
-                              {
-                                group.protein
-                              }
-                            </td>
-
-                            <td className="numeric px-3 py-2 text-center text-muted-foreground">
-                              {
-                                group.fat
-                              }
-                            </td>
-
-                            <td className="numeric px-3 py-2 text-center text-muted-foreground">
-                              {
-                                group.kcal
-                              }
-                            </td>
-
-                            <td className="px-3 py-2">
+                            <td className="px-4 py-2">
                               <input
                                 inputMode="decimal"
                                 value={
@@ -2181,89 +2270,92 @@ function ExchangePlansPage() {
                                   )
                                 }
                                 placeholder="0"
-                                className="mx-auto h-9 w-20 rounded-md border border-input bg-background px-2 text-center font-semibold"
+                                className="mx-auto h-10 w-24 rounded-md border border-input bg-background px-2 text-center font-semibold"
                               />
                             </td>
 
-                            <td className="numeric px-3 py-2 text-right">
-                              {formatNumber(
-                                amount *
-                                  group.carbs,
-                                1,
-                              )}
-                            </td>
-
-                            <td className="numeric px-3 py-2 text-right">
-                              {formatNumber(
-                                amount *
-                                  group.protein,
-                                1,
-                              )}
-                            </td>
-
-                            <td className="numeric px-3 py-2 text-right">
-                              {formatNumber(
-                                amount *
-                                  group.fat,
-                                1,
-                              )}
-                            </td>
-
-                            <td className="numeric px-3 py-2 text-right font-semibold">
-                              {formatNumber(
-                                amount *
-                                  group.kcal,
-                                0,
-                              )}
-                            </td>
+                            {showExchangeNutrition && (
+                              <>
+                                <td className="numeric px-3 py-3 text-right">
+                                  {formatNumber(
+                                    amount *
+                                      group.carbs,
+                                    1,
+                                  )}
+                                </td>
+                                <td className="numeric px-3 py-3 text-right">
+                                  {formatNumber(
+                                    amount *
+                                      group.protein,
+                                    1,
+                                  )}
+                                </td>
+                                <td className="numeric px-3 py-3 text-right">
+                                  {formatNumber(
+                                    amount *
+                                      group.fat,
+                                    1,
+                                  )}
+                                </td>
+                                <td className="numeric px-3 py-3 text-right font-semibold">
+                                  {formatNumber(
+                                    amount *
+                                      group.kcal,
+                                    0,
+                                  )}
+                                </td>
+                              </>
+                            )}
                           </tr>
                         );
                       },
                     )}
                   </tbody>
 
-                  <tfoot className="border-t-2 border-border bg-muted/40 font-bold">
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-3 py-3"
-                      >
-                        TOTAL DEL PLAN
-                      </td>
+                  {showExchangeNutrition && (
+                    <tfoot className="border-t-2 border-border bg-muted/40 font-bold">
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-3 py-3"
+                        >
+                          TOTAL DEL PLAN
+                        </td>
 
-                      <td className="numeric px-3 py-3 text-right">
-                        {formatNumber(
-                          exchangeTotals.carbs,
-                          1,
-                        )}{" "}
-                        g
-                      </td>
+                        <td className="numeric px-3 py-3 text-right">
+                          {formatNumber(
+                            exchangeTotals.carbs,
+                            1,
+                          )}{" "}
+                          g
+                        </td>
 
-                      <td className="numeric px-3 py-3 text-right">
-                        {formatNumber(
-                          exchangeTotals.protein,
-                          1,
-                        )}{" "}
-                        g
-                      </td>
+                        <td className="numeric px-3 py-3 text-right">
+                          {formatNumber(
+                            exchangeTotals.protein,
+                            1,
+                          )}{" "}
+                          g
+                        </td>
 
-                      <td className="numeric px-3 py-3 text-right">
-                        {formatNumber(
-                          exchangeTotals.fat,
-                          1,
-                        )}{" "}
-                        g
-                      </td>
+                        <td className="numeric px-3 py-3 text-right">
+                          {formatNumber(
+                            exchangeTotals.fat,
+                            1,
+                          )}{" "}
+                          g
+                        </td>
 
-                      <td className="numeric px-3 py-3 text-right">
-                        {formatNumber(
-                          exchangeTotals.kcal,
-                          0,
-                        )}{" "}
-                        kcal
-                      </td>
-                    </tr>
-                  </tfoot>
+                        <td className="numeric px-3 py-3 text-right">
+                          {formatNumber(
+                            exchangeTotals.kcal,
+                            0,
+                          )}{" "}
+                          kcal
+                        </td>
+                      </tr>
+                    </tfoot>
+                  )}
                 </table>
               </div>
 
@@ -2517,6 +2609,30 @@ function ExchangePlansPage() {
                 description="Resumen integrado a partir de la guía que usás actualmente."
               />
 
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={openExchangeGuide}
+                  className="inline-flex h-10 items-center gap-2 rounded-md bg-[#6F7F57] px-4 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Abrir guía visual
+                </button>
+
+                <button
+                  type="button"
+                  onClick={shareExchangeGuideWhatsApp}
+                  className="inline-flex h-10 items-center gap-2 rounded-md border border-[#6F7F57]/30 bg-[#F0F4E8] px-4 text-sm font-semibold text-[#4F5F3D] transition hover:bg-[#E7EDDC]"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Compartir por WhatsApp
+                </button>
+              </div>
+
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                La guía visual es pública y no muestra datos de jugadoras, así que podés mandar el enlace directamente por WhatsApp.
+              </p>
+
               <div className="mt-5 grid gap-3 md:grid-cols-2">
                 {QUICK_GUIDE.map(
                   (item) => (
@@ -2580,141 +2696,105 @@ function ExchangePlansPage() {
       </div>
 
       {selectedPlayer && (
-        <div className="player-plan-print mx-auto mt-5 max-w-4xl rounded-xl border border-border bg-white p-7 text-slate-950 shadow-panel">
-          <div className="border-b-4 border-[#0B234A] pb-5">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#C8102E]">
+        <div className="player-plan-print mx-auto mt-5 max-w-4xl rounded-xl border border-border bg-[#FCFDF9] p-7 text-slate-950 shadow-panel">
+          <div className="rounded-2xl bg-gradient-to-r from-[#E8EEDC] via-[#F8F6EE] to-[#E7EEF7] px-6 py-5">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#6F7F57]">
               Plan alimentario
             </p>
 
-            <h1 className="mt-1 text-3xl font-bold uppercase">
-              {
-                selectedPlayer.name
-              }
+            <h1 className="mt-1 text-3xl font-bold uppercase text-[#17345F]">
+              {selectedPlayer.name}
             </h1>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Sistema de
-              intercambios ·{" "}
-              {fmtDate(
-                planDate,
-              )}
+            <p className="mt-1 text-sm text-slate-600">
+              Sistema de intercambios · {fmtDate(planDate)}
             </p>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {MEALS.map(
-              (meal) => (
-                <div
-                  key={
-                    meal.key
-                  }
-                  className="break-inside-avoid rounded-xl border border-slate-200 p-4"
-                >
-                  <h2 className="text-lg font-bold uppercase text-[#0B234A]">
-                    {
-                      meal.label
-                    }
-                  </h2>
+          <div className="plan-print-summary mt-4 rounded-xl border border-[#C9D5B7] bg-[#F0F4E8] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#6F7F57]">
+                  Resumen diario
+                </p>
+                <h2 className="mt-0.5 text-lg font-bold text-[#17345F]">
+                  Intercambios asignados
+                </h2>
+              </div>
+              <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-[#6F7F57]">
+                IC por grupo
+              </span>
+            </div>
 
-                  {meals[
-                    meal.key
-                  ].length ===
-                  0 ? (
-                    <p className="mt-2 text-sm text-slate-400">
-                      Sin indicaciones.
-                    </p>
-                  ) : (
-                    <ul className="mt-3 space-y-2">
-                      {meals[
-                        meal.key
-                      ].map(
-                        (
-                          line,
-                        ) => (
-                          <li
-                            key={
-                              line.id
-                            }
-                            className="text-sm"
-                          >
-                            <span className="font-semibold">
-                              {
-                                line.displayLabel
-                              }
-                              :
-                            </span>{" "}
-                            {formatNumber(
-                              line.amount,
-                              2,
-                            )}{" "}
-                            IC
-                            {line.note.trim()
-                              ? ` (${line.note.trim()})`
-                              : ""}
-                          </li>
-                        ),
-                      )}
-                    </ul>
-                  )}
+            <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2 text-sm sm:grid-cols-3">
+              {EXCHANGE_GROUPS.filter(
+                (group) => portions[group.key] > 0,
+              ).map((group) => (
+                <div
+                  key={group.key}
+                  className="flex justify-between gap-3 rounded-md bg-white/70 px-2.5 py-1.5"
+                >
+                  <span>{group.label}</span>
+                  <strong className="text-[#17345F]">
+                    {formatNumber(portions[group.key], 2)} IC
+                  </strong>
                 </div>
-              ),
-            )}
+              ))}
+            </div>
+          </div>
+
+          <div className="plan-print-grid mt-4 grid gap-3 md:grid-cols-2">
+            {MEALS.map((meal, index) => (
+              <div
+                key={meal.key}
+                className={`plan-print-card break-inside-avoid rounded-xl border p-3.5 ${
+                  index % 2 === 0
+                    ? "border-[#CFD9BF] bg-[#F7F9F2]"
+                    : "border-[#D5DEEA] bg-[#F5F8FC]"
+                }`}
+              >
+                <h2 className="text-base font-bold uppercase text-[#17345F]">
+                  {meal.label}
+                </h2>
+
+                {meals[meal.key].length === 0 ? (
+                  <p className="mt-2 text-sm text-slate-400">
+                    Sin indicaciones.
+                  </p>
+                ) : (
+                  <ul className="mt-2 space-y-1.5">
+                    {meals[meal.key].map((line) => (
+                      <li key={line.id} className="text-[13px] leading-5">
+                        <span className="font-semibold">
+                          {line.displayLabel}:
+                        </span>{" "}
+                        {formatNumber(line.amount, 2)} IC
+                        {line.note.trim()
+                          ? ` (${line.note.trim()})`
+                          : ""}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
           </div>
 
           {planNotes.trim() && (
-            <div className="mt-5 rounded-xl bg-slate-50 p-4">
-              <h2 className="text-sm font-bold uppercase text-[#0B234A]">
+            <div className="plan-print-card mt-4 rounded-xl border border-[#E7D6C7] bg-[#FFF8F1] p-4">
+              <h2 className="text-sm font-bold uppercase text-[#17345F]">
                 Indicaciones
               </h2>
 
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6">
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-5">
                 {planNotes}
               </p>
             </div>
           )}
 
-          <div className="mt-6 rounded-xl border border-slate-200 p-4">
-            <h2 className="text-sm font-bold uppercase text-[#0B234A]">
-              Resumen de intercambios
-            </h2>
-
-            <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2 text-sm sm:grid-cols-3">
-              {EXCHANGE_GROUPS.filter(
-                (group) =>
-                  portions[
-                    group.key
-                  ] > 0,
-              ).map(
-                (group) => (
-                  <div
-                    key={
-                      group.key
-                    }
-                    className="flex justify-between gap-3 border-b border-slate-100 pb-1"
-                  >
-                    <span>
-                      {
-                        group.label
-                      }
-                    </span>
-                    <strong>
-                      {formatNumber(
-                        portions[
-                          group.key
-                        ],
-                        2,
-                      )}{" "}
-                      IC
-                    </strong>
-                  </div>
-                ),
-              )}
-            </div>
-          </div>
-
-          <div className="mt-8 border-t border-slate-200 pt-4 text-center text-xs text-slate-500">
-            Plan nutricional ·
-            Sistema de intercambios
+          <div className="mt-5 flex items-center justify-between border-t border-slate-200 pt-3 text-[11px] text-slate-500">
+            <span>Plan nutricional · Sistema de intercambios</span>
+            <span>Barrozo Luna · Nutrición</span>
           </div>
         </div>
       )}
