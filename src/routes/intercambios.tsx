@@ -32,6 +32,8 @@ import {
   fmtDate,
   todayISO,
 } from "@/lib/calc";
+import { upsertPlayer } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import {
   useControls,
   useFullAnthropometries,
@@ -656,154 +658,6 @@ function getGroup(
   )!;
 }
 
-
-/**
- * Copia los estilos calculados del plan a un clon para poder
- * convertirlo en una imagen sin perder el diseño de la vista final.
- */
-function copyComputedStyles(
-  source: Element,
-  target: Element,
-) {
-  const computed = window.getComputedStyle(source);
-  const styled = target as HTMLElement;
-
-  for (const property of Array.from(computed)) {
-    styled.style.setProperty(
-      property,
-      computed.getPropertyValue(property),
-      computed.getPropertyPriority(property),
-    );
-  }
-
-  const sourceChildren = Array.from(source.children);
-  const targetChildren = Array.from(target.children);
-
-  for (let index = 0; index < sourceChildren.length; index += 1) {
-    const sourceChild = sourceChildren[index];
-    const targetChild = targetChildren[index];
-
-    if (sourceChild && targetChild) {
-      copyComputedStyles(sourceChild, targetChild);
-    }
-  }
-}
-
-async function planElementToPngBlob(
-  element: HTMLElement,
-): Promise<Blob> {
-  if ("fonts" in document) {
-    try {
-      await document.fonts.ready;
-    } catch {
-      // Si una fuente tarda o falla, seguimos con las disponibles.
-    }
-  }
-
-  await new Promise<void>((resolve) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => resolve());
-    });
-  });
-
-  const width = Math.max(
-    760,
-    Math.ceil(element.getBoundingClientRect().width),
-  );
-
-  const clone = element.cloneNode(true) as HTMLElement;
-  copyComputedStyles(element, clone);
-
-  clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-  clone.style.width = `${width}px`;
-  clone.style.maxWidth = "none";
-  clone.style.margin = "0";
-  clone.style.boxSizing = "border-box";
-  clone.style.background = "#FCFDF9";
-
-  const host = document.createElement("div");
-  host.style.position = "fixed";
-  host.style.left = "-100000px";
-  host.style.top = "0";
-  host.style.width = `${width}px`;
-  host.style.pointerEvents = "none";
-  host.style.zIndex = "-1";
-  host.appendChild(clone);
-  document.body.appendChild(host);
-
-  try {
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve());
-    });
-
-    const height = Math.max(
-      1,
-      Math.ceil(clone.scrollHeight),
-      Math.ceil(clone.getBoundingClientRect().height),
-    );
-
-    const serialized = new XMLSerializer().serializeToString(clone);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="100%" height="100%">${serialized}</foreignObject></svg>`;
-    const svgBlob = new Blob([svg], {
-      type: "image/svg+xml;charset=utf-8",
-    });
-
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === "string") {
-          resolve(reader.result);
-        } else {
-          reject(new Error("No se pudo preparar la imagen del plan."));
-        }
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(svgBlob);
-    });
-
-    const image = new Image();
-    await new Promise<void>((resolve, reject) => {
-      image.onload = () => resolve();
-      image.onerror = () => reject(
-        new Error("No se pudo renderizar la vista final del plan."),
-      );
-      image.src = dataUrl;
-    });
-
-    // Escala 2x para que al compartir por WhatsApp se vea nítido.
-    const scale = 2;
-    const canvas = document.createElement("canvas");
-    canvas.width = width * scale;
-    canvas.height = height * scale;
-
-    const context = canvas.getContext("2d", { alpha: false });
-    if (!context) {
-      throw new Error("No se pudo generar la imagen del plan.");
-    }
-
-    context.fillStyle = "#FCFDF9";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.scale(scale, scale);
-    context.drawImage(image, 0, 0, width, height);
-
-    return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            resolve(blob);
-          } else {
-            reject(new Error("No se pudo crear el archivo del plan."));
-          }
-        },
-        "image/png",
-        1,
-      );
-    });
-  } finally {
-    host.remove();
-  }
-}
-
 function ExchangePlansPage() {
   const players =
     usePlayers();
@@ -904,11 +758,114 @@ function ExchangePlansPage() {
     setSaveMessage,
   ] = useState("");
 
+  /*
+   * Los planes se conservan también en localStorage como respaldo,
+   * pero Supabase pasa a ser la fuente compartida entre dispositivos.
+   * Al entrar, mezclamos ambas copias y gana siempre la más reciente.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncSavedPlans() {
+      if (!supabase) return;
+
+      try {
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.getSession();
+
+        if (sessionError) throw sessionError;
+
+        const user = sessionData.session?.user;
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from("exchange_plans")
+          .select("player_id, plan_date, content, created_at, updated_at")
+          .order("plan_date", { ascending: false });
+
+        if (error) throw error;
+
+        const cloudPlans: SavedExchangePlan[] = (data ?? [])
+          .map((row: any) => {
+            const content = row?.content;
+            if (!content || typeof content !== "object") return null;
+
+            const playerId = Number(row.player_id ?? content.playerId);
+            const planDate = String(row.plan_date ?? content.planDate ?? "");
+            if (!Number.isFinite(playerId) || !planDate) return null;
+
+            return {
+              ...content,
+              key: savedPlanKey(playerId, planDate),
+              playerId,
+              planDate,
+              createdAt: content.createdAt ?? row.created_at ?? new Date().toISOString(),
+              updatedAt: content.updatedAt ?? row.updated_at ?? new Date().toISOString(),
+            } as SavedExchangePlan;
+          })
+          .filter((plan: SavedExchangePlan | null): plan is SavedExchangePlan => Boolean(plan));
+
+        const localPlans = readSavedPlans();
+        const merged = new Map<string, SavedExchangePlan>();
+
+        for (const plan of cloudPlans) merged.set(plan.key, plan);
+
+        const localPlansToUpload: SavedExchangePlan[] = [];
+
+        for (const plan of localPlans) {
+          const cloud = merged.get(plan.key);
+          const localIsNewer =
+            !cloud ||
+            new Date(plan.updatedAt).getTime() > new Date(cloud.updatedAt).getTime();
+
+          if (localIsNewer) {
+            merged.set(plan.key, plan);
+            localPlansToUpload.push(plan);
+          }
+        }
+
+        if (localPlansToUpload.length > 0) {
+          const rows = localPlansToUpload.map((plan) => ({
+            owner_id: user.id,
+            player_id: plan.playerId,
+            plan_date: plan.planDate,
+            content: plan,
+            created_at: plan.createdAt,
+            updated_at: plan.updatedAt,
+          }));
+
+          const { error: uploadError } = await supabase
+            .from("exchange_plans")
+            .upsert(rows, { onConflict: "owner_id,player_id,plan_date" });
+
+          if (uploadError) throw uploadError;
+        }
+
+        const next = Array.from(merged.values());
+        writeSavedPlans(next);
+
+        if (!cancelled) {
+          setSavedPlans(next);
+        }
+      } catch (error) {
+        console.error("No se pudieron sincronizar los planes alimentarios", error);
+        if (!cancelled) {
+          setSaveMessage(
+            "No se pudo sincronizar con Supabase. Se mantiene la copia guardada en este dispositivo.",
+          );
+        }
+      }
+    }
+
+    void syncSavedPlans();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const lastLoadedPlanKeyRef =
     useRef<string | null>(null);
-
-  const planPrintRef =
-    useRef<HTMLDivElement | null>(null);
 
   const controls =
     useControls(
@@ -1103,17 +1060,15 @@ function ExchangePlansPage() {
     ]);
 
   /*
-   * La ficha de la jugadora es la fuente principal de la fecha.
-   * Si todavía no tiene fecha manual, se puede mostrar la fecha de
-   * una antropometría completa DE ESA MISMA JUGADORA, pero nunca
-   * se escribe automáticamente en la ficha. Esto evita que una fecha
-   * de otra jugadora (por ejemplo 19/02/2002) se copie por error.
+   * Si la ficha de la jugadora no tiene
+   * fecha de nacimiento, usamos la más
+   * reciente cargada en una antropometría
+   * completa.
    */
   const fallbackBirthDate =
     useMemo(() => {
       if (
-        selectedPlayer?.birthDate ||
-        selectedPlayerId == null
+        selectedPlayer?.birthDate
       ) {
         return null;
       }
@@ -1123,13 +1078,8 @@ function ExchangePlansPage() {
         fullAnthropometries ?? []
       ) {
         if (
-          anthropometry.playerId !==
-          selectedPlayerId
+          anthropometry.birthDate
         ) {
-          continue;
-        }
-
-        if (anthropometry.birthDate) {
           return anthropometry.birthDate;
         }
       }
@@ -1137,13 +1087,55 @@ function ExchangePlansPage() {
       return null;
     }, [
       selectedPlayer?.birthDate,
-      selectedPlayerId,
       fullAnthropometries,
     ]);
 
   const effectiveBirthDate =
     selectedPlayer?.birthDate ||
     fallbackBirthDate;
+
+  /*
+   * Persistimos el respaldo una sola vez
+   * por jugadora, sin pisar un valor
+   * existente.
+   */
+  const persistedBirthDateFor =
+    useRef<number | null>(null);
+
+  useEffect(() => {
+    if (
+      !selectedPlayer ||selectedPlayer.id == null ||
+      selectedPlayer.birthDate ||
+      !fallbackBirthDate
+    ) {
+      return;
+    }
+
+    if (
+      persistedBirthDateFor.current ===
+      selectedPlayer.id
+    ) {
+      return;
+    }
+
+    persistedBirthDateFor.current =
+      selectedPlayer.id;
+
+    void upsertPlayer({
+      ...selectedPlayer,
+      birthDate: fallbackBirthDate,
+    }).catch((error) => {
+      persistedBirthDateFor.current =
+        null;
+      console.warn(
+        "No se pudo guardar la fecha de nacimiento en la ficha.",
+        error,
+      );
+    });
+  }, [
+    selectedPlayer,
+    fallbackBirthDate,
+  ]);
 
   const calculatedAge =
     calculateAge(
@@ -1544,7 +1536,7 @@ function ExchangePlansPage() {
       return result;
     }, [meals]);
 
-  function saveCurrentPlan() {
+  async function saveCurrentPlan() {
     if (
       !selectedPlayer ||
       selectedPlayer.id == null
@@ -1594,13 +1586,58 @@ function ExchangePlansPage() {
       saved,
     ];
 
+    /* Primero dejamos una copia local para no perder nada. */
     writeSavedPlans(next);
     setSavedPlans(next);
-    setSaveMessage(
-      existing
-        ? "Plan actualizado correctamente ✓"
-        : "Plan guardado correctamente ✓",
-    );
+
+    if (!supabase) {
+      setSaveMessage(
+        "Plan guardado en este dispositivo. Supabase no está configurado.",
+      );
+      return;
+    }
+
+    try {
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
+
+      if (sessionError) throw sessionError;
+
+      const user = sessionData.session?.user;
+      if (!user) {
+        setSaveMessage(
+          "Plan guardado en este dispositivo. Ingresá al panel para sincronizarlo con Supabase.",
+        );
+        return;
+      }
+
+      const { error } = await supabase
+        .from("exchange_plans")
+        .upsert(
+          {
+            owner_id: user.id,
+            player_id: saved.playerId,
+            plan_date: saved.planDate,
+            content: saved,
+            created_at: saved.createdAt,
+            updated_at: saved.updatedAt,
+          },
+          { onConflict: "owner_id,player_id,plan_date" },
+        );
+
+      if (error) throw error;
+
+      setSaveMessage(
+        existing
+          ? "Plan actualizado y sincronizado ✓"
+          : "Plan guardado y sincronizado ✓",
+      );
+    } catch (error) {
+      console.error("No se pudo guardar el plan en Supabase", error);
+      setSaveMessage(
+        "El plan quedó guardado en este dispositivo, pero no se pudo sincronizar con Supabase.",
+      );
+    }
   }
 
   function openSavedPlan(
@@ -1611,7 +1648,7 @@ function ExchangePlansPage() {
     setPlanDate(plan.planDate);
   }
 
-  function deleteSavedPlan(
+  async function deleteSavedPlan(
     plan: SavedExchangePlan,
   ) {
     const accepted = window.confirm(
@@ -1622,6 +1659,33 @@ function ExchangePlansPage() {
 
     if (!accepted) {
       return;
+    }
+
+    if (supabase) {
+      try {
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.getSession();
+
+        if (sessionError) throw sessionError;
+
+        const user = sessionData.session?.user;
+
+        if (user) {
+          const { error } = await supabase
+            .from("exchange_plans")
+            .delete()
+            .eq("player_id", plan.playerId)
+            .eq("plan_date", plan.planDate);
+
+          if (error) throw error;
+        }
+      } catch (error) {
+        console.error("No se pudo eliminar el plan de Supabase", error);
+        setSaveMessage(
+          "No se pudo eliminar el plan de Supabase. No se hicieron cambios para evitar inconsistencias.",
+        );
+        return;
+      }
     }
 
     const next = savedPlans.filter(
@@ -1835,89 +1899,6 @@ function ExchangePlansPage() {
 
   function printPlan() {
     window.print();
-  }
-
-  async function sharePlanWhatsApp() {
-    if (!selectedPlayer || !planPrintRef.current) {
-      return;
-    }
-
-    try {
-      setSaveMessage("Preparando plan para compartir...");
-
-      const blob = await planElementToPngBlob(
-        planPrintRef.current,
-      );
-
-      const safeName = selectedPlayer.name
-        .trim()
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-
-      const fileName =
-        `plan-alimentario-${safeName || "jugadora"}-${planDate}.png`;
-      const file = new File([blob], fileName, {
-        type: "image/png",
-      });
-
-      const shareData = {
-        title: "Plan alimentario",
-        text: `Plan alimentario de ${selectedPlayer.name}`,
-        files: [file],
-      };
-
-      if (
-        typeof navigator.share === "function" &&
-        (!navigator.canShare || navigator.canShare(shareData))
-      ) {
-        await navigator.share(shareData);
-        setSaveMessage("Plan listo para compartir ✓");
-        return;
-      }
-
-      // Respaldo para PC/navegadores que no permiten compartir archivos.
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-      const message =
-        `Plan alimentario de ${selectedPlayer.name}. ` +
-        "La imagen del plan se descargó en el dispositivo para adjuntarla.";
-
-      window.open(
-        `https://wa.me/?text=${encodeURIComponent(message)}`,
-        "_blank",
-        "noopener,noreferrer",
-      );
-
-      setSaveMessage(
-        "Se descargó el plan. Adjuntalo en WhatsApp.",
-      );
-    } catch (error) {
-      if (
-        error instanceof DOMException &&
-        error.name === "AbortError"
-      ) {
-        setSaveMessage("");
-        return;
-      }
-
-      console.error(
-        "No se pudo compartir el plan:",
-        error,
-      );
-      setSaveMessage(
-        "No se pudo preparar el plan para compartir.",
-      );
-    }
   }
 
   function openExchangeGuide() {
@@ -2369,7 +2350,7 @@ function ExchangePlansPage() {
               )}
 
               <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
-                <strong>Importante:</strong> esta versión guarda los planes en este dispositivo y no se pierden al actualizar la página. La sincronización entre PC y celular la conectamos a Supabase en el siguiente paso.
+                <strong>Sincronización activa:</strong> los planes se guardan en Supabase para que puedas verlos desde PC o celular. Además se conserva una copia local de respaldo en este dispositivo.
               </div>
             </section>
 
@@ -3309,29 +3290,16 @@ function ExchangePlansPage() {
                   </p>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={
-                      sharePlanWhatsApp
-                    }
-                    className="inline-flex h-10 items-center gap-2 rounded-md bg-[#25D366] px-4 text-sm font-semibold text-white transition hover:opacity-90"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    Compartir por WhatsApp
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={
-                      printPlan
-                    }
-                    className="inline-flex h-10 items-center gap-2 rounded-md bg-[#0B234A] px-4 text-sm font-semibold text-white hover:opacity-90"
-                  >
-                    <Printer className="h-4 w-4" />
-                    Imprimir / PDF
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={
+                    printPlan
+                  }
+                  className="inline-flex h-10 items-center gap-2 rounded-md bg-[#0B234A] px-4 text-sm font-semibold text-white hover:opacity-90"
+                >
+                  <Printer className="h-4 w-4" />
+                  Imprimir / PDF
+                </button>
               </div>
             </section>
           </>
@@ -3339,10 +3307,7 @@ function ExchangePlansPage() {
       </div>
 
       {selectedPlayer && (
-        <div
-          ref={planPrintRef}
-          className="player-plan-print mx-auto mt-5 max-w-4xl rounded-xl border border-border bg-[#FCFDF9] p-7 text-slate-950 shadow-panel"
-        >
+        <div className="player-plan-print mx-auto mt-5 max-w-4xl rounded-xl border border-border bg-[#FCFDF9] p-7 text-slate-950 shadow-panel">
           <div className="rounded-2xl bg-gradient-to-r from-[#E8EEDC] via-[#F8F6EE] to-[#E7EEF7] px-6 py-5">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#6F7F57]">
               Plan alimentario
