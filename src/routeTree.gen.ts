@@ -19,6 +19,7 @@ import { Route as ComponentesPresentacionRouteImport } from './routes/componente
 import { Route as ControlRouteImport } from './routes/control'
 import { Route as DatosRouteImport } from './routes/datos'
 import { Route as EvolucionRouteImport } from './routes/evolucion'
+import { Route as GuiaIntercambiosRouteImport } from './routes/guia-intercambios'
 import { Route as HidratacionRouteImport } from './routes/hidratacion'
 import { Route as HistorialRouteImport } from './routes/historial'
 import { Route as InformesRouteImport } from './routes/informes'
@@ -79,6 +80,11 @@ const DatosRoute = DatosRouteImport.update({
 const EvolucionRoute = EvolucionRouteImport.update({
   id: '/evolucion',
   path: '/evolucion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuiaIntercambiosRoute = GuiaIntercambiosRouteImport.update({
+  id: '/guia-intercambios',
+  path: '/guia-intercambios',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HidratacionRoute = HidratacionRouteImport.update({
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/control': typeof ControlRoute
   '/datos': typeof DatosRoute
   '/evolucion': typeof EvolucionRoute
+  '/guia-intercambios': typeof GuiaIntercambiosRoute
   '/hidratacion': typeof HidratacionRoute
   '/historial': typeof HistorialRoute
   '/informes': typeof InformesRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/control': typeof ControlRoute
   '/datos': typeof DatosRoute
   '/evolucion': typeof EvolucionRoute
+  '/guia-intercambios': typeof GuiaIntercambiosRoute
   '/hidratacion': typeof HidratacionRoute
   '/historial': typeof HistorialRoute
   '/informes': typeof InformesRoute
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   '/control': typeof ControlRoute
   '/datos': typeof DatosRoute
   '/evolucion': typeof EvolucionRoute
+  '/guia-intercambios': typeof GuiaIntercambiosRoute
   '/hidratacion': typeof HidratacionRoute
   '/historial': typeof HistorialRoute
   '/informes': typeof InformesRoute
@@ -220,6 +229,7 @@ export interface FileRouteTypes {
     | '/control'
     | '/datos'
     | '/evolucion'
+    | '/guia-intercambios'
     | '/hidratacion'
     | '/historial'
     | '/informes'
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
     | '/control'
     | '/datos'
     | '/evolucion'
+    | '/guia-intercambios'
     | '/hidratacion'
     | '/historial'
     | '/informes'
@@ -266,6 +277,7 @@ export interface FileRouteTypes {
     | '/control'
     | '/datos'
     | '/evolucion'
+    | '/guia-intercambios'
     | '/hidratacion'
     | '/historial'
     | '/informes'
@@ -290,6 +302,7 @@ export interface RootRouteChildren {
   ControlRoute: typeof ControlRoute
   DatosRoute: typeof DatosRoute
   EvolucionRoute: typeof EvolucionRoute
+  GuiaIntercambiosRoute: typeof GuiaIntercambiosRoute
   HidratacionRoute: typeof HidratacionRoute
   HistorialRoute: typeof HistorialRoute
   InformesRoute: typeof InformesRoute
@@ -373,6 +386,13 @@ declare module '@tanstack/react-router' {
       path: '/evolucion'
       fullPath: '/evolucion'
       preLoaderRoute: typeof EvolucionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guia-intercambios': {
+      id: '/guia-intercambios'
+      path: '/guia-intercambios'
+      fullPath: '/guia-intercambios'
+      preLoaderRoute: typeof GuiaIntercambiosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/hidratacion': {
@@ -466,6 +486,7 @@ const rootRouteChildren: RootRouteChildren = {
   ControlRoute: ControlRoute,
   DatosRoute: DatosRoute,
   EvolucionRoute: EvolucionRoute,
+  GuiaIntercambiosRoute: GuiaIntercambiosRoute,
   HidratacionRoute: HidratacionRoute,
   HistorialRoute: HistorialRoute,
   InformesRoute: InformesRoute,
