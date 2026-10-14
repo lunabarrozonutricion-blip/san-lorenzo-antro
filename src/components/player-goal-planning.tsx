@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { metricValue } from "@/lib/calc";
 import { adiposeGoalEquivalence } from "@/lib/goal-equivalences";
-import { useFullAnthropometries, useObjectivePeriods } from "@/lib/hooks";
+import { useControls, useFullAnthropometries, useObjectivePeriods } from "@/lib/hooks";
 import { targetForPlayer } from "@/lib/objectives";
 import type { Player } from "@/lib/types";
 
@@ -18,6 +19,7 @@ const fmt = (n: number | null | undefined, unit = "") => n == null || !Number.is
 export function PlayerGoalPlanning({ player }: { player: Player }) {
  const playerId = player.id!;
  const evaluations = useFullAnthropometries(playerId);
+ const controls = useControls();
  const periods = useObjectivePeriods();
  const latest = evaluations?.[0];
  const masses = latest?.results?.weightAdjustedMassesKg;
@@ -34,6 +36,12 @@ export function PlayerGoalPlanning({ player }: { player: Player }) {
  const [loading, setLoading] = useState(false);
  const [saving, setSaving] = useState(false);
  const monthly = useMemo(() => (periods ?? []).map(period => ({ period, target: targetForPlayer(period, player) })).filter(x => x.target != null).sort((a,b) => b.period.key.localeCompare(a.period.key)), [periods, player]);
+ const activeMonth = new Date().toISOString().slice(0, 7);
+ const currentPeriod = (periods ?? []).find(period => period.key === activeMonth);
+ const currentMonthlyTarget = currentPeriod ? targetForPlayer(currentPeriod, player) : null;
+ const currentMonthlyControl = (controls ?? []).filter(control => control.playerId === playerId && control.date.startsWith(activeMonth) && metricValue(control, "sum6") != null).sort((a,b) => b.date.localeCompare(a.date))[0];
+ const currentMonthlySum6 = currentMonthlyControl ? metricValue(currentMonthlyControl, "sum6") : null;
+ const currentMonthlyDelta = currentMonthlySum6 != null && currentMonthlyTarget != null ? currentMonthlySum6 - currentMonthlyTarget : null;
  const muscleValue = number(muscleText);
  const adiposeValue = number(adiposeText);
  const targetMuscle = muscleValue == null ? null : muscleMode === "imo" ? (bone != null && bone > 0 ? muscleValue * bone : null) : muscleValue;
@@ -94,9 +102,9 @@ export function PlayerGoalPlanning({ player }: { player: Player }) {
  return <section className="mt-6 space-y-4 rounded-xl border border-border bg-card p-5 shadow-panel">
    <div><h2 className="text-xl font-bold">Planificación antropométrica</h2><p className="text-sm text-muted-foreground">Objetivos de largo plazo (5 componentes) y seguimiento mensual de Sum6. Son independientes.</p></div>
    <div className="rounded-lg border p-4">
-     <h3 className="font-semibold">Sum6 · objetivo mensual existente</h3>
-     <p className="mt-2 text-lg font-bold">{monthly[0]?.target == null ? "Sin objetivo mensual cargado" : fmt(monthly[0].target, " mm")}</p>
-     <p className="text-xs text-muted-foreground">{monthly[0]?.period.label ?? "Se carga desde Objetivos del plantel"}. No se duplica ni se modifica desde esta sección.</p>
+     <h3 className="font-semibold">Sum6 · objetivo mensual ({currentPeriod?.label ?? activeMonth})</h3>
+     <p className="mt-2 text-lg font-bold">{currentMonthlyTarget == null ? "Sin objetivo mensual cargado para este mes" : fmt(currentMonthlyTarget, " mm")}</p>
+     <p className="text-xs text-muted-foreground">Último control de este mes: {fmt(currentMonthlySum6, " mm")} · Diferencia con objetivo: {fmt(currentMonthlyDelta, " mm")}. Se carga desde Objetivos del plantel.</p>
    </div>
    <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showFinal} onChange={e => { const checked = e.target.checked; setShowFinal(checked); try { localStorage.setItem("sl-show-final-goal-individual", String(checked)); } catch { /* optional preference */ } }} />Mostrar meta final</label>
    {showFinal && <div className="rounded-lg border p-4"><h3 className="font-semibold">Meta final adiposa</h3><p className="text-xl font-bold">{fmt(latestGoal?.target_sum6_equivalent_mm, " mm")}</p><p className="text-xs text-muted-foreground">Equivalencia calculada a partir del objetivo adiposo de largo plazo, no es el objetivo mensual.</p></div>}
