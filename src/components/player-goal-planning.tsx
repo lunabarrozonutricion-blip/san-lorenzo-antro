@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { metricValue } from "@/lib/calc";
@@ -35,7 +35,6 @@ export function PlayerGoalPlanning({ player }: { player: Player }) {
  const [goals, setGoals] = useState<Goal[]>([]);
  const [loading, setLoading] = useState(false);
  const [saving, setSaving] = useState(false);
- const monthly = useMemo(() => (periods ?? []).map(period => ({ period, target: targetForPlayer(period, player) })).filter(x => x.target != null).sort((a,b) => b.period.key.localeCompare(a.period.key)), [periods, player]);
  const activeMonth = new Date().toISOString().slice(0, 7);
  const currentPeriod = (periods ?? []).find(period => period.key === activeMonth);
  const currentMonthlyTarget = currentPeriod ? targetForPlayer(currentPeriod, player) : null;
