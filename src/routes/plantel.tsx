@@ -863,15 +863,16 @@ function InformeGrupal() {
               : null;
 
 
-          const target =
-            objectiveTargetByPlayerId.get(
-              player.id,
-            ) ?? null;
-
+          const octoberControl = (controlsByPlayer.get(player.id) ?? []).find(control => control.date.startsWith("2026-10") && metricValue(control, "sum6") !== null);
+          const october = octoberControl ? metricValue(octoberControl, "sum6") : null;
+          const target = objectiveTargetByPlayerId.get(player.id) ?? null;
+          const latestValue = october ?? september;
 
           return {
             player,
             ...history,
+            october,
+            octoberDate: octoberControl?.date ?? null,
             september,
             septemberDate:
               septemberControl?.date ??
@@ -885,14 +886,7 @@ function InformeGrupal() {
                     history.agosto,
                   )
                 : null,
-            vsTarget:
-              september !== null &&
-              target !== null
-                ? diff(
-                    september,
-                    target,
-                  )
-                : null,
+            vsTarget: latestValue !== null && target !== null ? diff(latestValue, target) : null,
           };
         },
       ).filter(Boolean) as Array<{
@@ -905,6 +899,8 @@ function InformeGrupal() {
         julio: number | null;
         agosto: number | null;
         september: number | null;
+        october: number | null;
+        octoberDate: string | null;
         septemberDate:
           | string
           | null;
@@ -2287,7 +2283,7 @@ function InformeGrupal() {
               <div className="mt-5 space-y-2">
                 <PrintOption
                   label="Comparativa grupal"
-                  description="Tabla Inicio–Septiembre + porcentajes por rango"
+                  description="Tabla Inicio–Octubre + objetivos mensuales"
                   checked={
                     printSections.groupSummary
                   }
@@ -2461,10 +2457,8 @@ function InformeGrupal() {
 
           <p className="mt-1 text-sm text-muted-foreground">
             Inicio de temporada
-            a septiembre 2026 ·
-            Septiembre toma el
-            último control con
-            Sum6 cargado.
+            a octubre 2026 ·
+            Cada mes muestra el último control con Sum6 cargado.
           </p>
 
 
@@ -2521,7 +2515,7 @@ function InformeGrupal() {
 
 
                 <th className="px-3 py-3 text-right font-semibold">
-                  Δ vs Agosto
+                  Octubre
                 </th>
 
 
@@ -2609,16 +2603,7 @@ function InformeGrupal() {
                     />
 
 
-                    <td
-                      className={`numeric whitespace-nowrap px-3 py-2.5 text-right font-semibold ${augustDeltaClass(
-                        row.vsAugust,
-                      )}`}
-                    >
-                      {fmtDiff(
-                        row.vsAugust,
-                        1,
-                      )}
-                    </td>
+                    <BandCell value={row.october} sub={row.octoberDate ? fmtDate(row.octoberDate) : undefined} emphasize />
 
 
                     {showObjectives && (
