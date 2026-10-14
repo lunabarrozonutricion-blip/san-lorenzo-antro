@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
 import { PlayerNav } from "@/components/player-nav";
+import { PlayerGoalPlanning } from "@/components/player-goal-planning";
 import {
   fmt,
   fmtDate,
@@ -267,6 +268,7 @@ function ObjetivosJugadora() {
           </div>
         )}
       </div>
+      <PlayerGoalPlanning player={player} />
     </AppLayout>
   );
 }
