@@ -11,6 +11,7 @@ import { useMemo } from "react";
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
 import { PlayerNav } from "@/components/player-nav";
+import { PlayerGoalPlanning } from "@/components/player-goal-planning";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -1044,6 +1045,7 @@ function PresentacionAntropometrica() {
           )}
         </section>
       </div>
+      <div className="no-print"><PlayerGoalPlanning player={player} /></div>
     </AppLayout>
   );
 }
