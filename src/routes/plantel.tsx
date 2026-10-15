@@ -552,6 +552,9 @@ function InformeGrupal() {
     }, [objectivePeriods]);
 
 
+  const septemberObjectivePeriod = objectivePeriods?.find(period => period.key === "2026-09");
+  const septemberTargets = new Map((septemberObjectivePeriod?.targets ?? []).map(target => [target.playerId, target.target]));
+
   const objectiveTargetByPlayerId =
     useMemo(() => {
       const map = new Map<
@@ -619,6 +622,9 @@ function InformeGrupal() {
     setShowObjectives,
   ] = useState(true);
 
+
+  const [showSeptemberObjectiveDelta, setShowSeptemberObjectiveDelta] = useState(false);
+  const [showOctoberChange, setShowOctoberChange] = useState(true);
 
   const [
     showCharts,
@@ -866,7 +872,7 @@ function InformeGrupal() {
           const octoberControl = (controlsByPlayer.get(player.id) ?? []).find(control => control.date.startsWith("2026-10") && metricValue(control, "sum6") !== null);
           const october = octoberControl ? metricValue(octoberControl, "sum6") : null;
           const target = objectiveTargetByPlayerId.get(player.id) ?? null;
-          const latestValue = october ?? september;
+          const septemberTarget = septemberTargets.get(player.id) ?? null;
 
           return {
             player,
@@ -886,7 +892,9 @@ function InformeGrupal() {
                     history.agosto,
                   )
                 : null,
-            vsTarget: latestValue !== null && target !== null ? diff(latestValue, target) : null,
+            vsTarget: october !== null && target !== null ? diff(october, target) : null,
+            vsSeptemberTarget: september !== null && septemberTarget !== null ? diff(september, septemberTarget) : null,
+            octoberChange: october !== null && september !== null ? diff(october, september) : null,
           };
         },
       ).filter(Boolean) as Array<{
@@ -907,6 +915,8 @@ function InformeGrupal() {
         target: number | null;
         vsAugust: number | null;
         vsTarget: number | null;
+        vsSeptemberTarget: number | null;
+        octoberChange: number | null;
       }>;
     }, [
       players,
@@ -914,6 +924,7 @@ function InformeGrupal() {
       selectedPlayerIds,
       summaryOnlySelected,
       objectiveTargetByPlayerId,
+      septemberObjectivePeriod,
     ]);
 
 
@@ -2475,6 +2486,11 @@ function InformeGrupal() {
         </div>
 
 
+        <div className="flex flex-wrap gap-4 border-b border-border px-5 py-3 text-sm">
+          <label className="flex items-center gap-2"><input type="checkbox" checked={showOctoberChange} onChange={event => setShowOctoberChange(event.target.checked)} /> Mostrar Δ septiembre → octubre</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={showSeptemberObjectiveDelta} onChange={event => setShowSeptemberObjectiveDelta(event.target.checked)} /> Mostrar Δ vs objetivo septiembre</label>
+          <span className="text-muted-foreground">Δ vs objetivo octubre: solo con medición de octubre</span>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1050px] text-sm">
             <thead className="bg-muted/80">
@@ -2519,6 +2535,8 @@ function InformeGrupal() {
                 </th>
 
 
+                {showOctoberChange && <th className="px-3 py-3 text-right font-semibold">Δ septiembre → octubre</th>}
+                {showSeptemberObjectiveDelta && <th className="px-3 py-3 text-right font-semibold">Δ vs objetivo septiembre</th>}
                 {showObjectives && (
                   <>
                     <th className="px-3 py-3 text-right font-semibold">
@@ -2606,6 +2624,8 @@ function InformeGrupal() {
                     <BandCell value={row.october} sub={row.octoberDate ? fmtDate(row.octoberDate) : undefined} emphasize />
 
 
+                    {showOctoberChange && <td className="numeric whitespace-nowrap px-3 py-2.5 text-right font-semibold">{fmtDiff(row.octoberChange, 1)}</td>}
+                    {showSeptemberObjectiveDelta && <td className="numeric whitespace-nowrap px-3 py-2.5 text-right font-semibold">{fmtDiff(row.vsSeptemberTarget, 1)}</td>}
                     {showObjectives && (
                       <>
                         <td className="numeric whitespace-nowrap px-3 py-2.5 text-right">
