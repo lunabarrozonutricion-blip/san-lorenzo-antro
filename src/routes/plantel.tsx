@@ -581,6 +581,12 @@ function InformeGrupal() {
     ]);
 
 
+  const targetForControl = (playerId: number | undefined, date: string): number | null => {
+    if (playerId == null) return null;
+    const period = objectivePeriods?.find(item => item.key === date.slice(0, 7));
+    return period?.targets.find(item => item.playerId === playerId)?.target ?? null;
+  };
+
   const objectivePeriodLabel =
     latestObjectivePeriod?.label ??
     "Sin período";
@@ -2992,6 +2998,12 @@ function InformeGrupal() {
                       );
                     },
                   )}
+                  {showObjectives && selectedMetrics.includes("sum6") && (
+                    <>
+                      <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">Objetivo Sum6 (mm)</th>
+                      <th className="whitespace-nowrap px-4 py-3 text-right font-semibold">Δ vs objetivo (mm)</th>
+                    </>
+                  )}
                 </tr>
               </thead>
 
@@ -3124,6 +3136,15 @@ function InformeGrupal() {
                                 );
                               },
                             )}
+                            {showObjectives && selectedMetrics.includes("sum6") && (() => {
+                              const target = targetForControl(group.player.id, control.date);
+                              const sum6 = metricValue(control, "sum6");
+                              const delta = target != null && sum6 != null ? diff(sum6, target) : null;
+                              return <>
+                                <td className="numeric whitespace-nowrap px-4 py-3 text-right">{fmt(target, 1)}</td>
+                                <td className={`numeric whitespace-nowrap px-4 py-3 text-right font-semibold ${delta == null ? "text-muted-foreground" : delta <= 0 ? "text-emerald-700" : "text-rose-700"}`}>{fmtDiff(delta, 1)}</td>
+                              </>;
+                            })()}
                           </tr>
                         );
                       },
