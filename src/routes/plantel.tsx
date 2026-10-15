@@ -630,7 +630,7 @@ function InformeGrupal() {
 
 
   const [showSeptemberObjectiveDelta, setShowSeptemberObjectiveDelta] = useState(false);
-  const [showOctoberChange, setShowOctoberChange] = useState(true);
+  const [showOctoberChange, setShowOctoberChange] = useState(false);
 
   const [
     showCharts,
@@ -878,7 +878,7 @@ function InformeGrupal() {
           const octoberControl = (controlsByPlayer.get(player.id) ?? []).find(control => control.date.startsWith("2026-10") && metricValue(control, "sum6") !== null);
           const october = octoberControl ? metricValue(octoberControl, "sum6") : null;
           const target = objectiveTargetByPlayerId.get(player.id) ?? null;
-          const septemberTarget = septemberTargets.get(player.id) ?? null;
+          const septemberTarget = target;
 
           return {
             player,
@@ -2494,7 +2494,7 @@ function InformeGrupal() {
 
         <div className="flex flex-wrap gap-4 border-b border-border px-5 py-3 text-sm">
           <label className="flex items-center gap-2"><input type="checkbox" checked={showOctoberChange} onChange={event => setShowOctoberChange(event.target.checked)} /> Mostrar Δ septiembre → octubre</label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={showSeptemberObjectiveDelta} onChange={event => setShowSeptemberObjectiveDelta(event.target.checked)} /> Mostrar Δ vs objetivo septiembre</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={showSeptemberObjectiveDelta} onChange={event => setShowSeptemberObjectiveDelta(event.target.checked)} /> Mostrar Δ septiembre vs objetivo octubre</label>
           <span className="text-muted-foreground">Δ vs objetivo octubre: solo con medición de octubre</span>
         </div>
         <div className="overflow-x-auto">
@@ -2542,7 +2542,7 @@ function InformeGrupal() {
 
 
                 {showOctoberChange && <th className="px-3 py-3 text-right font-semibold">Δ septiembre → octubre</th>}
-                {showSeptemberObjectiveDelta && <th className="px-3 py-3 text-right font-semibold">Δ vs objetivo septiembre</th>}
+                {showSeptemberObjectiveDelta && <th className="px-3 py-3 text-right font-semibold">Δ septiembre vs objetivo octubre</th>}
                 {showObjectives && (
                   <>
                     <th className="px-3 py-3 text-right font-semibold">
