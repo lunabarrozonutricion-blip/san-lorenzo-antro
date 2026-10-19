@@ -5,6 +5,7 @@ import { ClientOnly } from "@/components/client-only";
 import { metricValue } from "@/lib/calc";
 import { useControls, useObjectivePeriods, usePlayers } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/db";
 
 export const Route = createFileRoute("/multas")({
   component: () => <ClientOnly><Multas /></ClientOnly>,
@@ -29,17 +30,25 @@ function Multas() {
   useEffect(() => {
     let active = true;
     async function load() {
-      if (!supabase) { setMessage("Se requiere conexión con Supabase para guardar excepciones."); return; }
+      const local = await db().fineAdjustments.where("period_key").equals(MONTH).toArray();
+      if (!active) return;
+      setAdjustments(local.map(a => ({ ...a, owner_id: "" })));
+      setDrafts(Object.fromEntries(local.map(a => [a.player_id, { exempt: a.exempt, manual: a.manual_amount == null ? "" : String(a.manual_amount), note: a.note }])));
+      if (!supabase) return;
       const { data: { user } } = await supabase.auth.getUser();
       if (!active) return;
-      if (!user) { setMessage("Iniciá sesión para guardar las multas."); return; }
+      if (!user) return;
       setOwnerId(user.id);
       const { data, error } = await supabase.from("player_fine_adjustments").select("*").eq("owner_id", user.id).eq("period_key", MONTH);
       if (!active) return;
-      if (error) { setMessage("No se pudieron recuperar las excepciones: " + error.message); return; }
+      if (error) return;
       const values = (data ?? []) as Adjustment[];
-      setAdjustments(values);
-      setDrafts(Object.fromEntries(values.map(a => [a.player_id, { exempt: a.exempt, manual: a.manual_amount == null ? "" : String(a.manual_amount), note: a.note }])));
+      const missing = values.filter(a => !local.some(l => l.player_id === a.player_id));
+      if (missing.length) {
+        await db().fineAdjustments.bulkPut(missing.map(a => ({ key: `${MONTH}:${a.player_id}`, period_key: MONTH, player_id: a.player_id, exempt: a.exempt, manual_amount: a.manual_amount, note: a.note, updated_at: new Date().toISOString() })));
+        setAdjustments(current => [...current, ...missing]);
+        setDrafts(current => ({...Object.fromEntries(missing.map(a => [a.player_id, { exempt: a.exempt, manual: a.manual_amount == null ? "" : String(a.manual_amount), note: a.note }])), ...current}));
+      }
     }
     void load();
     return () => { active = false; };
@@ -64,16 +73,24 @@ function Multas() {
   const visibleRows = onlyPaying ? rows.filter(row => row.payable != null && row.payable > 0) : rows;
   const update = (id: number, patch: Partial<Draft>, previous: Draft) => setDrafts(current => ({ ...current, [id]: { ...previous, ...patch } }));
   async function save(id: number, draft: Draft) {
-    if (!supabase || !ownerId) { setMessage("Iniciá sesión para guardar."); return; }
     const amount = draft.manual.trim() === "" ? null : Number(draft.manual);
     if (amount != null && (!Number.isFinite(amount) || amount < 0)) { setMessage("El importe manual debe ser cero o positivo."); return; }
     setSaving(id); setMessage("");
-    const payload = { owner_id: ownerId, period_key: MONTH, player_id: id, exempt: draft.exempt, manual_amount: amount, note: draft.note, updated_at: new Date().toISOString() };
-    const { data, error } = await supabase.from("player_fine_adjustments").upsert(payload, { onConflict: "owner_id,period_key,player_id" }).select().single();
-    setSaving(null);
-    if (error) { setMessage("No se guardó la excepción: " + error.message); return; }
-    setAdjustments(current => [...current.filter(a => a.player_id !== id), data as Adjustment]);
-    setMessage("Cambio guardado correctamente.");
+    try {
+      const local = { key: `${MONTH}:${id}`, period_key: MONTH, player_id: id, exempt: draft.exempt, manual_amount: amount, note: draft.note, updated_at: new Date().toISOString() };
+      await db().fineAdjustments.put(local);
+      setAdjustments(current => [...current.filter(a => a.player_id !== id), { ...local, owner_id: ownerId ?? "" }]);
+      setMessage("Multa guardada en este dispositivo.");
+      if (supabase && ownerId) {
+        const { error } = await supabase.from("player_fine_adjustments").upsert({ owner_id: ownerId, period_key: MONTH, player_id: id, exempt: draft.exempt, manual_amount: amount, note: draft.note, updated_at: local.updated_at }, { onConflict: "owner_id,period_key,player_id" });
+        if (error) setMessage("Guardada en este dispositivo. No se pudo sincronizar con la nube: " + error.message);
+        else setMessage("Multa guardada y sincronizada.");
+      }
+    } catch (error) {
+      setMessage("No se pudo guardar la multa: " + String(error));
+    } finally {
+      setSaving(null);
+    }
   }
   return <AppLayout title="Multas" subtitle="Octubre 2026 · Sum6 y objetivos del plantel">
     <div className="space-y-4">
@@ -82,7 +99,7 @@ function Multas() {
         <p className="mt-1 text-sm text-muted-foreground">Primer milímetro de diferencia sin cargo; cada mm adicional: {money(PRICE)}. Los medios milímetros se cobran proporcionalmente.</p>
         <p className="mt-2 text-sm">La columna Multa muestra el cálculo automático y permite editarlo directamente. Sin medición u objetivo podés ingresar un importe manual. Para volver al cálculo automático, borrá el importe editado y guardá. También podés seleccionar "No paga" para excluir a una jugadora del total.</p>
         <p className="mt-3 text-lg font-semibold">Total a cobrar: {money(total)}</p>
-        <p className="text-xs text-muted-foreground">Incluye importes editados y excluye a quienes tengan estado "No paga". No modifica controles ni objetivos.</p>
+        <p className="text-xs text-muted-foreground">Incluye importes editados y excluye a quienes tengan estado "No paga". Las excepciones se guardan en este dispositivo y se sincronizan con Supabase si hay sesión. No modifica controles ni objetivos.</p>
       </div>
       {message && <p role="status" className="rounded-md border p-3 text-sm">{message}</p>}
       <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={onlyPaying} onChange={e => setOnlyPaying(e.target.checked)} /> Mostrar solo las que deben pagar ({rows.filter(row => row.payable != null && row.payable > 0).length})</label>
