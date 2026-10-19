@@ -829,7 +829,7 @@ function InformeGrupal() {
 
 
           if (
-            summaryOnlySelected &&
+            selectedPlayerIds.length > 0 &&
             !selectedPlayerIds.includes(
               player.id,
             )
@@ -943,6 +943,7 @@ function InformeGrupal() {
         "julio",
         "agosto",
         "september",
+        "october",
       ] as const;
 
 
@@ -984,6 +985,7 @@ function InformeGrupal() {
           yellow: 0,
           red: 0,
         },
+        october: { green: 0, yellow: 0, red: 0 },
       };
 
 
@@ -2486,8 +2488,9 @@ function InformeGrupal() {
             rojo &gt;90 mm.
             Septiembre:{" "}
             {septemberMeasured}{" "}
-            jugadoras con medición
-            cargada.
+            jugadoras con medición cargada. Octubre:{" "}
+            {groupSummaryRows.filter(row => row.october !== null).length}{" "}
+            jugadoras con medición cargada.
           </p>
         </div>
 
@@ -3361,7 +3364,8 @@ function BandDistributionChart({
     | "junio"
     | "julio"
     | "agosto"
-    | "september",
+    | "september"
+    | "october",
     {
       green: number;
       yellow: number;
@@ -3379,6 +3383,7 @@ function BandDistributionChart({
       "september",
       "Septiembre",
     ],
+    ["october", "Octubre"],
   ] as const;
 
 
