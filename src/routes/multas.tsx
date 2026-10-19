@@ -71,6 +71,37 @@ function Multas() {
   }, [players, controls, periods, adjustments, drafts]);
   const total = rows.reduce((sum, row) => sum + (row.payable ?? 0), 0);
   const visibleRows = onlyPaying ? rows.filter(row => row.payable != null && row.payable > 0) : rows;
+  const shareText = () => {
+    const payableRows = visibleRows.filter(row => row.payable != null && row.payable > 0);
+    return [
+      "SAN LORENZO · MULTAS SUM6 · OCTUBRE 2026",
+      "",
+      ...payableRows.map(row => `${row.player.name}: ${money(row.payable!)} (Sum6 ${mm(row.current)} mm; objetivo ${mm(row.target)} mm; Δ ${mm(row.difference)} mm)`),
+      "",
+      `Total a cobrar: ${money(payableRows.reduce((sum, row) => sum + (row.payable ?? 0), 0))}`,
+      onlyPaying ? "Listado filtrado: solo jugadoras que deben pagar." : "Listado de jugadoras con importe a cobrar."
+    ].join("\n");
+  };
+  const shareWhatsApp = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText())}`, "_blank", "noopener,noreferrer");
+  };
+  const printReport = () => {
+    const escapeHtml = (value: string) => value.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char] ?? char));
+    const selectedTotal = visibleRows.reduce((sum, row) => sum + (row.payable ?? 0), 0);
+    const report = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Multas Sum6 - Octubre 2026</title><style>
+      body{font-family:Arial,sans-serif;color:#132b50;margin:28px}h1{font-size:22px;margin-bottom:4px}.sub{color:#65748b;font-size:12px;margin-bottom:18px}
+      table{width:100%;border-collapse:collapse;font-size:11px}th{background:#eaf0f7;text-align:left}td,th{border-bottom:1px solid #d8e0ea;padding:8px 5px}td.num{text-align:right}
+      .total{margin-top:20px;text-align:right;font-size:18px;font-weight:bold}.note{font-size:11px;color:#536174;margin-top:14px}
+      @page{size:A4 landscape;margin:14mm}
+    </style></head><body><h1>San Lorenzo de Almagro · Multas Sum6</h1><div class="sub">Octubre 2026 · ${onlyPaying ? "Solo jugadoras que deben pagar" : "Todas las jugadoras"} · Generado el ${new Date().toLocaleDateString("es-AR")}</div>
+    <table><thead><tr><th>Jugadora</th><th>Sum6 octubre</th><th>Objetivo octubre</th><th>Δ (mm)</th><th>Multa a cobrar</th><th>Estado</th><th>Observación</th></tr></thead><tbody>
+    ${visibleRows.map(row => `<tr><td>${escapeHtml(row.player.name)}</td><td>${mm(row.current)}</td><td>${mm(row.target)}</td><td>${row.difference == null ? "—" : mm(row.difference)}</td><td>${row.payable == null ? "—" : money(row.payable)}</td><td>${row.draft.exempt ? "No paga" : "Paga"}</td><td>${escapeHtml(row.draft.note)}</td></tr>`).join("")}
+    </tbody></table><div class="total">Total a cobrar: ${money(selectedTotal)}</div><p class="note">Primer milímetro por encima del objetivo sin cargo; $50.000 por mm adicional. Los importes pueden incluir ajustes manuales.</p></body></html>`;
+    const popup = window.open("", "_blank");
+    if (!popup) { setMessage("El navegador bloqueó la ventana de impresión. Permití ventanas emergentes e intentá nuevamente."); return; }
+    popup.document.open(); popup.document.write(report); popup.document.close(); popup.focus();
+    popup.addEventListener("load", () => popup.print(), { once: true });
+  };
   const update = (id: number, patch: Partial<Draft>, previous: Draft) => setDrafts(current => ({ ...current, [id]: { ...previous, ...patch } }));
   async function save(id: number, draft: Draft) {
     const amount = draft.manual.trim() === "" ? null : Number(draft.manual);
@@ -102,7 +133,13 @@ function Multas() {
         <p className="text-xs text-muted-foreground">Incluye importes editados y excluye a quienes tengan estado "No paga". Las excepciones se guardan en este dispositivo y se sincronizan con Supabase si hay sesión. No modifica controles ni objetivos.</p>
       </div>
       {message && <p role="status" className="rounded-md border p-3 text-sm">{message}</p>}
-      <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={onlyPaying} onChange={e => setOnlyPaying(e.target.checked)} /> Mostrar solo las que deben pagar ({rows.filter(row => row.payable != null && row.payable > 0).length})</label>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={onlyPaying} onChange={e => setOnlyPaying(e.target.checked)} /> Mostrar solo las que deben pagar ({rows.filter(row => row.payable != null && row.payable > 0).length})</label>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={printReport} className="rounded bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Imprimir / Guardar PDF</button>
+          <button type="button" onClick={shareWhatsApp} className="rounded border border-primary px-4 py-2 text-sm font-semibold text-primary">Compartir por WhatsApp</button>
+        </div>
+      </div>
       <div className="overflow-x-auto rounded-lg border bg-card">
         <table className="w-full min-w-[920px] text-sm">
           <thead className="bg-muted/50"><tr>{["Jugadora","Sum6 octubre","Objetivo octubre","Δ (mm)","Multa ($)","Estado","Observación","Guardar"].map(h => <th key={h} className="px-3 py-3 text-left">{h}</th>)}</tr></thead>
