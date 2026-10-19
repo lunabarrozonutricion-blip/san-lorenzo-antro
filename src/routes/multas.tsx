@@ -86,21 +86,30 @@ function Multas() {
     window.open(`https://wa.me/?text=${encodeURIComponent(shareText())}`, "_blank", "noopener,noreferrer");
   };
   const printReport = () => {
-    const escapeHtml = (value: string) => value.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char] ?? char));
+    const escapeHtml = (s: string) => s.replace(/[&<>"']/g, x => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[x] ?? x));
     const selectedTotal = visibleRows.reduce((sum, row) => sum + (row.payable ?? 0), 0);
-    const report = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Multas Sum6 - Octubre 2026</title><style>
-      body{font-family:Arial,sans-serif;color:#132b50;margin:28px}h1{font-size:22px;margin-bottom:4px}.sub{color:#65748b;font-size:12px;margin-bottom:18px}
-      table{width:100%;border-collapse:collapse;font-size:11px}th{background:#eaf0f7;text-align:left}td,th{border-bottom:1px solid #d8e0ea;padding:8px 5px}td.num{text-align:right}
-      .total{margin-top:20px;text-align:right;font-size:18px;font-weight:bold}.note{font-size:11px;color:#536174;margin-top:14px}
-      @page{size:A4 landscape;margin:14mm}
-    </style></head><body><h1>San Lorenzo de Almagro · Multas Sum6</h1><div class="sub">Octubre 2026 · ${onlyPaying ? "Solo jugadoras que deben pagar" : "Todas las jugadoras"} · Generado el ${new Date().toLocaleDateString("es-AR")}</div>
-    <table><thead><tr><th>Jugadora</th><th>Sum6 octubre</th><th>Objetivo octubre</th><th>Δ (mm)</th><th>Multa a cobrar</th><th>Estado</th><th>Observación</th></tr></thead><tbody>
-    ${visibleRows.map(row => `<tr><td>${escapeHtml(row.player.name)}</td><td>${mm(row.current)}</td><td>${mm(row.target)}</td><td>${row.difference == null ? "—" : mm(row.difference)}</td><td>${row.payable == null ? "—" : money(row.payable)}</td><td>${row.draft.exempt ? "No paga" : "Paga"}</td><td>${escapeHtml(row.draft.note)}</td></tr>`).join("")}
-    </tbody></table><div class="total">Total a cobrar: ${money(selectedTotal)}</div><p class="note">Primer milímetro por encima del objetivo sin cargo; $50.000 por mm adicional. Los importes pueden incluir ajustes manuales.</p></body></html>`;
+    const report = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Multas por antropometría - Octubre 2026</title>
+    <style>
+    *{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#102c52;margin:20px;font-size:11px}
+    .header{text-align:center;margin-bottom:22px}.shield{margin:auto;width:58px;height:65px;border:3px solid #0e2d55;border-radius:10px 10px 28px 28px;background:repeating-linear-gradient(90deg,#0e2d55 0 10px,#d51e31 10px 20px);display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:15px;text-shadow:1px 1px #0e2d55}
+    .stripe{height:5px;background:linear-gradient(90deg,#102e58 0 48%,#cf1f30 48% 52%,#102e58 52%);margin:12px 0}h1{font-size:26px;letter-spacing:1px;text-transform:uppercase;margin:6px 0}h2{font-size:16px;color:#c92031;text-transform:uppercase;margin:4px 0}.meta{color:#63748c;margin-top:9px}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}tr{break-inside:avoid}
+    th{background:#102e58;color:white;padding:10px 7px;text-align:left}td{padding:9px 7px;border-bottom:1px solid #d9e1eb;overflow-wrap:anywhere}tbody tr:nth-child(even){background:#f2f6fa}
+    .num{text-align:right}.player{font-weight:700}.fine{font-weight:700;color:#bd1d2d}.total{text-align:right;margin-top:20px;font-size:18px;font-weight:bold}.total span{background:#eef2f7;border-left:5px solid #c92031;padding:12px 17px;display:inline-block}.total strong{color:#c92031;margin-left:12px}
+    .foot{border-top:1px solid #d9e1eb;padding-top:10px;margin-top:25px;color:#52647b;font-size:10px}
+    @page{size:A4 landscape;margin:12mm}@media print{body{margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}th{background:#102e58!important;color:white!important}}
+    </style></head><body>
+    <header class="header"><div class="shield">CASLA</div><div class="stripe"></div><h1>San Lorenzo de Almagro</h1><h2>Multas por antropometría · Octubre 2026</h2>
+    <div class="meta">${onlyPaying ? "Solo jugadoras que deben pagar" : "Todas las jugadoras"} · ${visibleRows.length} jugadoras · Generado el ${new Date().toLocaleDateString("es-AR")}</div></header>
+    <table><colgroup><col style="width:20%"><col style="width:12%"><col style="width:14%"><col style="width:9%"><col style="width:15%"><col style="width:10%"><col style="width:20%"></colgroup>
+    <thead><tr><th>Jugadora</th><th class="num">Sum6 octubre</th><th class="num">Objetivo octubre</th><th class="num">Δ (mm)</th><th class="num">Multa a cobrar</th><th>Estado</th><th>Observación</th></tr></thead><tbody>
+    ${visibleRows.map(row => `<tr><td class="player">${escapeHtml(row.player.name)}</td><td class="num">${mm(row.current)}</td><td class="num">${mm(row.target)}</td><td class="num">${row.difference == null ? "—" : (row.difference > 0 ? "+" : "") + mm(row.difference)}</td><td class="num fine">${row.payable == null ? "—" : money(row.payable)}</td><td>${row.draft.exempt ? "No paga" : "Paga"}</td><td>${escapeHtml(row.draft.note)}</td></tr>`).join("")}
+    </tbody></table><div class="total"><span>TOTAL A COBRAR <strong>${money(selectedTotal)}</strong></span></div>
+    <footer class="foot">Primer milímetro por encima del objetivo sin cargo. Cada mm adicional: $50.000. Los importes pueden incluir ajustes manuales. Fecha de emisión: ${new Date().toLocaleDateString("es-AR")}.</footer></body></html>`;
     const popup = window.open("", "_blank");
-    if (!popup) { setMessage("El navegador bloqueó la ventana de impresión. Permití ventanas emergentes e intentá nuevamente."); return; }
+    if (!popup) { setMessage("Permití las ventanas emergentes para imprimir el informe."); return; }
     popup.document.open(); popup.document.write(report); popup.document.close(); popup.focus();
-    popup.addEventListener("load", () => popup.print(), { once: true });
+    popup.setTimeout(() => popup.print(), 350);
   };
   const update = (id: number, patch: Partial<Draft>, previous: Draft) => setDrafts(current => ({ ...current, [id]: { ...previous, ...patch } }));
   async function save(id: number, draft: Draft) {
