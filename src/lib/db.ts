@@ -26,7 +26,10 @@ type PlayerProfile = Player & {
   generalNotes?: string | null;
 };
 
+export type FineAdjustmentLocal = { key: string; period_key: string; player_id: number; exempt: boolean; manual_amount: number | null; note: string; updated_at: string };
+
 export class AnthroDB extends Dexie {
+  fineAdjustments!: Table<FineAdjustmentLocal, string>;
   players!: Table<
     PlayerProfile,
     number
@@ -115,6 +118,22 @@ export class AnthroDB extends Dexie {
         "++id, date, round, dayType, context",
       fullAnthropometries:
         "++id, playerId, date, source, linkedControlId, [playerId+date]",
+    });
+
+    this.version(6).stores({
+      players:
+        "++id, name, active",
+      controls:
+        "++id, playerId, date, [playerId+date]",
+      weightRecords:
+        "++id, playerId, date, condition, [playerId+date]",
+      objectivePeriods:
+        "++id, &key, year, month",
+      hydrationTests:
+        "++id, date, round, dayType, context",
+      fullAnthropometries:
+        "++id, playerId, date, source, linkedControlId, [playerId+date]",
+      fineAdjustments: "key, period_key, player_id",
     });
   }
 }
