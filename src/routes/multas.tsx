@@ -72,22 +72,17 @@ function Multas() {
   const total = rows.reduce((sum, row) => sum + (row.payable ?? 0), 0);
   const visibleRows = onlyPaying ? rows.filter(row => row.payable != null && row.payable > 0) : rows;
   const shareWhatsApp = () => {
-    // WhatsApp Web no admite adjuntar un PDF mediante un enlace wa.me.
-    // Abrimos el mismo informe listo para guardarlo como PDF y un mensaje breve,
-    // evitando el texto largo con datos de cada jugadora.
     const payableRows = visibleRows.filter(row => row.payable != null && row.payable > 0);
     const subtotal = payableRows.reduce((sum, row) => sum + (row.payable ?? 0), 0);
     const summary = [
-      "San Lorenzo de Almagro",
-      "Multas por antropometría · Octubre 2026",
-      `Jugadoras con multa: ${payableRows.length}`,
-      `Total a cobrar: ${money(subtotal)}`,
+      "*SAN LORENZO DE ALMAGRO*",
+      "*Multas por antropometría · Octubre 2026*",
       "",
-      "Adjunto el informe detallado en PDF."
+      ...payableRows.map(row => `• ${row.player.name}: ${money(row.payable!)}`),
+      "",
+      `*TOTAL A COBRAR: ${money(subtotal)}*`
     ].join("\\n");
-    printReport();
     window.open(`https://wa.me/?text=${encodeURIComponent(summary)}`, "_blank", "noopener,noreferrer");
-    setMessage("Para enviarlo por WhatsApp: en la ventana de impresión elegí «Guardar como PDF»; después adjuntá ese archivo en el chat de WhatsApp. WhatsApp Web no permite adjuntar archivos automáticamente desde un enlace.");
   };
   const printReport = () => {
     const escapeHtml = (s: string) => s.replace(/[&<>"']/g, x => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[x] ?? x));
@@ -150,7 +145,7 @@ function Multas() {
         <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={onlyPaying} onChange={e => setOnlyPaying(e.target.checked)} /> Mostrar solo las que deben pagar ({rows.filter(row => row.payable != null && row.payable > 0).length})</label>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={printReport} className="rounded bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Imprimir / Guardar PDF</button>
-          <button type="button" onClick={shareWhatsApp} className="rounded border border-primary px-4 py-2 text-sm font-semibold text-primary">Preparar para WhatsApp</button>
+          <button type="button" onClick={shareWhatsApp} className="rounded border border-primary px-4 py-2 text-sm font-semibold text-primary">Compartir por WhatsApp</button>
         </div>
       </div>
       <div className="overflow-x-auto rounded-lg border bg-card">
