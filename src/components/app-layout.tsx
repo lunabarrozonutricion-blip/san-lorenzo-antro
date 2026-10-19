@@ -6,6 +6,7 @@ import {
   Droplets,
   Home,
   Menu,
+  Receipt,
   Scale,
   Target,
   UtensilsCrossed,
@@ -53,6 +54,11 @@ export const NAV = [
     to: "/objetivos",
     label: "Objetivos del plantel",
     icon: Target,
+  },
+  {
+    to: "/multas",
+    label: "Multas",
+    icon: Receipt,
   },
   {
     to: "/plantel",
