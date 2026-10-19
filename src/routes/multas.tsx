@@ -58,6 +58,8 @@ function Multas() {
     return (players ?? []).filter(p => p.id != null).map(player => {
       const playerControls = (controls ?? []).filter(c => c.playerId === player.id && c.date.startsWith(MONTH) && metricValue(c, "sum6") != null).sort((a,b) => b.date.localeCompare(a.date) || (b.id ?? 0) - (a.id ?? 0));
       const control = playerControls[0];
+      const septemberControl = (controls ?? []).filter(c => c.playerId === player.id && c.date.startsWith("2026-09") && metricValue(c, "sum6") != null).sort((a,b) => b.date.localeCompare(a.date) || (b.id ?? 0) - (a.id ?? 0))[0];
+      const september = septemberControl ? metricValue(septemberControl, "sum6") : null;
       const current = control ? metricValue(control, "sum6") : null;
       const target = period?.targets.find(t => t.playerId === player.id)?.target ?? null;
       const difference = current != null && target != null ? current - target : null;
@@ -66,7 +68,7 @@ function Multas() {
       const draft = drafts[player.id!] ?? { exempt: saved?.exempt ?? false, manual: saved?.manual_amount == null ? "" : String(saved.manual_amount), note: saved?.note ?? "" };
       const manualAmount = draft.manual.trim() === "" ? null : Number(draft.manual);
       const payable = draft.exempt ? 0 : manualAmount != null && Number.isFinite(manualAmount) && manualAmount >= 0 ? manualAmount : calculated;
-      return { player, current, target, difference, calculated, payable, draft, date: control?.date ?? null };
+      return { player, september, current, target, difference, calculated, payable, draft, date: control?.date ?? null };
     });
   }, [players, controls, periods, adjustments, drafts]);
   const total = rows.reduce((sum, row) => sum + (row.payable ?? 0), 0);
@@ -78,7 +80,7 @@ function Multas() {
       "*SAN LORENZO DE ALMAGRO*",
       "*Multas por antropometría · Octubre 2026*",
       "",
-      ...payableRows.map(row => `• ${row.player.name}: ${money(row.payable!)}`),
+      ...payableRows.map(row => `• ${row.player.name}: Septiembre ${mm(row.september)} mm | Objetivo octubre ${mm(row.target)} mm | Octubre ${mm(row.current)} mm | Multa ${money(row.payable!)}`),
       "",
       `*TOTAL A COBRAR: ${money(subtotal)}*`
     ].join("\\n");
@@ -100,9 +102,9 @@ function Multas() {
     </style></head><body>
     <header class="header"><img class="official-crest" alt="Escudo San Lorenzo de Almagro" src="data:image/png;base64,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"><div class="stripe"></div><h1>San Lorenzo de Almagro</h1><h2>Multas por antropometría · Octubre 2026</h2>
     <div class="meta">${onlyPaying ? "Solo jugadoras que deben pagar" : "Todas las jugadoras"} · ${visibleRows.length} jugadoras · Generado el ${new Date().toLocaleDateString("es-AR")}</div></header>
-    <table><colgroup><col style="width:20%"><col style="width:12%"><col style="width:14%"><col style="width:9%"><col style="width:15%"><col style="width:10%"><col style="width:20%"></colgroup>
-    <thead><tr><th>Jugadora</th><th class="num">Sum6 octubre</th><th class="num">Objetivo octubre</th><th class="num">Δ (mm)</th><th class="num">Multa a cobrar</th><th>Estado</th><th>Observación</th></tr></thead><tbody>
-    ${visibleRows.map(row => `<tr><td class="player">${escapeHtml(row.player.name)}</td><td class="num">${mm(row.current)}</td><td class="num">${mm(row.target)}</td><td class="num">${row.difference == null ? "—" : (row.difference > 0 ? "+" : "") + mm(row.difference)}</td><td class="num fine">${row.payable == null ? "—" : money(row.payable)}</td><td>${row.draft.exempt ? "No paga" : "Paga"}</td><td>${escapeHtml(row.draft.note)}</td></tr>`).join("")}
+    <table><colgroup><col style="width:17%"><col style="width:11%"><col style="width:11%"><col style="width:12%"><col style="width:8%"><col style="width:14%"><col style="width:10%"><col style="width:17%"></colgroup>
+    <thead><tr><th>Jugadora</th><th class="num">Sum6 septiembre</th><th class="num">Sum6 octubre</th><th class="num">Objetivo octubre</th><th class="num">Δ (mm)</th><th class="num">Multa a cobrar</th><th>Estado</th><th>Observación</th></tr></thead><tbody>
+    ${visibleRows.map(row => `<tr><td class="player">${escapeHtml(row.player.name)}</td><td class="num">${mm(row.september)}</td><td class="num">${mm(row.current)}</td><td class="num">${mm(row.target)}</td><td class="num">${row.difference == null ? "—" : (row.difference > 0 ? "+" : "") + mm(row.difference)}</td><td class="num fine">${row.payable == null ? "—" : money(row.payable)}</td><td>${row.draft.exempt ? "No paga" : "Paga"}</td><td>${escapeHtml(row.draft.note)}</td></tr>`).join("")}
     </tbody></table><div class="total"><span>TOTAL A COBRAR <strong>${money(selectedTotal)}</strong></span></div>
     <footer class="foot">Primer milímetro por encima del objetivo sin cargo. Cada mm adicional: $50.000. Los importes pueden incluir ajustes manuales. Fecha de emisión: ${new Date().toLocaleDateString("es-AR")}.</footer></body></html>`;
     const popup = window.open("", "_blank");
@@ -150,10 +152,10 @@ function Multas() {
       </div>
       <div className="overflow-x-auto rounded-lg border bg-card">
         <table className="w-full min-w-[920px] text-sm">
-          <thead className="bg-muted/50"><tr>{["Jugadora","Sum6 octubre","Objetivo octubre","Δ (mm)","Multa ($)","Estado","Observación","Guardar"].map(h => <th key={h} className="px-3 py-3 text-left">{h}</th>)}</tr></thead>
+          <thead className="bg-muted/50"><tr>{["Jugadora","Sum6 septiembre","Sum6 octubre","Objetivo octubre","Δ (mm)","Multa ($)","Estado","Observación","Guardar"].map(h => <th key={h} className="px-3 py-3 text-left">{h}</th>)}</tr></thead>
           <tbody>{visibleRows.map(row => <tr key={row.player.id} className="border-t">
             <td className="px-3 py-3 font-medium">{row.player.name}</td>
-            <td className="px-3 py-3">{mm(row.current)}</td>
+            <td className="px-3 py-3">{mm(row.september)}</td><td className="px-3 py-3">{mm(row.current)}</td>
             <td className="px-3 py-3">{mm(row.target)}</td>
             <td className="px-3 py-3">{row.difference == null ? "—" : (row.difference > 0 ? "+" : "") + mm(row.difference)}</td>
             <td className="px-3 py-3"><input aria-label={`Multa editable: ${row.player.name}`} type="number" min="0" step="any" placeholder="Sin multa automática" className="w-36 rounded border bg-background p-2 font-semibold" value={row.draft.manual !== "" ? row.draft.manual : row.calculated ?? ""} onChange={e => update(row.player.id!, {manual:e.target.value}, row.draft)} /><p className="mt-1 text-xs text-muted-foreground">{row.draft.exempt ? "No paga · excluida del total" : row.draft.manual !== "" ? "Importe editado" : "Cálculo automático"}</p></td>
