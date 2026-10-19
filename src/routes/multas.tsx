@@ -78,24 +78,22 @@ function Multas() {
       <div className="rounded-lg border bg-card p-4">
         <h2 className="text-xl font-bold">Multas · Octubre 2026</h2>
         <p className="mt-1 text-sm text-muted-foreground">Primer milímetro de diferencia sin cargo; cada mm adicional: {money(PRICE)}. Los medios milímetros se cobran proporcionalmente.</p>
-        <p className="mt-2 text-sm">Sin medición u objetivo, no se calcula una multa automática. Podés asignar un importe manual o marcar exenta.</p>
+        <p className="mt-2 text-sm">La columna Multa muestra el cálculo automático y permite editarlo directamente. Sin medición u objetivo podés ingresar un importe manual. Para volver al cálculo automático, borrá el importe editado y guardá. También podés marcar exenta.</p>
         <p className="mt-3 text-lg font-semibold">Total a cobrar: {money(total)}</p>
         <p className="text-xs text-muted-foreground">Incluye los importes manuales y excluye las jugadoras exentas. No modifica controles ni objetivos.</p>
       </div>
       {message && <p role="status" className="rounded-md border p-3 text-sm">{message}</p>}
       <div className="overflow-x-auto rounded-lg border bg-card">
-        <table className="w-full min-w-[1120px] text-sm">
-          <thead className="bg-muted/50"><tr>{["Jugadora","Sum6 octubre","Objetivo octubre","Δ (mm)","Multa calculada","Exenta","Importe manual ($)","Observación","Multa final","Guardar"].map(h => <th key={h} className="px-3 py-3 text-left">{h}</th>)}</tr></thead>
+        <table className="w-full min-w-[920px] text-sm">
+          <thead className="bg-muted/50"><tr>{["Jugadora","Sum6 octubre","Objetivo octubre","Δ (mm)","Multa ($)","Exenta","Observación","Guardar"].map(h => <th key={h} className="px-3 py-3 text-left">{h}</th>)}</tr></thead>
           <tbody>{rows.map(row => <tr key={row.player.id} className="border-t">
             <td className="px-3 py-3 font-medium">{row.player.name}</td>
             <td className="px-3 py-3">{mm(row.current)}</td>
             <td className="px-3 py-3">{mm(row.target)}</td>
             <td className="px-3 py-3">{row.difference == null ? "—" : (row.difference > 0 ? "+" : "") + mm(row.difference)}</td>
-            <td className="px-3 py-3">{row.calculated == null ? "—" : money(row.calculated)}</td>
+            <td className="px-3 py-3"><input aria-label={`Multa editable: ${row.player.name}`} type="number" min="0" step="any" placeholder="Sin multa automática" className="w-36 rounded border bg-background p-2 font-semibold" value={row.draft.manual !== "" ? row.draft.manual : row.calculated ?? ""} disabled={row.draft.exempt} onChange={e => update(row.player.id!, {manual:e.target.value}, row.draft)} /><p className="mt-1 text-xs text-muted-foreground">{row.draft.manual !== "" ? "Importe editado" : "Cálculo automático"}</p></td>
             <td className="px-3 py-3"><input aria-label={`Exenta: ${row.player.name}`} type="checkbox" checked={row.draft.exempt} onChange={e => update(row.player.id!, {exempt:e.target.checked}, row.draft)} /></td>
-            <td className="px-3 py-3"><input aria-label={`Importe manual: ${row.player.name}`} type="number" min="0" step="1000" placeholder="Automático" className="w-32 rounded border bg-background p-2" value={row.draft.manual} onChange={e => update(row.player.id!, {manual:e.target.value}, row.draft)} /></td>
             <td className="px-3 py-3"><input aria-label={`Observación: ${row.player.name}`} className="w-44 rounded border bg-background p-2" placeholder="Motivo / aclaración" value={row.draft.note} onChange={e => update(row.player.id!, {note:e.target.value}, row.draft)} /></td>
-            <td className="px-3 py-3 font-semibold">{row.payable == null ? "—" : money(row.payable)}</td>
             <td className="px-3 py-3"><button type="button" disabled={saving === row.player.id} className="rounded bg-primary px-3 py-2 text-primary-foreground disabled:opacity-50" onClick={() => void save(row.player.id!,row.draft)}>{saving === row.player.id ? "Guardando" : "Guardar"}</button></td>
           </tr>)}</tbody>
         </table>
