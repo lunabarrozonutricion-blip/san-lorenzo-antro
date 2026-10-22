@@ -115,10 +115,10 @@ function Multas() {
       const html = reportHtml();
       const parsed = new DOMParser().parseFromString(html, "text/html");
       const style = parsed.querySelector("style")?.textContent ?? "";
-      const body = parsed.body.innerHTML;
+      const body = new XMLSerializer().serializeToString(parsed.body);
       const width = 1122;
       const height = 794;
-      const markup = `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:#fff;overflow:hidden"><style>${style}</style><div style="padding:18px">${body}</div></div>`;
+      const markup = `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:#fff;overflow:hidden"><style>${style}</style>${body}</div>`;
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${markup}</foreignObject></svg>`;
       const imageUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
       const image = new Image();
