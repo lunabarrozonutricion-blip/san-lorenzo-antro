@@ -224,5 +224,5 @@ function Multas() {
         </table>
       </div>
     </div>
-  </AppLayout>;
+  </AppLayout></>;
 }
