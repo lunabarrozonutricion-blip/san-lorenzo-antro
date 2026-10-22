@@ -541,25 +541,32 @@ function Ficha() {
     }
   }
 
+  const [summaryPrintUrl, setSummaryPrintUrl] = useState<string | null>(null);
+  const [summaryPrintReady, setSummaryPrintReady] = useState(false);
+
+  useEffect(() => {
+    if (!summaryPrintUrl || !summaryPrintReady) return;
+    const frame = requestAnimationFrame(() => {
+      window.print();
+      setSummaryPrintReady(false);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [summaryPrintUrl, summaryPrintReady]);
+
   async function printSummary() {
-    const popup = window.open("", "_blank");
-    if (!popup) { toast.error("Permití las ventanas emergentes para imprimir"); return; }
-    popup.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Resumen de jugadora</title><style>body{margin:0;background:#eef1f5;text-align:center}img{display:block;width:min(100%,680px);margin:auto}@media print{@page{size:A4;margin:10mm}body{background:white}img{width:100%;max-height:275mm;object-fit:contain}}</style></head><body><p>Preparando informe...</p></body></html>');
-    popup.document.close();
     try {
       const blob = await createPlayerSummaryImage(summaryImageData());
-      const url = URL.createObjectURL(blob);
-      popup.document.body.innerHTML = "";
-      const image = popup.document.createElement("img");
-      image.alt = "Resumen antropométrico";
-      image.onload = () => { popup.focus(); popup.print(); };
-      image.src = url;
-      popup.document.body.appendChild(image);
-      popup.addEventListener("beforeunload", () => URL.revokeObjectURL(url), { once: true });
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Imagen inválida"));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+      setSummaryPrintReady(false);
+      setSummaryPrintUrl(dataUrl);
     } catch (error) {
       console.error(error);
-      popup.close();
-      toast.error("No se pudo generar el informe");
+      toast.error("No se pudo preparar el informe para imprimir");
     }
   }
 
@@ -692,6 +699,21 @@ function Ficha() {
         }
         current="ficha"
       />
+
+      <style>{`
+        .summary-print-sheet { display: none; }
+        @media print {
+          @page { size: A4 portrait; margin: 8mm; }
+          body * { visibility: hidden !important; }
+          .summary-print-sheet, .summary-print-sheet * { visibility: visible !important; }
+          .summary-print-sheet { display: block !important; position: fixed; inset: 0; width: 100%; background: white; z-index: 2147483647; }
+          .summary-print-sheet img { display: block; height: 270mm; max-width: 100%; width: auto; object-fit: contain; margin: 0 auto; }
+        }
+      `}</style>
+      <div className="summary-print-sheet" aria-hidden="true">
+        {summaryPrintUrl && <img src={summaryPrintUrl} alt="Resumen antropométrico para imprimir"
+          onLoad={() => setSummaryPrintReady(true)} />}
+      </div>
 
       {/* ===================================================
           FICHA PERSONAL
