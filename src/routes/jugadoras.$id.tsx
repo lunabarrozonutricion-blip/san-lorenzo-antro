@@ -49,6 +49,7 @@ import {
   useWeightRecords,
 } from "@/lib/hooks";
 import { targetForPlayer } from "@/lib/objectives";
+import { createPlayerSummaryImage } from "@/lib/player-summary-image";
 import {
   METRICS,
   type Player,
@@ -505,17 +506,61 @@ function Ficha() {
     `Diferencia vs objetivo: ${summaryNumber(summaryTargetDiff, true)}`,
   ].join("\n");
 
-  function shareSummaryWhatsApp() {
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(summaryMessage)}`, "_blank", "noopener,noreferrer");
+  const summaryImageData = () => ({
+    name: player?.name ?? "",
+    date: fmtDate(summaryControl?.date),
+    previousDate: fmtDate(previousSummaryControl?.date),
+    current: summaryNumber(summaryCurrent),
+    previous: summaryNumber(summaryPrevious),
+    difference: summaryNumber(summaryDiff, true),
+    objectiveLabel: selectedSummaryPeriod?.label ?? "Sin período",
+    objective: summaryNumber(summaryTarget),
+    objectiveDifference: summaryNumber(summaryTargetDiff, true),
+  });
+
+  async function shareSummaryWhatsApp() {
+    try {
+      const blob = await createPlayerSummaryImage(summaryImageData());
+      const file = new File([blob], `resumen-${player?.name ?? "jugadora"}.png`, { type: "image/png" });
+      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+        await navigator.share({ files: [file], title: "Resumen antropométrico" });
+        return;
+      }
+      // WhatsApp Web no permite adjuntar una imagen automáticamente desde un enlace.
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.name;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+      toast.info("Se descargó la imagen. Abrí WhatsApp y adjuntala al contacto que elijas. En un celular compatible se abre el menú para compartir directamente.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      console.error(error);
+      toast.error("No se pudo compartir la imagen");
+    }
   }
 
-  function printSummary() {
+  async function printSummary() {
     const popup = window.open("", "_blank");
     if (!popup) { toast.error("Permití las ventanas emergentes para imprimir"); return; }
-    const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) =>
-      ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character] ?? character));
-    popup.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Resumen de jugadora</title><style>body{font-family:Arial,sans-serif;padding:35px;color:#15233a}h1{color:#0b234a}pre{white-space:pre-wrap;font:16px/1.9 Arial,sans-serif;border:1px solid #ddd;border-radius:12px;padding:24px}@media print{button{display:none}}</style></head><body><h1>San Lorenzo de Almagro</h1><pre>${escapeHtml(summaryMessage)}</pre><button onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`);
+    popup.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Resumen de jugadora</title><style>body{margin:0;background:#eef1f5;text-align:center}img{display:block;width:min(100%,680px);margin:auto}@media print{@page{size:A4;margin:10mm}body{background:white}img{width:100%;max-height:275mm;object-fit:contain}}</style></head><body><p>Preparando informe...</p></body></html>');
     popup.document.close();
+    try {
+      const blob = await createPlayerSummaryImage(summaryImageData());
+      const url = URL.createObjectURL(blob);
+      popup.document.body.innerHTML = "";
+      const image = popup.document.createElement("img");
+      image.alt = "Resumen antropométrico";
+      image.onload = () => { popup.focus(); popup.print(); };
+      image.src = url;
+      popup.document.body.appendChild(image);
+      popup.addEventListener("beforeunload", () => URL.revokeObjectURL(url), { once: true });
+    } catch (error) {
+      console.error(error);
+      popup.close();
+      toast.error("No se pudo generar el informe");
+    }
   }
 
   async function saveProfile() {
@@ -1105,7 +1150,7 @@ function Ficha() {
           ))}
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="button" disabled={!summaryControl} onClick={shareSummaryWhatsApp}><Share2 className="h-4 w-4" /> Compartir por WhatsApp</Button>
+          <Button type="button" disabled={!summaryControl} onClick={shareSummaryWhatsApp}><Share2 className="h-4 w-4" /> Compartir imagen</Button>
           <Button type="button" variant="outline" disabled={!summaryControl} onClick={printSummary}><Printer className="h-4 w-4" /> Imprimir / Guardar PDF</Button>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">El objetivo elegido solo modifica este resumen; no cambia los objetivos guardados.</p>
