@@ -22,6 +22,7 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
+import { createPortal } from "react-dom";
 
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
@@ -704,17 +705,19 @@ function Ficha() {
         .summary-print-sheet { display: none; }
         @media print {
           @page { size: A4 portrait; margin: 8mm; }
-          html, body, #root { height: auto !important; min-height: 0 !important; overflow: visible !important; }
-          body { margin: 0 !important; }
-          body * { visibility: hidden !important; }\n          .summary-print-sheet, .summary-print-sheet * { visibility: visible !important; }
-          .summary-print-sheet { display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 260mm !important; overflow: hidden !important; background: white !important; }
-          .summary-print-sheet img { display: block !important; width: auto !important; max-width: 100% !important; height: 255mm !important; object-fit: contain !important; margin: 0 auto !important; }
+          html, body { height: auto !important; min-height: 0 !important; overflow: visible !important; margin: 0 !important; padding: 0 !important; }
+          body > :not(.summary-print-sheet) { display: none !important; }
+          body > .summary-print-sheet { display: block !important; position: static !important; width: 100% !important; height: auto !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; break-after: avoid !important; page-break-after: avoid !important; }
+          .summary-print-sheet img { display: block !important; width: auto !important; max-width: 100% !important; height: 245mm !important; object-fit: contain !important; margin: 0 auto !important; break-inside: avoid !important; }
         }
       `}</style>
-      <div className="summary-print-sheet" aria-hidden="true">
-        {summaryPrintUrl && <img src={summaryPrintUrl} alt="Resumen antropométrico para imprimir"
-          onLoad={() => setSummaryPrintReady(true)} />}
-      </div>
+      {typeof document !== "undefined" && createPortal(
+        <div className="summary-print-sheet" aria-hidden="true">
+          {summaryPrintUrl && <img src={summaryPrintUrl} alt="Resumen antropométrico para imprimir"
+            onLoad={() => setSummaryPrintReady(true)} />}
+        </div>,
+        document.body
+      )}
 
       {/* ===================================================
           FICHA PERSONAL
