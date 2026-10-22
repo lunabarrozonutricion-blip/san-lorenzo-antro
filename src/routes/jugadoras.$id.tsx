@@ -704,10 +704,11 @@ function Ficha() {
         .summary-print-sheet { display: none; }
         @media print {
           @page { size: A4 portrait; margin: 8mm; }
-          body * { visibility: hidden !important; }
-          .summary-print-sheet, .summary-print-sheet * { visibility: visible !important; }
-          .summary-print-sheet { display: block !important; position: fixed; inset: 0; width: 100%; background: white; z-index: 2147483647; }
-          .summary-print-sheet img { display: block; height: 270mm; max-width: 100%; width: auto; object-fit: contain; margin: 0 auto; }
+          html, body, #root { height: auto !important; min-height: 0 !important; overflow: visible !important; }
+          body { margin: 0 !important; }
+          body * { visibility: hidden !important; }\n          .summary-print-sheet, .summary-print-sheet * { visibility: visible !important; }
+          .summary-print-sheet { display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 260mm !important; overflow: hidden !important; background: white !important; }
+          .summary-print-sheet img { display: block !important; width: auto !important; max-width: 100% !important; height: 255mm !important; object-fit: contain !important; margin: 0 auto !important; }
         }
       `}</style>
       <div className="summary-print-sheet" aria-hidden="true">
