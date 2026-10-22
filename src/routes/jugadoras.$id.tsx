@@ -520,25 +520,24 @@ function Ficha() {
   });
 
   async function shareSummaryWhatsApp() {
+    // El selector nativo permite elegir WhatsApp y la destinataria sin guardar el archivo.
+    // No se descarga ningún archivo si el dispositivo no ofrece esa función.
+    if (typeof navigator.share !== "function") {
+      toast.error("Este navegador no permite compartir imágenes directamente. Probalo desde el celular con la aplicación publicada.");
+      return;
+    }
     try {
       const blob = await createPlayerSummaryImage(summaryImageData());
       const file = new File([blob], `resumen-${player?.name ?? "jugadora"}.png`, { type: "image/png" });
-      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
-        await navigator.share({ files: [file], title: "Resumen antropométrico" });
+      if (typeof navigator.canShare === "function" && !navigator.canShare({ files: [file] })) {
+        toast.error("Este dispositivo no admite compartir imágenes directamente. No se descargó ningún archivo.");
         return;
       }
-      // WhatsApp Web no permite adjuntar una imagen automáticamente desde un enlace.
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = file.name;
-      link.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 30000);
-      toast.info("Se descargó la imagen. Abrí WhatsApp y adjuntala al contacto que elijas. En un celular compatible se abre el menú para compartir directamente.");
+      await navigator.share({ files: [file], title: "Resumen antropométrico" });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       console.error(error);
-      toast.error("No se pudo compartir la imagen");
+      toast.error("No se pudo compartir la imagen desde este navegador");
     }
   }
 
@@ -1176,7 +1175,7 @@ function Ficha() {
           ))}
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="button" disabled={!summaryControl} onClick={shareSummaryWhatsApp}><Share2 className="h-4 w-4" /> Compartir imagen</Button>
+          <Button type="button" disabled={!summaryControl} onClick={shareSummaryWhatsApp}><Share2 className="h-4 w-4" /> Compartir por WhatsApp</Button>
           <Button type="button" variant="outline" disabled={!summaryControl} onClick={printSummary}><Printer className="h-4 w-4" /> Imprimir / Guardar PDF</Button>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">El objetivo elegido solo modifica este resumen; no cambia los objetivos guardados.</p>
