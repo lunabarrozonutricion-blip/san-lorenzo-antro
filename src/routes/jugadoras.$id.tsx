@@ -11,6 +11,8 @@ import {
   Ruler,
   Save,
   Scale,
+  Share2,
+  Printer,
   Trash2,
   UserRound,
 } from "lucide-react";
@@ -475,6 +477,46 @@ function Ficha() {
           null,
       )
       .reverse();
+
+  const [summaryControlId, setSummaryControlId] = useState("");
+  const [summaryObjectiveKey, setSummaryObjectiveKey] = useState("");
+  const sum6Controls = (controls ?? []).filter((control) => metricValue(control, "sum6") !== null);
+  const summaryControl = sum6Controls.find((control) => String(control.id) === summaryControlId) ?? sum6Controls[0];
+  const summaryIndex = sum6Controls.findIndex((control) => control === summaryControl);
+  const previousSummaryControl = summaryIndex >= 0 ? sum6Controls[summaryIndex + 1] : undefined;
+  const selectedSummaryPeriod = (objectivePeriods ?? []).find((period) => period.key === summaryObjectiveKey)
+    ?? currentObjectivePeriod;
+  const summaryCurrent = summaryControl ? metricValue(summaryControl, "sum6") : null;
+  const summaryPrevious = previousSummaryControl ? metricValue(previousSummaryControl, "sum6") : null;
+  const summaryTarget = targetForPlayer(selectedSummaryPeriod, player);
+  const summaryDiff = summaryCurrent !== null && summaryPrevious !== null ? summaryCurrent - summaryPrevious : null;
+  const summaryTargetDiff = summaryCurrent !== null && summaryTarget !== null ? summaryCurrent - summaryTarget : null;
+  const summaryNumber = (value: number | null, signed = false) =>
+    value === null ? "—" : `${signed && value > 0 ? "+" : ""}${fmt(value, 1)} mm`;
+  const summaryMessage = [
+    "SAN LORENZO DE ALMAGRO",
+    "Resumen antropométrico individual",
+    player?.name ?? "",
+    `Evaluación: ${fmtDate(summaryControl?.date)}`,
+    `Sumatoria de 6 pliegues: ${summaryNumber(summaryCurrent)}`,
+    `Evaluación anterior (${fmtDate(previousSummaryControl?.date)}): ${summaryNumber(summaryPrevious)}`,
+    `Diferencia vs anterior: ${summaryNumber(summaryDiff, true)}`,
+    `Objetivo ${selectedSummaryPeriod?.label ?? "sin seleccionar"}: ${summaryNumber(summaryTarget)}`,
+    `Diferencia vs objetivo: ${summaryNumber(summaryTargetDiff, true)}`,
+  ].join("\n");
+
+  function shareSummaryWhatsApp() {
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(summaryMessage)}`, "_blank", "noopener,noreferrer");
+  }
+
+  function printSummary() {
+    const popup = window.open("", "_blank");
+    if (!popup) { toast.error("Permití las ventanas emergentes para imprimir"); return; }
+    const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) =>
+      ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character] ?? character));
+    popup.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Resumen de jugadora</title><style>body{font-family:Arial,sans-serif;padding:35px;color:#15233a}h1{color:#0b234a}pre{white-space:pre-wrap;font:16px/1.9 Arial,sans-serif;border:1px solid #ddd;border-radius:12px;padding:24px}@media print{button{display:none}}</style></head><body><h1>San Lorenzo de Almagro</h1><pre>${escapeHtml(summaryMessage)}</pre><button onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`);
+    popup.document.close();
+  }
 
   async function saveProfile() {
     if (!profile) {
@@ -1026,6 +1068,48 @@ function Ficha() {
           </div>
         )}
       </div>
+
+      <section className="mt-4 rounded-xl border border-border bg-card p-4 shadow-panel">
+        <div className="mb-4">
+          <p className="panel-title text-xs text-muted-foreground">Resumen de jugadora</p>
+          <h2 className="mt-1 font-display text-xl font-semibold">Seguimiento individual · 6 pliegues</h2>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-sm font-medium">Evaluación
+            <select className="mt-1 block h-10 w-full rounded-md border border-input bg-background px-3"
+              value={summaryControl ? String(summaryControl.id) : ""}
+              onChange={(event) => setSummaryControlId(event.target.value)}>
+              {sum6Controls.map((control) => <option key={control.id} value={String(control.id)}>{fmtDate(control.date)}</option>)}
+            </select>
+          </label>
+          <label className="text-sm font-medium">Comparar con objetivo
+            <select className="mt-1 block h-10 w-full rounded-md border border-input bg-background px-3"
+              value={selectedSummaryPeriod?.key ?? ""}
+              onChange={(event) => setSummaryObjectiveKey(event.target.value)}>
+              {(objectivePeriods ?? []).map((period) => <option key={period.key} value={period.key}>{period.label}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            ["Sumatoria actual", summaryNumber(summaryCurrent)],
+            ["Sumatoria anterior", summaryNumber(summaryPrevious)],
+            ["Diferencia vs anterior", summaryNumber(summaryDiff, true)],
+            [`Objetivo ${selectedSummaryPeriod?.label ?? ""}`, summaryNumber(summaryTarget)],
+            ["Diferencia vs objetivo", summaryNumber(summaryTargetDiff, true)],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-lg bg-muted/50 p-3">
+              <p className="text-xs uppercase text-muted-foreground">{label}</p>
+              <p className="mt-1 font-semibold numeric">{value}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button type="button" disabled={!summaryControl} onClick={shareSummaryWhatsApp}><Share2 className="h-4 w-4" /> Compartir por WhatsApp</Button>
+          <Button type="button" variant="outline" disabled={!summaryControl} onClick={printSummary}><Printer className="h-4 w-4" /> Imprimir / Guardar PDF</Button>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">El objetivo elegido solo modifica este resumen; no cambia los objetivos guardados.</p>
+      </section>
 
       {/* ===================================================
           ÚLTIMO CONTROL
