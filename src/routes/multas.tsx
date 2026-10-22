@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
 import { metricValue } from "@/lib/calc";
@@ -73,20 +73,11 @@ function Multas() {
   }, [players, controls, periods, adjustments, drafts]);
   const total = rows.reduce((sum, row) => sum + (row.payable ?? 0), 0);
   const visibleRows = onlyPaying ? rows.filter(row => row.payable != null && row.payable > 0) : rows;
-  const shareWhatsApp = () => {
-    const payableRows = visibleRows.filter(row => row.payable != null && row.payable > 0);
-    const subtotal = payableRows.reduce((sum, row) => sum + (row.payable ?? 0), 0);
-    const summary = [
-      "*SAN LORENZO DE ALMAGRO*",
-      "*Multas por antropometría · Octubre 2026*",
-      "",
-      ...payableRows.map(row => `• ${row.player.name}: Septiembre ${mm(row.september)} mm | Objetivo octubre ${mm(row.target)} mm | Octubre ${mm(row.current)} mm | Multa ${money(row.payable!)}`),
-      "",
-      `*TOTAL A COBRAR: ${money(subtotal)}*`
-    ].join("\\n");
-    window.open(`https://wa.me/?text=${encodeURIComponent(summary)}`, "_blank", "noopener,noreferrer");
-  };
-  const printReport = () => {
+  const [printDocument, setPrintDocument] = useState<string | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [printRequest, setPrintRequest] = useState(0);
+  const printFrame = useRef<HTMLIFrameElement | null>(null);
+  const reportHtml = () => {
     const escapeHtml = (s: string) => s.replace(/[&<>"']/g, x => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[x] ?? x));
     const selectedTotal = visibleRows.reduce((sum, row) => sum + (row.payable ?? 0), 0);
     const report = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Multas por antropometría - Octubre 2026</title>
@@ -107,11 +98,67 @@ function Multas() {
     ${visibleRows.map(row => `<tr><td class="player">${escapeHtml(row.player.name)}</td><td class="num">${mm(row.september)}</td><td class="num">${mm(row.target)}</td><td class="num">${mm(row.current)}</td><td class="num">${row.difference == null ? "—" : (row.difference > 0 ? "+" : "") + mm(row.difference)}</td><td class="num fine">${row.payable == null ? "—" : money(row.payable)}</td><td>${row.draft.exempt ? "No paga" : "Paga"}</td><td>${escapeHtml(row.draft.note)}</td></tr>`).join("")}
     </tbody></table><div class="total"><span>TOTAL A COBRAR <strong>${money(selectedTotal)}</strong></span></div>
     <footer class="foot">Primer milímetro por encima del objetivo sin cargo. Cada mm adicional: $50.000. Los importes pueden incluir ajustes manuales. Fecha de emisión: ${new Date().toLocaleDateString("es-AR")}.</footer></body></html>`;
-    const popup = window.open("", "_blank");
-    if (!popup) { setMessage("Permití las ventanas emergentes para imprimir el informe."); return; }
-    popup.document.open(); popup.document.write(report); popup.document.close(); popup.focus();
-    popup.setTimeout(() => popup.print(), 350);
+    return report;
   };
+
+  const printReport = () => {
+    setPrintDocument(reportHtml());
+    setPrintRequest(value => value + 1);
+  };
+
+  const shareWhatsApp = async () => {
+    if (typeof navigator.share !== "function") {
+      setMessage("Este navegador no permite compartir una imagen directamente. Probá desde el celular; no se descargó ningún archivo.");
+      return;
+    }
+    setShareBusy(true);
+    setMessage("");
+    try {
+      const html = reportHtml();
+      const parsed = new DOMParser().parseFromString(html, "text/html");
+      const style = parsed.querySelector("style")?.textContent ?? "";
+      const body = parsed.body.innerHTML;
+      const width = 1122;
+      const height = 794;
+      const markup = `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:#fff;overflow:hidden"><style>${style}</style><div style="padding:18px">${body}</div></div>`;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${markup}</foreignObject></svg>`;
+      const imageUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+      const image = new Image();
+      try {
+        await new Promise<void>((resolve, reject) => {
+          image.onload = () => resolve();
+          image.onerror = () => reject(new Error("No se pudo convertir el informe en imagen"));
+          image.src = imageUrl;
+        });
+        const canvas = document.createElement("canvas");
+        canvas.width = width * 2;
+        canvas.height = height * 2;
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("No se pudo crear la imagen");
+        context.scale(2, 2);
+        context.fillStyle = "#fff";
+        context.fillRect(0, 0, width, height);
+        context.drawImage(image, 0, 0, width, height);
+        const blob = await new Promise<Blob>((resolve, reject) =>
+          canvas.toBlob(value => value ? resolve(value) : reject(new Error("No se pudo exportar el PNG")), "image/png"));
+        const file = new File([blob], "multas-antropometria-octubre-2026.png", { type: "image/png" });
+        if (typeof navigator.canShare === "function" && !navigator.canShare({ files: [file] })) {
+          setMessage("Este dispositivo no admite compartir imágenes directamente.");
+          return;
+        }
+        await navigator.share({ files: [file], title: "Multas por antropometría · Octubre 2026" });
+      } finally {
+        URL.revokeObjectURL(imageUrl);
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      console.error(error);
+      setMessage("No se pudo compartir la imagen en este navegador.");
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
   const update = (id: number, patch: Partial<Draft>, previous: Draft) => setDrafts(current => ({ ...current, [id]: { ...previous, ...patch } }));
   async function save(id: number, draft: Draft) {
     const amount = draft.manual.trim() === "" ? null : Number(draft.manual);
@@ -147,7 +194,7 @@ function Multas() {
         <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={onlyPaying} onChange={e => setOnlyPaying(e.target.checked)} /> Mostrar solo las que deben pagar ({rows.filter(row => row.payable != null && row.payable > 0).length})</label>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={printReport} className="rounded bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Imprimir / Guardar PDF</button>
-          <button type="button" onClick={shareWhatsApp} className="rounded border border-primary px-4 py-2 text-sm font-semibold text-primary">Compartir por WhatsApp</button>
+          <button type="button" onClick={() => void shareWhatsApp()} disabled={shareBusy} className="rounded border border-primary px-4 py-2 text-sm font-semibold text-primary">Compartir por WhatsApp</button>
         </div>
       </div>
       <div className="overflow-x-auto rounded-lg border bg-card">
