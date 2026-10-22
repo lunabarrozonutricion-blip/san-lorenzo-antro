@@ -6,6 +6,7 @@ import { metricValue } from "@/lib/calc";
 import { useControls, useObjectivePeriods, usePlayers } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
 import { db } from "@/lib/db";
+import { createFinesImage } from "@/lib/fines-image";
 
 export const Route = createFileRoute("/multas")({
   component: () => <ClientOnly><Multas /></ClientOnly>,
@@ -112,42 +113,24 @@ function Multas() {
     setShareBusy(true);
     setMessage("");
     try {
-      const html = reportHtml();
-      const parsed = new DOMParser().parseFromString(html, "text/html");
-      const style = parsed.querySelector("style")?.textContent ?? "";
-      const body = new XMLSerializer().serializeToString(parsed.body);
-      const width = 1122;
-      const height = 794;
-      const markup = `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:#fff;overflow:hidden"><style>${style}</style>${body}</div>`;
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${markup}</foreignObject></svg>`;
-      const imageUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
-      const image = new Image();
-      try {
-        await new Promise<void>((resolve, reject) => {
-          image.onload = () => resolve();
-          image.onerror = () => reject(new Error("No se pudo convertir el informe en imagen"));
-          image.src = imageUrl;
-        });
-        const canvas = document.createElement("canvas");
-        canvas.width = width * 2;
-        canvas.height = height * 2;
-        const context = canvas.getContext("2d");
-        if (!context) throw new Error("No se pudo crear la imagen");
-        context.scale(2, 2);
-        context.fillStyle = "#fff";
-        context.fillRect(0, 0, width, height);
-        context.drawImage(image, 0, 0, width, height);
-        const blob = await new Promise<Blob>((resolve, reject) =>
-          canvas.toBlob(value => value ? resolve(value) : reject(new Error("No se pudo exportar el PNG")), "image/png"));
-        const file = new File([blob], "multas-antropometria-octubre-2026.png", { type: "image/png" });
-        if (typeof navigator.canShare === "function" && !navigator.canShare({ files: [file] })) {
-          setMessage("Este dispositivo no admite compartir imágenes directamente.");
-          return;
-        }
-        await navigator.share({ files: [file], title: "Multas por antropometría · Octubre 2026" });
-      } finally {
-        URL.revokeObjectURL(imageUrl);
+      const selected = visibleRows.map(row => ({
+        name: row.player.name,
+        september: mm(row.september),
+        target: mm(row.target),
+        october: mm(row.current),
+        difference: row.difference == null ? "—" : (row.difference > 0 ? "+" : "") + mm(row.difference),
+        amount: row.payable == null ? "—" : money(row.payable),
+        status: row.draft.exempt ? "No paga" : row.payable != null && row.payable > 0 ? "Paga" : "Sin multa",
+        note: row.draft.note ?? "",
+      }));
+      const selectedTotal = visibleRows.reduce((sum, row) => sum + (row.payable ?? 0), 0);
+      const blob = await createFinesImage(selected, money(selectedTotal));
+      const file = new File([blob], "multas-antropometria-octubre-2026.png", { type: "image/png" });
+      if (typeof navigator.canShare === "function" && !navigator.canShare({ files: [file] })) {
+        setMessage("Este dispositivo no admite compartir imágenes directamente.");
+        return;
       }
+      await navigator.share({ files: [file], title: "Multas por antropometría · Octubre 2026" });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       console.error(error);
