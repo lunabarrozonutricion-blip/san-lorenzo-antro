@@ -51,6 +51,8 @@ import {
 } from "@/lib/hooks";
 import { targetForPlayer } from "@/lib/objectives";
 import { createPlayerSummaryImage } from "@/lib/player-summary-image";
+import { db } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import {
   METRICS,
   type Player,
@@ -480,6 +482,38 @@ function Ficha() {
       )
       .reverse();
 
+  const [showFine, setShowFine] = useState(false);
+  const [fineAdjustment, setFineAdjustment] = useState<{ exempt: boolean; manual_amount: number | null } | null>(null);
+  useEffect(() => {
+    let active = true;
+    setFineAdjustment(null);
+    const month = "2026-10";
+    async function loadFine() {
+      const local = await db().fineAdjustments.get(`${month}:${playerId}`);
+      if (active && local) setFineAdjustment(local);
+      if (!supabase) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!active || !user) return;
+      const { data, error } = await supabase.from("player_fine_adjustments")
+        .select("exempt, manual_amount").eq("owner_id", user.id)
+        .eq("period_key", month).eq("player_id", playerId).maybeSingle();
+      if (active && !error && data) setFineAdjustment(data);
+    }
+    void loadFine();
+    return () => { active = false; };
+  }, [playerId]);
+  const finePeriod = (objectivePeriods ?? []).find(period => period.key === "2026-10");
+  const octoberControl = (controls ?? []).filter(control => control.date.startsWith("2026-10") && metricValue(control, "sum6") !== null)
+    .sort((a,b) => b.date.localeCompare(a.date) || (b.id ?? 0) - (a.id ?? 0))[0];
+  const octoberValue = octoberControl ? metricValue(octoberControl, "sum6") : null;
+  const octoberTarget = targetForPlayer(finePeriod, player);
+  const fineCalculated = octoberValue === null || octoberTarget === null ? null :
+    Math.max(0, octoberValue - octoberTarget - 1) * 50000;
+  const fineAmount = fineAdjustment?.exempt ? 0 :
+    fineAdjustment?.manual_amount != null ? fineAdjustment.manual_amount : fineCalculated;
+  const fineDisplay = fineAdjustment?.exempt ? "No paga" :
+    fineAmount === null ? "Sin datos para calcular" :
+    new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(fineAmount);
   const [summaryControlId, setSummaryControlId] = useState("");
   const [summaryObjectiveKey, setSummaryObjectiveKey] = useState("");
   const sum6Controls = (controls ?? []).filter((control) => metricValue(control, "sum6") !== null);
@@ -517,6 +551,7 @@ function Ficha() {
     objectiveLabel: selectedSummaryPeriod?.label ?? "Sin período",
     objective: summaryNumber(summaryTarget),
     objectiveDifference: summaryNumber(summaryTargetDiff, true),
+    ...(showFine ? { fine: fineDisplay } : {}),
   });
 
   async function shareSummaryWhatsApp() {
@@ -1174,6 +1209,14 @@ function Ficha() {
             </div>
           ))}
         </div>
+        <label className="mt-4 flex items-center gap-2 text-sm font-medium">
+          <input type="checkbox" checked={showFine} onChange={(event) => setShowFine(event.target.checked)} />
+          Mostrar valor de multa
+        </label>
+        {showFine && <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+          <span className="font-semibold">Multa octubre 2026:</span> {fineDisplay}
+          <p className="mt-1 text-xs">Se calcula con la medición y objetivo de octubre, respetando ajustes manuales y estado «No paga».</p>
+        </div>}
         <div className="mt-4 flex flex-wrap gap-2">
           <Button type="button" disabled={!summaryControl} onClick={shareSummaryWhatsApp}><Share2 className="h-4 w-4" /> Compartir por WhatsApp</Button>
           <Button type="button" variant="outline" disabled={!summaryControl} onClick={printSummary}><Printer className="h-4 w-4" /> Imprimir / Guardar PDF</Button>

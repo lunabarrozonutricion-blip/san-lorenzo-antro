@@ -8,6 +8,7 @@ type SummaryCard = {
   objectiveLabel: string;
   objective: string;
   objectiveDifference: string;
+  fine?: string;
 };
 
 export async function createPlayerSummaryImage(data: SummaryCard): Promise<Blob> {
@@ -66,9 +67,19 @@ export async function createPlayerSummaryImage(data: SummaryCard): Promise<Blob>
   ctx.fillText(data.objectiveLabel, 100, 1025);
   tile(ctx, 100, 1050, 420, 140, "OBJETIVO SUM6", data.objective, navy, "#f0f4fa");
   tile(ctx, 560, 1050, 420, 140, "DIFERENCIA VS. OBJETIVO", data.objectiveDifference, red, "#fff0f2");
+  if (data.fine) {
+    ctx.fillStyle = "#fff0f2";
+    rounded(ctx, 100, 1202, 880, 80, 16);
+    ctx.fill();
+    ctx.fillStyle = red;
+    ctx.font = "bold 22px Arial";
+    ctx.fillText("MULTA ANTROPOMÉTRICA", 126, 1235);
+    ctx.font = "bold 35px Arial";
+    ctx.fillText(data.fine, 560, 1243, 395);
+  }
   ctx.fillStyle = gray;
   ctx.font = "19px Arial";
-  ctx.fillText("Seguimiento individual · Sumatoria de 6 pliegues (mm)", 100, 1250);
+  ctx.fillText("Seguimiento individual · Sumatoria de 6 pliegues (mm)", 100, data.fine ? 1292 : 1250);
   return await new Promise<Blob>((resolve, reject) =>
     canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("No se pudo exportar la imagen")), "image/png"));
 }
