@@ -75,7 +75,6 @@ function Multas() {
   const visibleRows = onlyPaying ? rows.filter(row => row.payable != null && row.payable > 0) : rows;
   const [printDocument, setPrintDocument] = useState<string | null>(null);
   const [shareBusy, setShareBusy] = useState(false);
-  const [printRequest, setPrintRequest] = useState(0);
   const printFrame = useRef<HTMLIFrameElement | null>(null);
   const reportHtml = () => {
     const escapeHtml = (s: string) => s.replace(/[&<>"']/g, x => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[x] ?? x));
@@ -103,7 +102,6 @@ function Multas() {
 
   const printReport = () => {
     setPrintDocument(reportHtml());
-    setPrintRequest(value => value + 1);
   };
 
   const shareWhatsApp = async () => {
@@ -180,7 +178,20 @@ function Multas() {
       setSaving(null);
     }
   }
-  return <AppLayout title="Multas" subtitle="Octubre 2026 · Sum6 y objetivos del plantel">
+  return <><iframe
+    title="Impresión de multas"
+    ref={printFrame}
+    srcDoc={printDocument ?? undefined}
+    onLoad={() => {
+      if (!printDocument) return;
+      const frameWindow = printFrame.current?.contentWindow;
+      if (!frameWindow) return;
+      frameWindow.focus();
+      frameWindow.print();
+    }}
+    style={{ position: "fixed", left: "-10000px", top: 0, width: "1122px", height: "794px", border: 0 }}
+    aria-hidden="true"
+  /><AppLayout title="Multas" subtitle="Octubre 2026 · Sum6 y objetivos del plantel">
     <div className="space-y-4">
       <div className="rounded-lg border bg-card p-4">
         <h2 className="text-xl font-bold">Multas · Octubre 2026</h2>
