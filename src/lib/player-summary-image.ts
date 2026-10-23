@@ -94,7 +94,7 @@ export async function createPlayerSummaryImage(data: SummaryCard): Promise<Blob>
   }
   ctx.fillStyle = gray;
   ctx.font = "19px Arial";
-  ctx.fillText("Seguimiento individual · Sumatoria de 6 pliegues (mm)", 100, data.additionalGoal ? 1510 : (data.fine ? 1292 : 1250));
+
   return await new Promise<Blob>((resolve, reject) =>
     canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("No se pudo exportar la imagen")), "image/png"));
 }
