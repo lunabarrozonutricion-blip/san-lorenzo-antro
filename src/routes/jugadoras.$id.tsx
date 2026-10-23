@@ -516,12 +516,17 @@ function Ficha() {
     new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(fineAmount);
   const [summaryControlId, setSummaryControlId] = useState("");
   const [summaryObjectiveKey, setSummaryObjectiveKey] = useState("");
+  const [showAdditionalGoal, setShowAdditionalGoal] = useState(false);
+  const [additionalGoalKey, setAdditionalGoalKey] = useState("");
   const sum6Controls = (controls ?? []).filter((control) => metricValue(control, "sum6") !== null);
   const summaryControl = sum6Controls.find((control) => String(control.id) === summaryControlId) ?? sum6Controls[0];
   const summaryIndex = sum6Controls.findIndex((control) => control === summaryControl);
   const previousSummaryControl = summaryIndex >= 0 ? sum6Controls[summaryIndex + 1] : undefined;
   const selectedSummaryPeriod = (objectivePeriods ?? []).find((period) => period.key === summaryObjectiveKey)
     ?? currentObjectivePeriod;
+  const additionalGoalPeriods = (objectivePeriods ?? []).filter(period => targetForPlayer(period, player) !== null);
+  const selectedAdditionalGoalPeriod = additionalGoalPeriods.find(period => period.key === additionalGoalKey) ?? additionalGoalPeriods.find(period => period.key !== selectedSummaryPeriod?.key) ?? additionalGoalPeriods[0];
+  const additionalGoalTarget = targetForPlayer(selectedAdditionalGoalPeriod, player);
   const summaryCurrent = summaryControl ? metricValue(summaryControl, "sum6") : null;
   const summaryPrevious = previousSummaryControl ? metricValue(previousSummaryControl, "sum6") : null;
   const summaryTarget = targetForPlayer(selectedSummaryPeriod, player);
@@ -539,6 +544,7 @@ function Ficha() {
     `Diferencia vs anterior: ${summaryNumber(summaryDiff, true)}`,
     `Objetivo ${selectedSummaryPeriod?.label ?? "sin seleccionar"}: ${summaryNumber(summaryTarget)}`,
     `Diferencia vs objetivo: ${summaryNumber(summaryTargetDiff, true)}`,
+    ...(showAdditionalGoal && selectedAdditionalGoalPeriod ? [`Objetivo adicional ${selectedAdditionalGoalPeriod.label}: ${summaryNumber(additionalGoalTarget)}`] : []),
   ].join("\n");
 
   const summaryImageData = () => ({
@@ -551,6 +557,7 @@ function Ficha() {
     objectiveLabel: selectedSummaryPeriod?.label ?? "Sin período",
     objective: summaryNumber(summaryTarget),
     objectiveDifference: summaryNumber(summaryTargetDiff, true),
+    ...(showAdditionalGoal && selectedAdditionalGoalPeriod ? { additionalGoalLabel: selectedAdditionalGoalPeriod.label, additionalGoal: summaryNumber(additionalGoalTarget) } : {}),
     ...(showFine ? { fine: fineDisplay } : {}),
   });
 
@@ -1208,6 +1215,24 @@ function Ficha() {
               <p className="mt-1 font-semibold numeric">{value}</p>
             </div>
           ))}
+        </div>
+        <div className="mt-4 space-y-3 rounded-lg border border-border p-3">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" checked={showAdditionalGoal} onChange={event => setShowAdditionalGoal(event.target.checked)} />
+            Mostrar otro objetivo mensual
+          </label>
+          {showAdditionalGoal && <>
+            <label className="block text-sm font-medium">Mes del objetivo adicional
+              <select className="mt-1 block h-10 w-full rounded-md border border-input bg-background px-3" value={selectedAdditionalGoalPeriod?.key ?? ""} onChange={event => setAdditionalGoalKey(event.target.value)}>
+                {additionalGoalPeriods.map(period => <option key={period.key} value={period.key}>{period.label}</option>)}
+              </select>
+            </label>
+            <div className="rounded-lg bg-muted/50 p-3">
+              <p className="text-xs uppercase text-muted-foreground">Objetivo adicional {selectedAdditionalGoalPeriod?.label ?? ""}</p>
+              <p className="mt-1 font-semibold numeric">{summaryNumber(additionalGoalTarget)}</p>
+            </div>
+            <p className="text-xs text-muted-foreground">Solo se muestra un objetivo ya guardado. No cambia la comparación ni el cálculo de la multa.</p>
+          </>}
         </div>
         <label className="mt-4 flex items-center gap-2 text-sm font-medium">
           <input type="checkbox" checked={showFine} onChange={(event) => setShowFine(event.target.checked)} />
