@@ -9,21 +9,23 @@ type SummaryCard = {
   objective: string;
   objectiveDifference: string;
   fine?: string;
+  additionalGoalLabel?: string;
+  additionalGoal?: string;
 };
 
 export async function createPlayerSummaryImage(data: SummaryCard): Promise<Blob> {
   const canvas = document.createElement("canvas");
   canvas.width = 1080;
-  canvas.height = 1350;
+  canvas.height = data.additionalGoal ? 1530 : 1350;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No se pudo crear la imagen");
   const navy = "#0b234a";
   const red = "#c8102e";
   const gray = "#64748b";
   ctx.fillStyle = "#f3f5f9";
-  ctx.fillRect(0, 0, 1080, 1350);
+  ctx.fillRect(0, 0, 1080, canvas.height);
   ctx.fillStyle = "#fff";
-  rounded(ctx, 46, 42, 988, 1256, 28);
+  rounded(ctx, 46, 42, 988, canvas.height - 94, 28);
   ctx.fill();
   ctx.fillStyle = navy;
   rounded(ctx, 46, 42, 988, 236, 28);
@@ -67,19 +69,22 @@ export async function createPlayerSummaryImage(data: SummaryCard): Promise<Blob>
   ctx.fillText(data.objectiveLabel, 100, 1025);
   tile(ctx, 100, 1050, 420, 140, "OBJETIVO SUM6", data.objective, navy, "#f0f4fa");
   tile(ctx, 560, 1050, 420, 140, "DIFERENCIA VS. OBJETIVO", data.objectiveDifference, red, "#fff0f2");
+  if (data.additionalGoal) {
+    tile(ctx, 100, 1205, 880, 145, `OBJETIVO ADICIONAL · ${data.additionalGoalLabel ?? ""}`.toUpperCase(), data.additionalGoal, navy, "#eaf0f6");
+  }
   if (data.fine) {
     ctx.fillStyle = "#fff0f2";
-    rounded(ctx, 100, 1202, 880, 80, 16);
+    rounded(ctx, 100, data.additionalGoal ? 1362 : 1202, 880, 80, 16);
     ctx.fill();
     ctx.fillStyle = red;
     ctx.font = "bold 22px Arial";
-    ctx.fillText("MULTA ANTROPOMÉTRICA", 126, 1235);
+    ctx.fillText("MULTA ANTROPOMÉTRICA", 126, data.additionalGoal ? 1395 : 1235);
     ctx.font = "bold 35px Arial";
-    ctx.fillText(data.fine, 560, 1243, 395);
+    ctx.fillText(data.fine, 560, data.additionalGoal ? 1403 : 1243, 395);
   }
   ctx.fillStyle = gray;
   ctx.font = "19px Arial";
-  ctx.fillText("Seguimiento individual · Sumatoria de 6 pliegues (mm)", 100, data.fine ? 1292 : 1250);
+  ctx.fillText("Seguimiento individual · Sumatoria de 6 pliegues (mm)", 100, data.additionalGoal ? (data.fine ? 1472 : 1410) : (data.fine ? 1292 : 1250));
   return await new Promise<Blob>((resolve, reject) =>
     canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("No se pudo exportar la imagen")), "image/png"));
 }
