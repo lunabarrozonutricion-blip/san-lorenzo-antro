@@ -65,14 +65,6 @@ function AnnualNutritionReport() {
   const yearWeightRecords = (weightRecords ?? []).filter(record => record.date.startsWith("2026"));
   const weightDates = [...new Set(yearWeightRecords.map(record => record.date))];
   const visibleMonthly = monthly.filter((month,index) => !compareOnly || selectedMonths.length === 0 || selectedMonths.includes(index));
-  const monthlyWeight = monthNames.map((name,index) => {
-    const prefix = `2026-${String(index+1).padStart(2,"0")}`;
-    const latest = new Map<number, number>();
-    const controlsForMonth = (controls ?? []).filter(control => control.date.startsWith(prefix) && control.weight != null).sort((a,b)=>a.date.localeCompare(b.date));
-    controlsForMonth.forEach(control=>latest.set(control.playerId,control.weight!));
-    const weights=[...latest.values()];
-    return {name, count:weights.length, average:weights.length ? weights.reduce((a,b)=>a+b,0)/weights.length : null};
-  }).filter((_,index)=>!compareOnly || selectedMonths.includes(index));
   const monthlySum6 = monthly.map((month,index)=>({...month,index})).filter(month=>month.count>0 && (!compareOnly || selectedMonths.length === 0 || selectedMonths.includes(month.index)));
 
   const activeMonths = monthly.filter(m => m.count > 0);
@@ -116,8 +108,34 @@ function AnnualNutritionReport() {
       <div className="mt-3 flex flex-wrap gap-2">{monthNames.map((name,index)=><label key={name} className={`cursor-pointer rounded-lg border px-3 py-2 text-xs font-semibold ${selectedMonths.includes(index)?"border-[#c8102e] bg-rose-50 text-[#0b234a]":"border-[#dbe3ef]"}`}><input type="checkbox" className="mr-2" checked={selectedMonths.includes(index)} onChange={e=>setSelectedMonths(old=>e.target.checked?[...old,index]:old.filter(item=>item!==index))} />{name}</label>)}</div>
     </div>
     <div className="rounded-xl border border-border p-5"><h3 className="mb-4 font-semibold text-[#0b234a]">Distribución mensual por rangos de Sum6</h3>{chart}</div>
-    <div className="rounded-xl border border-border p-5"><h3 className="mb-4 font-semibold text-[#0b234a]">Promedio de Sum6 por mes</h3><div className="space-y-3">{monthlySum6.map(month=><div key={month.name} className="flex items-center justify-between border-b pb-2 text-sm"><span>{month.name}</span><strong>{number(month.average!)} mm <span className="ml-2 font-normal text-muted-foreground">({month.count} jugadoras)</span></strong></div>)}{monthlySum6.length===0&&<p className="text-sm text-muted-foreground">No hay mediciones para los meses seleccionados.</p>}</div></div>
-    <div className="rounded-xl border border-border p-5"><h3 className="mb-4 font-semibold text-[#0b234a]">Peso promedio del plantel por mes</h3><div className="space-y-3">{monthlyWeight.filter(month=>month.count>0).map(month=><div key={month.name} className="flex items-center justify-between border-b pb-2 text-sm"><span>{month.name}</span><strong>{number(month.average!)} kg <span className="ml-2 font-normal text-muted-foreground">({month.count} jugadoras)</span></strong></div>)}{monthlyWeight.every(month=>month.count===0)&&<p className="text-sm text-muted-foreground">Sin registros de peso antropométrico para estos meses.</p>}</div></div>
+    <div className="overflow-hidden rounded-2xl border border-[#d5deeb] bg-white shadow-[0_5px_20px_rgba(11,35,74,0.07)]">
+      <div className="border-b border-[#dbe3ef] bg-gradient-to-r from-[#0b234a] to-[#173b70] px-5 py-5 text-white sm:px-7">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#f3a4b1]">Evolución de la temporada</p>
+        <h3 className="mt-1 text-xl font-bold">Promedio grupal de Sum6</h3>
+        <p className="mt-1 text-xs text-[#cbd7e9]">Sumatoria de seis pliegues · milímetros</p>
+      </div>
+      <div className="p-5 sm:p-7">
+        {monthlySum6.length === 0 ? <p className="text-sm text-muted-foreground">No hay mediciones para los meses seleccionados.</p> : <>
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div><p className="text-xs font-semibold uppercase tracking-wide text-[#60738f]">Último promedio disponible</p><p className="mt-1 text-3xl font-extrabold text-[#0b234a]">{number(monthlySum6[monthlySum6.length-1].average!)} <span className="text-base font-medium text-[#60738f]">mm</span></p></div>
+            {monthlySum6.length>1&&<div className="rounded-xl bg-[#edf2f9] px-4 py-3 text-right"><p className="text-xs text-[#60738f]">Variación entre períodos mostrados</p><p className={`text-lg font-bold ${monthlySum6[monthlySum6.length-1].average! - monthlySum6[0].average! <= 0?"text-emerald-700":"text-[#c8102e]"}`}>{monthlySum6[monthlySum6.length-1].average! - monthlySum6[0].average! > 0?"+":""}{number(monthlySum6[monthlySum6.length-1].average! - monthlySum6[0].average!)} mm</p></div>}
+          </div>
+          {(() => {
+            const values=monthlySum6.map(m=>m.average!);
+            const low=Math.min(...values),high=Math.max(...values),span=Math.max(4,high-low);
+            const min=low-span*.2,max=high+span*.2;
+            const points=values.map((value,i)=>({x:55+(monthlySum6.length===1?0:i* (580/(monthlySum6.length-1))),y:210-(value-min)/(max-min)*160,value,label:monthlySum6[i].name}));
+            const line=points.map((p,i)=>`${i===0?"M":"L"} ${p.x} ${p.y}`).join(" ");
+            return <div className="overflow-x-auto"><svg viewBox="0 0 700 265" className="h-auto min-w-[480px] w-full" role="img" aria-label="Gráfico de evolución del promedio grupal de sumatoria de seis pliegues por mes">
+              {[0,1,2,3,4].map(i=><line key={i} x1="45" x2="650" y1={40+i*42} y2={40+i*42} stroke="#e4eaf2" strokeDasharray="4 5" />)}
+              {points.length>1&&<path d={line} fill="none" stroke="#c8102e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />}
+              {points.map((p,i)=><g key={i}><circle cx={p.x} cy={p.y} r="6" fill="#c8102e" stroke="white" strokeWidth="2"/><text x={p.x} y={p.y-14} textAnchor="middle" fontSize="13" fontWeight="700" fill="#0b234a">{number(p.value)} mm</text><text x={p.x} y="241" textAnchor="middle" fontSize="12" fill="#60738f">{p.label.slice(0,3)}</text></g>)}
+            </svg></div>;
+          })()}
+          <p className="mt-2 text-xs text-[#60738f]">Cada punto representa el promedio de las últimas mediciones de Sum6 disponibles en ese mes. La cantidad de jugadoras puede variar entre períodos.</p>
+        </>}
+      </div>
+    </div>
     <p className="text-xs text-muted-foreground">Se utiliza la última evaluación válida de cada jugadora por mes. Los promedios son descriptivos y pueden representar grupos diferentes entre períodos. Los pesajes se contabilizan por fecha registrada en el módulo Pesajes.</p>
   </div>;
   const hydrationContent = <div className="space-y-6">
