@@ -877,6 +877,10 @@ function InformeGrupal() {
 
           const octoberControl = (controlsByPlayer.get(player.id) ?? []).find(control => control.date.startsWith("2026-10") && metricValue(control, "sum6") !== null);
           const october = octoberControl ? metricValue(octoberControl, "sum6") : null;
+          const novemberControl = (controlsByPlayer.get(player.id) ?? [])
+            .filter(control => control.date.startsWith("2026-11") && metricValue(control, "sum6") !== null)
+            .sort((a, b) => b.date.localeCompare(a.date) || (b.id ?? 0) - (a.id ?? 0))[0];
+          const november = novemberControl ? metricValue(novemberControl, "sum6") : null;
           const target = objectiveTargetByPlayerId.get(player.id) ?? null;
           const septemberTarget = target;
 
@@ -884,6 +888,8 @@ function InformeGrupal() {
             player,
             ...history,
             october,
+            november,
+            novemberDate: novemberControl?.date ?? null,
             octoberDate: octoberControl?.date ?? null,
             september,
             septemberDate:
@@ -914,6 +920,8 @@ function InformeGrupal() {
         agosto: number | null;
         september: number | null;
         october: number | null;
+        november: number | null;
+        novemberDate: string | null;
         octoberDate: string | null;
         septemberDate:
           | string
@@ -944,6 +952,7 @@ function InformeGrupal() {
         "agosto",
         "september",
         "october",
+        "november",
       ] as const;
 
 
@@ -986,6 +995,7 @@ function InformeGrupal() {
           red: 0,
         },
         october: { green: 0, yellow: 0, red: 0 },
+        november: { green: 0, yellow: 0, red: 0 },
       };
 
 
@@ -2302,7 +2312,7 @@ function InformeGrupal() {
               <div className="mt-5 space-y-2">
                 <PrintOption
                   label="Comparativa grupal"
-                  description="Tabla Inicio–Octubre + objetivos mensuales"
+                  description="Tabla Inicio–Noviembre + objetivos mensuales"
                   checked={
                     printSections.groupSummary
                   }
@@ -2476,7 +2486,7 @@ function InformeGrupal() {
 
           <p className="mt-1 text-sm text-muted-foreground">
             Inicio de temporada
-            a octubre 2026 ·
+            a noviembre 2026 ·
             Cada mes muestra el último control con Sum6 cargado.
           </p>
 
@@ -2490,6 +2500,8 @@ function InformeGrupal() {
             {septemberMeasured}{" "}
             jugadoras con medición cargada. Octubre:{" "}
             {groupSummaryRows.filter(row => row.october !== null).length}{" "}
+            jugadoras con medición cargada. Noviembre:{" "}
+            {groupSummaryRows.filter(row => row.november !== null).length}{" "}
             jugadoras con medición cargada.
           </p>
         </div>
@@ -2544,6 +2556,7 @@ function InformeGrupal() {
                 </th>
 
 
+                <th className="px-3 py-3 text-right font-semibold">Noviembre</th>
                 {showOctoberChange && <th className="px-3 py-3 text-right font-semibold">Δ septiembre → octubre</th>}
                 {showSeptemberObjectiveDelta && <th className="px-3 py-3 text-right font-semibold">Δ septiembre vs objetivo octubre</th>}
                 {showObjectives && (
@@ -2633,6 +2646,7 @@ function InformeGrupal() {
                     <BandCell value={row.october} sub={row.octoberDate ? fmtDate(row.octoberDate) : undefined} emphasize />
 
 
+                    <BandCell value={row.november} sub={row.novemberDate ? fmtDate(row.novemberDate) : undefined} emphasize />
                     {showOctoberChange && <td className="numeric whitespace-nowrap px-3 py-2.5 text-right font-semibold">{fmtDiff(row.octoberChange, 1)}</td>}
                     {showSeptemberObjectiveDelta && <td className="numeric whitespace-nowrap px-3 py-2.5 text-right font-semibold">{fmtDiff(row.vsSeptemberTarget, 1)}</td>}
                     {showObjectives && (
@@ -3365,7 +3379,8 @@ function BandDistributionChart({
     | "julio"
     | "agosto"
     | "september"
-    | "october",
+    | "october"
+    | "november",
     {
       green: number;
       yellow: number;
@@ -3384,6 +3399,7 @@ function BandDistributionChart({
       "Septiembre",
     ],
     ["october", "Octubre"],
+    ["november", "Noviembre"],
   ] as const;
 
 
