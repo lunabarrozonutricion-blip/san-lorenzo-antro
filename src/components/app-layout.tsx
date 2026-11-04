@@ -5,6 +5,7 @@ import {
   Database,
   Droplets,
   Home,
+  FileBarChart,
   Menu,
   Receipt,
   Scale,
@@ -64,6 +65,11 @@ export const NAV = [
     to: "/plantel",
     label: "Plantel completo",
     icon: BarChart3,
+  },
+  {
+    to: "/informe-anual",
+    label: "Informe Anual Nutricional",
+    icon: FileBarChart,
   },
   {
     to: "/datos",
