@@ -85,14 +85,49 @@ function AnnualNutritionReport() {
   return <AppLayout title="Informe Anual Nutricional" subtitle="San Lorenzo · Primera División – Fútbol Femenino">
     <style>{`@media print { @page { size: A4 portrait; margin: 12mm; } body { background: white !important; } .annual-screen-only { display:none !important; } .annual-print { display:block !important; } .annual-print-section { break-inside:avoid; margin-bottom:16mm; } .annual-report-shell { border:0 !important; box-shadow:none !important; } .print-area { padding:0 !important; } .annual-print h2 { color:#0b234a !important; } }`}</style>
     <div className="mx-auto max-w-6xl space-y-5">
-      <div className="annual-screen-only rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-7">
-        <div className="flex items-start gap-3"><FileBarChart className="mt-1 h-6 w-6 text-[#0b234a]" /><div><h2 className="font-display text-xl font-semibold">Informe Anual Nutricional</h2><p className="text-sm text-muted-foreground">San Lorenzo · Fútbol Femenino</p></div></div>
-        <div className="my-6 border-t border-border" />
-        <label className="flex items-center justify-between gap-4 text-sm font-semibold">Temporada <select className="rounded-lg border border-input bg-background px-3 py-2 text-sm" value={year} onChange={e=>setYear(Number(e.target.value))}>{Array.from({length:7},(_,i)=>2025+i).map(y=><option key={y} value={y}>{y}</option>)}</select></label>
-        <div className="mt-7 grid gap-3 sm:grid-cols-2">{sections.map(({id,label,sub,Icon})=><button type="button" key={id} onClick={()=>selectSection(id)} className={`rounded-xl border p-4 text-left transition hover:border-[#0b234a]/50 hover:bg-muted/30 ${section===id?"border-[#0b234a]/30 bg-[#0b234a]/5":"border-transparent"}`}><Icon className="mb-3 h-5 w-5 text-[#0b234a]" /><span className="block font-semibold">{label}</span><span className="text-sm text-muted-foreground">{sub}</span></button>)}</div>
-        <div className="mt-6 flex flex-wrap items-center justify-end gap-3"><Button variant="outline" onClick={saveNotes}><Save className="mr-2 h-4 w-4" />{saved?"Guardar textos":"Guardar cambios"}</Button><Button onClick={printReport}><Printer className="mr-2 h-4 w-4" />Imprimir / Guardar PDF</Button></div>
+      <div className="annual-screen-only overflow-hidden rounded-2xl border border-[#d6deea] bg-white shadow-[0_12px_32px_rgba(11,35,74,0.10)]">
+        <div className="relative overflow-hidden bg-[#0b234a] px-6 py-7 text-white sm:px-9 sm:py-9">
+          <div className="pointer-events-none absolute -right-16 -top-28 h-80 w-80 rounded-full border-[45px] border-white/[0.05]" />
+          <div className="pointer-events-none absolute bottom-[-90px] right-[22%] h-52 w-52 rotate-45 border-[35px] border-[#c8102e]/20" />
+          <div className="relative flex flex-wrap items-start justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10"><FileBarChart className="h-7 w-7 text-white" /></div>
+              <div>
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#f1a4b1]">San Lorenzo de Almagro · Área Nutricional</p>
+                <h2 className="font-display text-2xl font-extrabold leading-tight sm:text-3xl">Informe Anual Nutricional</h2>
+                <p className="mt-2 text-sm text-[#cbd7e9]">Primera División · Fútbol Femenino</p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3">
+              <label htmlFor="annual-year" className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-[#cbd7e9]">Temporada</label>
+              <select id="annual-year" className="min-w-28 bg-transparent text-lg font-bold text-white outline-none [&>option]:text-[#0b234a]" value={year} onChange={e=>setYear(Number(e.target.value))}>{Array.from({length:7},(_,i)=>2025+i).map(y=><option key={y} value={y}>{y}</option>)}</select>
+            </div>
+          </div>
+        </div>
+        <div className="h-1.5 bg-[#c8102e]" />
+        <div className="bg-gradient-to-b from-[#f2f5fa] to-white px-5 py-7 sm:px-9 sm:py-8">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
+            <div><p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#c8102e]">Panel de gestión</p><h3 className="mt-1 text-lg font-bold text-[#0b234a]">Resultados de la temporada</h3></div>
+            <p className="text-xs text-[#60738f]">Seleccioná una sección para explorar los datos</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {sections.map(({id,label,sub,Icon},index)=><button type="button" key={id} onClick={()=>selectSection(id)} aria-pressed={section===id} className={`group relative flex min-h-36 items-start gap-4 overflow-hidden rounded-xl border bg-white p-5 text-left shadow-[0_3px_12px_rgba(11,35,74,0.06)] transition-all hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#c8102e] ${section===id?"border-[#c8102e] ring-1 ring-[#c8102e]/20":"border-[#dbe3ef] hover:border-[#9aaecb]"}`}>
+              <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${section===id?"bg-[#0b234a] text-white":"bg-[#eaf0f8] text-[#0b234a]"}`}><Icon className="h-6 w-6" /></span>
+              <span className="pt-1"><span className="block text-base font-bold text-[#0b234a]">{label}</span><span className="mt-1 block text-sm text-[#60738f]">{sub}</span><span className="mt-3 block text-xs font-semibold text-[#c8102e]">Explorar sección →</span></span>
+              <span className="absolute right-4 top-4 text-xs font-bold text-[#c6d0df]">0{index+1}</span>
+              {section===id && <span className="absolute bottom-0 left-0 h-1 w-full bg-[#c8102e]" />}
+            </button>)}
+          </div>
+          <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-[#dbe3ef] pt-5">
+            <p className="text-xs text-[#60738f]">Los indicadores se actualizan con los registros de la aplicación.</p>
+            <div className="flex flex-wrap gap-3"><Button variant="outline" className="border-[#b7c6d9] bg-white text-[#0b234a] hover:bg-[#edf2f9]" onClick={saveNotes}><Save className="mr-2 h-4 w-4" />{saved?"Guardar textos":"Guardar cambios"}</Button><Button className="bg-[#0b234a] text-white hover:bg-[#173c71]" onClick={printReport}><Printer className="mr-2 h-4 w-4" />Imprimir / Guardar PDF</Button></div>
+          </div>
+        </div>
       </div>
-      <div id="annual-report-details" className="annual-screen-only annual-report-shell rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-7">{section==="anthro"?anthroContent:section==="hydration"?hydrationContent:section==="interventions"?interventionsContent:conclusionsContent}</div>
+      <div id="annual-report-details" className="annual-screen-only annual-report-shell overflow-hidden rounded-2xl border border-[#d6deea] bg-white shadow-[0_8px_24px_rgba(11,35,74,0.07)]">
+        <div className="flex items-center gap-3 border-b border-[#dbe3ef] bg-[#0b234a] px-6 py-4 text-white"><span className="h-7 w-1 rounded-full bg-[#c8102e]" /><span className="text-sm font-bold uppercase tracking-wider">{sections.find(item=>item.id===section)?.label}</span><span className="ml-auto text-xs text-[#cbd7e9]">Temporada {year}</span></div>
+        <div className="p-5 sm:p-8">{section==="anthro"?anthroContent:section==="hydration"?hydrationContent:section==="interventions"?interventionsContent:conclusionsContent}</div>
+      </div>
       <div className="annual-print hidden space-y-8">
         <div className="border-b-4 border-[#c8102e] pb-5"><p className="text-sm font-semibold uppercase tracking-widest text-[#c8102e]">San Lorenzo de Almagro · Fútbol Femenino</p><h1 className="mt-2 text-3xl font-bold text-[#0b234a]">Informe Anual de Gestión Nutricional</h1><p className="mt-2 text-lg">Temporada {year}</p></div>
         <div className="annual-print-section">{anthroContent}</div>
