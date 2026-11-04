@@ -94,6 +94,7 @@ async function preloadAppScreens() {
     import("./seguimiento"),
     import("./informes"),
     import("./plantel"),
+    import("./informe-anual"),
     import("./datos"),
     import("./pesajes"),
     import("./hidratacion"),
