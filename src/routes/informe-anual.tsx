@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
 import { Button } from "@/components/ui/button";
-import { useControls, useHydrationTests, usePlayers } from "@/lib/hooks";
+import { useControls, useHydrationTests, usePlayers, useWeightRecords } from "@/lib/hooks";
 import { metricValue } from "@/lib/calc";
 
 export const Route = createFileRoute("/informe-anual")({
@@ -27,9 +27,12 @@ function SectionTitle({ children, subtitle }: { children: React.ReactNode; subti
 }
 function AnnualNutritionReport() {
   const players = usePlayers();
+  const weightRecords = useWeightRecords();
   const controls = useControls();
   const hydrationTests = useHydrationTests();
-  const [year, setYear] = useState(2026);
+  const year = 2026;
+  const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+  const [compareOnly, setCompareOnly] = useState(false);
   const [section, setSection] = useState<Section>("anthro");
   const [notes, setNotes] = useState<Notes>(emptyNotes);
   const [saved, setSaved] = useState(true);
@@ -59,9 +62,30 @@ function AnnualNutritionReport() {
     return { name, values, groups, count: values.length, average: values.length ? values.reduce((a,b)=>a+b,0)/values.length : null };
   }), [yearControls, year]);
   const measuredPlayers = new Set(yearControls.map(c => c.playerId)).size;
+  const yearWeightRecords = (weightRecords ?? []).filter(record => record.date.startsWith("2026"));
+  const weightDates = [...new Set(yearWeightRecords.map(record => record.date))];
+  const visibleMonthly = monthly.filter((month,index) => !compareOnly || selectedMonths.includes(index));
+  const monthlyWeight = monthNames.map((name,index) => {
+    const prefix = `2026-${String(index+1).padStart(2,"0")}`;
+    const latest = new Map<number, number>();
+    const controlsForMonth = (controls ?? []).filter(control => control.date.startsWith(prefix) && control.weight != null).sort((a,b)=>a.date.localeCompare(b.date));
+    controlsForMonth.forEach(control=>latest.set(control.playerId,control.weight!));
+    const weights=[...latest.values()];
+    return {name, count:weights.length, average:weights.length ? weights.reduce((a,b)=>a+b,0)/weights.length : null};
+  }).filter((_,index)=>!compareOnly || selectedMonths.includes(index));
+  const monthlySum6 = monthly.map((month,index)=>({...month,index})).filter(month=>month.count>0 && (!compareOnly || selectedMonths.includes(month.index)));
+
   const activeMonths = monthly.filter(m => m.count > 0);
   const first = activeMonths[0], last = activeMonths[activeMonths.length - 1];
-  const tests = useMemo(() => (hydrationTests ?? []).filter(t => t.date.startsWith(String(year))), [hydrationTests, year]);
+  const tests = useMemo(() => (hydrationTests ?? []).filter(t => t.date.startsWith(String(year))).sort((a,b)=>a.date.localeCompare(b.date)), [hydrationTests, year]);
+  const hydrationEvolution = tests.map(test=>{
+    const measured=test.entries.filter(entry=>entry.value != null && Number.isFinite(entry.value));
+    const hydrated=measured.filter(entry=>(entry.value as number)<=1020).length;
+    return {date:test.date,count:measured.length,hydrated,percent:measured.length?hydrated/measured.length*100:null};
+  });
+  const firstHydration=hydrationEvolution.find(item=>item.count>0);
+  const lastHydration=[...hydrationEvolution].reverse().find(item=>item.count>0);
+
   const hydration = useMemo(() => {
     const measured = tests.flatMap(t => t.entries).filter(e => e.value !== null && Number.isFinite(e.value));
     const hydrated = measured.filter(e => (e.value as number) <= 1020).length;
@@ -77,9 +101,32 @@ function AnnualNutritionReport() {
   const printReport = () => {
     window.print();
   };
-  const chart = <div className="space-y-4">{activeMonths.length === 0 ? <p className="text-sm text-muted-foreground">Todavía no hay mediciones de Sum6 en esta temporada.</p> : activeMonths.map(m => <div key={m.name} className="grid grid-cols-[80px_1fr] items-center gap-3"><span className="text-sm font-medium">{m.name}</span><div><div className="flex h-5 overflow-hidden rounded-full bg-muted">{(["green","yellow","red"] as const).map(key => <div key={key} style={{width:`${m.groups[key]/m.count*100}%`,backgroundColor:bandColors[key]}} />)}</div><div className="mt-1 flex flex-wrap gap-x-4 text-xs text-muted-foreground"><span>Verde {Math.round(m.groups.green/m.count*100)}%</span><span>Amarillo {Math.round(m.groups.yellow/m.count*100)}%</span><span>Rojo {Math.round(m.groups.red/m.count*100)}%</span><span>{m.count} jugadoras</span></div></div></div>)}</div>;
-  const anthroContent = <div className="space-y-5"><SectionTitle subtitle="Última medición válida de cada jugadora por mes. Los porcentajes se calculan solo sobre jugadoras medidas.">Evolución antropométrica del plantel</SectionTitle><div className="grid gap-3 sm:grid-cols-3"><Metric label="Jugadoras evaluadas" value={String(measuredPlayers)} /><Metric label="Controles Sum6" value={String(yearControls.length)} /><Metric label="Último promedio mensual" value={last?.average != null ? `${number(last.average)} mm` : "—"} detail={last ? last.name : "Sin mediciones"} /></div><div className="rounded-xl border border-border p-5"><h3 className="mb-4 font-semibold">Distribución por rangos de Sum6</h3>{chart}<div className="mt-5 flex flex-wrap gap-4 text-xs text-muted-foreground"><span>🟢 Verde: &lt;70 mm</span><span>🟡 Amarillo: 70–90 mm</span><span>🔴 Rojo: &gt;90 mm</span></div></div><p className="text-xs text-muted-foreground">Los cambios en porcentajes no implican necesariamente una mejora individual: la cantidad e identidad de las jugadoras medidas puede variar entre meses. La Sum6 se interpreta en función de cada objetivo y contexto deportivo.</p></div>;
-  const hydrationContent = <div className="space-y-5"><SectionTitle subtitle="Resultados de los registros de hidratación cargados durante la temporada.">Seguimiento del estado de hidratación</SectionTitle><div className="grid gap-3 sm:grid-cols-4"><Metric label="Jornadas de test" value={String(tests.length)} /><Metric label="Mediciones válidas" value={String(hydration.measured)} /><Metric label="Bien hidratadas" value={hydration.measured ? `${Math.round(hydration.hydrated/hydration.measured*100)}%` : "—"} /><Metric label="Deshidratadas" value={hydration.measured ? `${Math.round(hydration.dehydrated/hydration.measured*100)}%` : "—"} /></div><div className="rounded-xl border border-border p-5"><h3 className="mb-3 font-semibold">Distribución de resultados</h3>{hydration.measured ? <><div className="flex h-7 overflow-hidden rounded-full"><div className="bg-emerald-500" style={{width:`${hydration.hydrated/hydration.measured*100}%`}} /><div className="bg-rose-400" style={{width:`${hydration.dehydrated/hydration.measured*100}%`}} /></div><div className="mt-3 flex flex-wrap gap-5 text-sm"><span>Bien hidratadas: {hydration.hydrated}</span><span>Deshidratadas: {hydration.dehydrated}</span><span>Sin medición: {hydration.withoutValue}</span></div></> : <p className="text-sm text-muted-foreground">No hay resultados registrados para esta temporada.</p>}</div><p className="text-xs text-muted-foreground">Clasificación utilizada por el módulo de hidratación: valores hasta 1020 = bien hidratada; superiores a 1020 = deshidratada. Se cuentan resultados de tests, no personas únicas.</p></div>;
+  const chart = <div className="space-y-4">{monthlySum6.length === 0 ? <p className="text-sm text-muted-foreground">Todavía no hay mediciones de Sum6 en esta temporada.</p> : monthlySum6.map(m => <div key={m.name} className="grid grid-cols-[80px_1fr] items-center gap-3"><span className="text-sm font-medium">{m.name}</span><div><div className="flex h-5 overflow-hidden rounded-full bg-muted">{(["green","yellow","red"] as const).map(key => <div key={key} style={{width:`${m.groups[key]/m.count*100}%`,backgroundColor:bandColors[key]}} />)}</div><div className="mt-1 flex flex-wrap gap-x-4 text-xs text-muted-foreground"><span>Verde {Math.round(m.groups.green/m.count*100)}%</span><span>Amarillo {Math.round(m.groups.yellow/m.count*100)}%</span><span>Rojo {Math.round(m.groups.red/m.count*100)}%</span><span>{m.count} jugadoras</span></div></div></div>)}</div>;
+  const anthroContent = <div className="space-y-6">
+    <SectionTitle subtitle="Seguimiento antropométrico del plantel durante 2026.">Evolución antropométrica del plantel</SectionTitle>
+    <div className="rounded-xl border border-[#cbd6e5] bg-[#edf2f9] p-4">
+      <h3 className="mb-2 font-semibold text-[#0b234a]">Criterios de clasificación · Sumatoria de seis pliegues</h3>
+      <div className="flex flex-wrap gap-3 text-sm"><span className="rounded-lg bg-emerald-100 px-3 py-2 text-emerald-900">Verde: &lt;70 mm</span><span className="rounded-lg bg-amber-100 px-3 py-2 text-amber-900">Amarillo: 70–90 mm</span><span className="rounded-lg bg-rose-100 px-3 py-2 text-rose-900">Rojo: &gt;90 mm</span></div>
+      <p className="mt-2 text-xs text-muted-foreground">Rangos descriptivos utilizados por el área; no sustituyen la evaluación individual.</p>
+    </div>
+    <div className="grid gap-3 sm:grid-cols-3"><Metric label="Jugadoras evaluadas" value={String(measuredPlayers)} /><Metric label="Controles antropométricos con Sum6" value={String(yearControls.length)} /><Metric label="Jornadas de pesaje" value={String(weightDates.length)} detail={`${yearWeightRecords.length} registros de peso`} /></div>
+    <div className="annual-screen-only rounded-xl border border-[#cbd6e5] bg-white p-4">
+      <label className="flex items-center gap-2 font-semibold text-[#0b234a]"><input type="checkbox" checked={compareOnly} onChange={e=>setCompareOnly(e.target.checked)} /> Comparar meses seleccionados</label>
+      <p className="mt-1 text-xs text-muted-foreground">Elegí los meses que querés mostrar en los gráficos. Si no seleccionás ninguno, se mostrarán todos.</p>
+      <div className="mt-3 flex flex-wrap gap-2">{monthNames.map((name,index)=><label key={name} className={`cursor-pointer rounded-lg border px-3 py-2 text-xs font-semibold ${selectedMonths.includes(index)?"border-[#c8102e] bg-rose-50 text-[#0b234a]":"border-[#dbe3ef]"}`}><input type="checkbox" className="mr-2" checked={selectedMonths.includes(index)} onChange={e=>setSelectedMonths(old=>e.target.checked?[...old,index]:old.filter(item=>item!==index))} />{name}</label>)}</div>
+    </div>
+    <div className="rounded-xl border border-border p-5"><h3 className="mb-4 font-semibold text-[#0b234a]">Distribución mensual por rangos de Sum6</h3>{chart}</div>
+    <div className="rounded-xl border border-border p-5"><h3 className="mb-4 font-semibold text-[#0b234a]">Promedio de Sum6 por mes</h3><div className="space-y-3">{monthlySum6.map(month=><div key={month.name} className="flex items-center justify-between border-b pb-2 text-sm"><span>{month.name}</span><strong>{number(month.average!)} mm <span className="ml-2 font-normal text-muted-foreground">({month.count} jugadoras)</span></strong></div>)}{monthlySum6.length===0&&<p className="text-sm text-muted-foreground">No hay mediciones para los meses seleccionados.</p>}</div></div>
+    <div className="rounded-xl border border-border p-5"><h3 className="mb-4 font-semibold text-[#0b234a]">Peso promedio del plantel por mes</h3><div className="space-y-3">{monthlyWeight.filter(month=>month.count>0).map(month=><div key={month.name} className="flex items-center justify-between border-b pb-2 text-sm"><span>{month.name}</span><strong>{number(month.average!)} kg <span className="ml-2 font-normal text-muted-foreground">({month.count} jugadoras)</span></strong></div>)}{monthlyWeight.every(month=>month.count===0)&&<p className="text-sm text-muted-foreground">Sin registros de peso antropométrico para estos meses.</p>}</div></div>
+    <p className="text-xs text-muted-foreground">Se utiliza la última evaluación válida de cada jugadora por mes. Los promedios son descriptivos y pueden representar grupos diferentes entre períodos. Los pesajes se contabilizan por fecha registrada en el módulo Pesajes.</p>
+  </div>;
+  const hydrationContent = <div className="space-y-6">
+    <SectionTitle subtitle="Seguimiento del estado de hidratación y evolución de las jornadas registradas.">Hidratación del plantel</SectionTitle>
+    <div className="grid gap-3 sm:grid-cols-3"><Metric label="Jornadas de test" value={String(tests.length)} /><Metric label="Mediciones válidas" value={String(hydration.measured)} /><Metric label="Resultados sin medición" value={String(hydration.withoutValue)} /></div>
+    <div className="rounded-xl border border-[#cbd6e5] bg-[#edf2f9] p-5"><h3 className="mb-4 font-semibold text-[#0b234a]">Comparativa · Primera y última jornada con resultados</h3><div className="grid gap-4 sm:grid-cols-2">{[{label:"Inicio",data:firstHydration},{label:"Última jornada",data:lastHydration}].map(({label,data})=><div key={label} className="rounded-xl bg-white p-4"><p className="text-xs font-bold uppercase text-[#c8102e]">{label}</p><p className="mt-2 text-sm text-muted-foreground">{data?.date ?? "Sin datos"}</p><p className="mt-2 text-3xl font-bold text-[#0b234a]">{data?.percent!=null?`${number(data.percent,0)}%`:"—"}</p><p className="text-xs text-muted-foreground">{data ? `${data.hydrated} de ${data.count} resultados bien hidratados` : "Sin mediciones válidas"}</p></div>)}</div></div>
+    <div className="rounded-xl border border-border p-5"><h3 className="mb-4 font-semibold text-[#0b234a]">Evolución por jornada</h3><div className="space-y-4">{hydrationEvolution.map((item,index)=><div key={`${item.date}-${index}`} className="grid grid-cols-[90px_1fr] items-center gap-3"><span className="text-xs">{item.date}</span><div><div className="h-4 overflow-hidden rounded-full bg-rose-200">{item.percent!==null&&<div className="h-full bg-emerald-500" style={{width:`${item.percent}%`}} />}</div><p className="mt-1 text-xs text-muted-foreground">{item.percent===null?"Sin mediciones válidas":`${number(item.percent,0)}% bien hidratadas · ${item.count} resultados`}</p></div></div>)}{hydrationEvolution.length===0&&<p className="text-sm text-muted-foreground">No hay jornadas registradas en 2026.</p>}</div></div>
+    <p className="text-xs text-muted-foreground">Se comparan porcentajes sobre resultados válidos de cada jornada (≤1020: bien hidratada). La cantidad y composición de jugadoras puede variar. Podés incorporar jornadas históricas faltantes más adelante.</p>
+  </div>;
   const interventionsContent = <div className="space-y-4"><SectionTitle subtitle="Registrá el trabajo del área: educación alimentaria, desayunos, colaciones, viajes, estrategias de hidratación y seguimiento individual.">Intervenciones nutricionales realizadas</SectionTitle><textarea className="min-h-56 w-full rounded-xl border border-input bg-background p-4 text-sm leading-7" placeholder="Describí las actividades realizadas durante la temporada, su frecuencia y alcance..." value={notes.interventions} onChange={e=>{setNotes(n=>({...n,interventions:e.target.value}));setSaved(false);}} /><p className="text-xs text-muted-foreground">Este texto se guarda en el navegador actual. No se sincroniza todavía con Supabase.</p></div>;
   const conclusionsContent = <div className="space-y-4"><SectionTitle subtitle="Interpretación profesional, limitaciones de los registros y prioridades de la próxima temporada.">Conclusiones y proyecciones</SectionTitle><textarea className="min-h-56 w-full rounded-xl border border-input bg-background p-4 text-sm leading-7" placeholder="Escribí las conclusiones, los resultados observados y las propuestas para la próxima temporada..." value={notes.conclusions} onChange={e=>{setNotes(n=>({...n,conclusions:e.target.value}));setSaved(false);}} /><p className="text-xs text-muted-foreground">Evitá atribuir causalidad a las intervenciones sin una evaluación específica.</p></div>;
   return <AppLayout title="Informe Anual Nutricional" subtitle="San Lorenzo · Primera División – Fútbol Femenino">
@@ -98,10 +145,7 @@ function AnnualNutritionReport() {
                 <p className="mt-2 text-sm text-[#cbd7e9]">Primera División · Fútbol Femenino</p>
               </div>
             </div>
-            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3">
-              <label htmlFor="annual-year" className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-[#cbd7e9]">Temporada</label>
-              <select id="annual-year" className="min-w-28 bg-transparent text-lg font-bold text-white outline-none [&>option]:text-[#0b234a]" value={year} onChange={e=>setYear(Number(e.target.value))}>{Array.from({length:7},(_,i)=>2025+i).map(y=><option key={y} value={y}>{y}</option>)}</select>
-            </div>
+            <div className="rounded-xl border border-white/20 bg-white/10 px-5 py-3"><p className="text-[10px] font-bold uppercase tracking-widest text-[#cbd7e9]">Temporada</p><p className="mt-1 text-2xl font-extrabold text-white">2026</p></div>
           </div>
         </div>
         <div className="h-1.5 bg-[#c8102e]" />
