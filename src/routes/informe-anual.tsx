@@ -67,6 +67,14 @@ function AnnualNutritionReport() {
   const visibleMonthly = monthly.filter((month,index) => !compareOnly || selectedMonths.length === 0 || selectedMonths.includes(index));
   const monthlySum6 = monthly.map((month,index)=>({...month,index})).filter(month=>month.count>0 && (!compareOnly || selectedMonths.length === 0 || selectedMonths.includes(month.index)));
 
+  const sum6Stats = monthlySum6.map(month => {
+    const values = month.values;
+    const mean = month.average!;
+    const variance = values.length > 1 ? values.reduce((total,value)=>total+(value-mean)**2,0)/(values.length-1) : null;
+    return {...month, min:Math.min(...values), max:Math.max(...values), sd:variance===null?null:Math.sqrt(variance)};
+  });
+  const firstStats = sum6Stats[0];
+  const lastStats = sum6Stats[sum6Stats.length-1];
   const activeMonths = monthly.filter(m => m.count > 0);
   const first = activeMonths[0], last = activeMonths[activeMonths.length - 1];
   const tests = useMemo(() => (hydrationTests ?? []).filter(t => t.date.startsWith(String(year))).sort((a,b)=>a.date.localeCompare(b.date)), [hydrationTests, year]);
@@ -132,6 +140,27 @@ function AnnualNutritionReport() {
               {points.map((p,i)=><g key={i}><circle cx={p.x} cy={p.y} r="6" fill="#c8102e" stroke="white" strokeWidth="2"/><text x={p.x} y={p.y-14} textAnchor="middle" fontSize="13" fontWeight="700" fill="#0b234a">{number(p.value)} mm</text><text x={p.x} y="241" textAnchor="middle" fontSize="12" fill="#60738f">{p.label.slice(0,3)}</text></g>)}
             </svg></div>;
           })()}
+          <div className="mt-5 grid gap-3 sm:grid-cols-4">
+            {[
+              {label:"Promedio grupal",value:`${number(lastStats.average!)} mm`},
+              {label:"Mínimo",value:`${number(lastStats.min)} mm`},
+              {label:"Máximo",value:`${number(lastStats.max)} mm`},
+              {label:"Desviación estándar",value:lastStats.sd===null?"—":`${number(lastStats.sd)} mm`}
+            ].map(item=><div key={item.label} className="rounded-xl border border-[#dbe3ef] bg-[#f4f7fb] px-4 py-4"><p className="text-[11px] font-semibold uppercase tracking-wide text-[#60738f]">{item.label}</p><p className="mt-2 text-xl font-extrabold text-[#0b234a]">{item.value}</p></div>)}
+          </div>
+          <p className="mt-2 text-xs text-[#60738f]">Último período mostrado: {lastStats.name} · {lastStats.count} jugadoras con mediciones válidas.</p>
+          {sum6Stats.length>1&&<div className="mt-5 rounded-xl border border-[#dbe3ef] bg-white p-4">
+            <p className="text-sm font-bold text-[#0b234a]">Evolución de los valores extremos</p>
+            <p className="mt-1 text-xs text-[#60738f]">{firstStats.name} → {lastStats.name}</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {[{label:"Mínimo",start:firstStats.min,end:lastStats.min},{label:"Máximo",start:firstStats.max,end:lastStats.max}].map(item=><div key={item.label} className="rounded-lg bg-[#edf2f9] p-3">
+                <p className="text-xs font-semibold text-[#60738f]">{item.label}</p>
+                <p className="mt-1 text-lg font-bold text-[#0b234a]">{number(item.start)} → {number(item.end)} mm</p>
+                <p className="text-xs text-[#60738f]">Variación: {item.end-item.start>0?"+":""}{number(item.end-item.start)} mm</p>
+              </div>)}
+            </div>
+            <p className="mt-3 text-xs text-[#60738f]">Los extremos pueden corresponder a jugadoras diferentes. Su variación no demuestra cambios individuales.</p>
+          </div>}
           <p className="mt-2 text-xs text-[#60738f]">Cada punto representa el promedio de las últimas mediciones de Sum6 disponibles en ese mes. La cantidad de jugadoras puede variar entre períodos.</p>
         </>}
       </div>
