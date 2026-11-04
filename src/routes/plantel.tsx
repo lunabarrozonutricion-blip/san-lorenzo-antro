@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FileSpreadsheet, Printer, Share2 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -631,6 +631,20 @@ function InformeGrupal() {
 
   const [showSeptemberObjectiveDelta, setShowSeptemberObjectiveDelta] = useState(false);
   const [showOctoberChange, setShowOctoberChange] = useState(false);
+  const [additionalMonths, setAdditionalMonths] = useState<string[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("sl-comparison-months") ?? "[]");
+      return Array.isArray(saved) ? saved.filter((key): key is string => typeof key === "string" && /^20\\d{2}-(0[1-9]|1[0-2])$/.test(key) && key > "2026-11").sort() : [];
+    } catch { return []; }
+  });
+  const [newMonth, setNewMonth] = useState("2026-12");
+  useEffect(() => { localStorage.setItem("sl-comparison-months", JSON.stringify(additionalMonths)); }, [additionalMonths]);
+  const monthLabel = (key: string) => new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(key + "-01T00:00:00Z"));
+  const addMonth = () => {
+    if (!/^20\\d{2}-(0[1-9]|1[0-2])$/.test(newMonth) || newMonth <= "2026-11") return;
+    setAdditionalMonths(current => [...new Set([...current, newMonth])].sort());
+  };
+
 
   const [
     showCharts,
@@ -881,6 +895,10 @@ function InformeGrupal() {
             .filter(control => control.date.startsWith("2026-11") && metricValue(control, "sum6") !== null)
             .sort((a, b) => b.date.localeCompare(a.date) || (b.id ?? 0) - (a.id ?? 0))[0];
           const november = novemberControl ? metricValue(novemberControl, "sum6") : null;
+          const dynamicMonths = Object.fromEntries(additionalMonths.map(key => {
+            const latest = (controlsByPlayer.get(player.id) ?? []).filter(control => control.date.startsWith(key) && metricValue(control, "sum6") !== null).sort((a,b) => b.date.localeCompare(a.date) || (b.id ?? 0) - (a.id ?? 0))[0];
+            return [key, { value: latest ? metricValue(latest, "sum6") : null, date: latest?.date ?? null }];
+          })) as Record<string, { value: number | null; date: string | null }>;
           const target = objectiveTargetByPlayerId.get(player.id) ?? null;
           const septemberTarget = target;
 
@@ -889,6 +907,7 @@ function InformeGrupal() {
             ...history,
             october,
             november,
+            dynamicMonths,
             novemberDate: novemberControl?.date ?? null,
             octoberDate: octoberControl?.date ?? null,
             september,
@@ -921,6 +940,7 @@ function InformeGrupal() {
         september: number | null;
         october: number | null;
         november: number | null;
+        dynamicMonths: Record<string, { value: number | null; date: string | null }>;
         novemberDate: string | null;
         octoberDate: string | null;
         septemberDate:
@@ -939,6 +959,7 @@ function InformeGrupal() {
       summaryOnlySelected,
       objectiveTargetByPlayerId,
       septemberObjectivePeriod,
+      additionalMonths,
     ]);
 
 
@@ -2507,6 +2528,11 @@ function InformeGrupal() {
         </div>
 
 
+        <div className="flex flex-wrap items-center gap-3 border-b border-border px-5 py-3 text-sm">
+          <label className="font-medium">Nuevo mes de medición <input type="month" value={newMonth} min="2026-12" onChange={event => setNewMonth(event.target.value)} className="ml-2 rounded border border-input bg-background px-2 py-1" /></label>
+          <Button type="button" size="sm" variant="outline" onClick={addMonth} disabled={additionalMonths.includes(newMonth) || newMonth <= "2026-11"}>+ Agregar mes de medición</Button>
+          {additionalMonths.map(key => <span key={key} className="rounded bg-muted px-2 py-1 capitalize">{monthLabel(key)} <button type="button" aria-label={`Quitar ${monthLabel(key)}`} onClick={() => setAdditionalMonths(current => current.filter(item => item !== key))}>×</button></span>)}
+        </div>
         <div className="flex flex-wrap gap-4 border-b border-border px-5 py-3 text-sm">
           <label className="flex items-center gap-2"><input type="checkbox" checked={showOctoberChange} onChange={event => setShowOctoberChange(event.target.checked)} /> Mostrar Δ septiembre → octubre</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={showSeptemberObjectiveDelta} onChange={event => setShowSeptemberObjectiveDelta(event.target.checked)} /> Mostrar Δ septiembre vs objetivo octubre</label>
@@ -2557,6 +2583,7 @@ function InformeGrupal() {
 
 
                 <th className="px-3 py-3 text-right font-semibold">Noviembre</th>
+                {additionalMonths.map(key => <th key={key} className="px-3 py-3 text-right font-semibold capitalize">{monthLabel(key)}</th>)}
                 {showOctoberChange && <th className="px-3 py-3 text-right font-semibold">Δ septiembre → octubre</th>}
                 {showSeptemberObjectiveDelta && <th className="px-3 py-3 text-right font-semibold">Δ septiembre vs objetivo octubre</th>}
                 {showObjectives && (
@@ -2647,6 +2674,7 @@ function InformeGrupal() {
 
 
                     <BandCell value={row.november} sub={row.novemberDate ? fmtDate(row.novemberDate) : undefined} emphasize />
+                    {additionalMonths.map(key => <BandCell key={key} value={row.dynamicMonths[key]?.value ?? null} sub={row.dynamicMonths[key]?.date ? fmtDate(row.dynamicMonths[key].date!) : undefined} emphasize />)}
                     {showOctoberChange && <td className="numeric whitespace-nowrap px-3 py-2.5 text-right font-semibold">{fmtDiff(row.octoberChange, 1)}</td>}
                     {showSeptemberObjectiveDelta && <td className="numeric whitespace-nowrap px-3 py-2.5 text-right font-semibold">{fmtDiff(row.vsSeptemberTarget, 1)}</td>}
                     {showObjectives && (
@@ -2699,9 +2727,13 @@ function InformeGrupal() {
           </div>
 
 
-          <BandDistributionChart
-            counts={bandCounts}
-          />
+          <BandDistributionChart counts={bandCounts} extraMonths={additionalMonths.map(key => ({
+            key, label: monthLabel(key), values: groupSummaryRows.reduce((acc,row) => {
+              const band = sum6Band(row.dynamicMonths[key]?.value ?? null);
+              if (band) acc[band]++;
+              return acc;
+            }, {green:0,yellow:0,red:0}),
+          }))} />
         </div>
       </section>
 
@@ -3371,6 +3403,7 @@ function BandCell({
 
 function BandDistributionChart({
   counts,
+  extraMonths = [],
 }: {
   counts: Record<
     | "inicio"
@@ -3387,6 +3420,7 @@ function BandDistributionChart({
       red: number;
     }
   >;
+  extraMonths?: Array<{ key: string; label: string; values: { green: number; yellow: number; red: number } }>;
 }) {
   const periods = [
     ["inicio", "Inicio"],
@@ -3405,10 +3439,8 @@ function BandDistributionChart({
 
   return (
     <div className="space-y-4">
-      {periods.map(
-        ([key, label]) => {
-          const values =
-            counts[key];
+      {([...periods.map(([key,label]) => ({key,label,values:counts[key]})), ...extraMonths]).map(
+        ({key,label,values}) => {
 
 
           const total =
