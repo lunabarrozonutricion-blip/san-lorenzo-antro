@@ -64,7 +64,7 @@ function AnnualNutritionReport() {
   const measuredPlayers = new Set(yearControls.map(c => c.playerId)).size;
   const yearWeightRecords = (weightRecords ?? []).filter(record => record.date.startsWith("2026"));
   const weightDates = [...new Set(yearWeightRecords.map(record => record.date))];
-  const visibleMonthly = monthly.filter((month,index) => !compareOnly || selectedMonths.includes(index));
+  const visibleMonthly = monthly.filter((month,index) => !compareOnly || selectedMonths.length === 0 || selectedMonths.includes(index));
   const monthlyWeight = monthNames.map((name,index) => {
     const prefix = `2026-${String(index+1).padStart(2,"0")}`;
     const latest = new Map<number, number>();
@@ -73,7 +73,7 @@ function AnnualNutritionReport() {
     const weights=[...latest.values()];
     return {name, count:weights.length, average:weights.length ? weights.reduce((a,b)=>a+b,0)/weights.length : null};
   }).filter((_,index)=>!compareOnly || selectedMonths.includes(index));
-  const monthlySum6 = monthly.map((month,index)=>({...month,index})).filter(month=>month.count>0 && (!compareOnly || selectedMonths.includes(month.index)));
+  const monthlySum6 = monthly.map((month,index)=>({...month,index})).filter(month=>month.count>0 && (!compareOnly || selectedMonths.length === 0 || selectedMonths.includes(month.index)));
 
   const activeMonths = monthly.filter(m => m.count > 0);
   const first = activeMonths[0], last = activeMonths[activeMonths.length - 1];
