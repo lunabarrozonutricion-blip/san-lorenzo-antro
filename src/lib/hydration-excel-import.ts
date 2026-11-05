@@ -73,17 +73,6 @@ export function dateFromSheetName(name: string): { date: string; source: string 
     const date = validDate(+m[3], +m[2], +m[1]);
     if (date) return { date, source: "Nombre de hoja" };
   }
-  // Hojas históricas: "MARZO (0503)", "ABRIL 0104" y "ABRIL 1604".
-  // Solo inferimos 2026 cuando el mes escrito coincide con los dígitos DDMM.
-  const monthWords: Record<string, number> = {
-    enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
-    julio: 7, agosto: 8, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12,
-  };
-  const short = name.toLowerCase().match(/\\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\\b\\s*\\(?\\s*(\\d{2})(\\d{2})(?!\\d)/);
-  if (short && Number(short[3]) === monthWords[short[1]]) {
-    const date = validDate(2026, Number(short[3]), Number(short[2]));
-    if (date) return { date, source: "Nombre de hoja (2026)" };
-  }
   return { date: "", source: "Sin fecha completa: revisar" };
 }
 
