@@ -169,10 +169,9 @@ export function HydrationExcelImport({
                     {(b.warnings.length > 0 || conflictKeys.has(b.key)) && (
                       <ul className="mt-2 list-disc space-y-0.5 pl-5 text-destructive">
                         {b.warnings
-                          .filter((w) => !w.startsWith("Ya existe") || b.existingTestId != null)
+                          .filter((w) => !w.startsWith("Ya existe") && !(b.date && w.startsWith("La hoja no tiene fecha")))
                           .map((w) => <li key={w}>{w}</li>)}
-                        {b.existingTestId == null && b.warnings.some((w) => w.startsWith("Ya existe")) && null}
-                        {b.existingTestId != null && !b.warnings.some((w) => w.startsWith("Ya existe")) && (
+                        {b.existingTestId != null && (
                           <li>Ya existe un test el {fmtDate(b.date)} con este contexto: no se importará.</li>
                         )}
                         {conflictKeys.has(b.key) && <li>Otra hoja seleccionada tiene la misma fecha y contexto.</li>}
