@@ -16,6 +16,7 @@ import { toast } from "sonner";
 
 import { AppLayout } from "@/components/app-layout";
 import { ClientOnly } from "@/components/client-only";
+import { HydrationExcelImport } from "@/components/hydration-excel-import";
 import { Button } from "@/components/ui/button";
 import { fmtDate, todayISO } from "@/lib/calc";
 import {
@@ -850,6 +851,11 @@ function HydrationPage() {
               Imprimir
             </Button>
           </div>
+
+          <HydrationExcelImport
+            players={players}
+            tests={tests}
+          />
 
           <Button
             onClick={

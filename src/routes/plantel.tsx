@@ -896,7 +896,7 @@ function InformeGrupal() {
             .sort((a, b) => b.date.localeCompare(a.date) || (b.id ?? 0) - (a.id ?? 0))[0];
           const november = novemberControl ? metricValue(novemberControl, "sum6") : null;
           const dynamicMonths = Object.fromEntries(additionalMonths.map(key => {
-            const latest = (controlsByPlayer.get(player.id) ?? []).filter(control => control.date.startsWith(key) && metricValue(control, "sum6") !== null).sort((a,b) => b.date.localeCompare(a.date) || (b.id ?? 0) - (a.id ?? 0))[0];
+            const latest = (controlsByPlayer.get(player.id as number) ?? []).filter(control => control.date.startsWith(key) && metricValue(control, "sum6") !== null).sort((a,b) => b.date.localeCompare(a.date) || (b.id ?? 0) - (a.id ?? 0))[0];
             return [key, { value: latest ? metricValue(latest, "sum6") : null, date: latest?.date ?? null }];
           })) as Record<string, { value: number | null; date: string | null }>;
           const target = objectiveTargetByPlayerId.get(player.id) ?? null;

@@ -10,7 +10,7 @@ type RawTest = {
   entries: readonly RawEntry[];
 };
 
-function normalizeName(value: string) {
+export function normalizeName(value: string) {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -26,7 +26,7 @@ const PLAYER_ALIASES: Record<string, string> = {
   "zacmon luciana": "sacmon luciana",
 };
 
-function resolvePlayerId(name: string, players: Player[]) {
+export function resolvePlayerId(name: string, players: Player[]) {
   const normalized = normalizeName(name);
 
   const exactOriginal = players.find(

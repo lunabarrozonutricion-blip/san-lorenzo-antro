@@ -22,8 +22,10 @@ import { Route as EvolucionRouteImport } from './routes/evolucion'
 import { Route as GuiaIntercambiosRouteImport } from './routes/guia-intercambios'
 import { Route as HidratacionRouteImport } from './routes/hidratacion'
 import { Route as HistorialRouteImport } from './routes/historial'
+import { Route as InformeAnualRouteImport } from './routes/informe-anual'
 import { Route as InformesRouteImport } from './routes/informes'
 import { Route as IntercambiosRouteImport } from './routes/intercambios'
+import { Route as MultasRouteImport } from './routes/multas'
 import { Route as ObjetivosRouteImport } from './routes/objetivos'
 import { Route as ObjetivosJugadoraRouteImport } from './routes/objetivos-jugadora'
 import { Route as PesajesRouteImport } from './routes/pesajes'
@@ -97,6 +99,11 @@ const HistorialRoute = HistorialRouteImport.update({
   path: '/historial',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InformeAnualRoute = InformeAnualRouteImport.update({
+  id: '/informe-anual',
+  path: '/informe-anual',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InformesRoute = InformesRouteImport.update({
   id: '/informes',
   path: '/informes',
@@ -105,6 +112,11 @@ const InformesRoute = InformesRouteImport.update({
 const IntercambiosRoute = IntercambiosRouteImport.update({
   id: '/intercambios',
   path: '/intercambios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MultasRoute = MultasRouteImport.update({
+  id: '/multas',
+  path: '/multas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ObjetivosRoute = ObjetivosRouteImport.update({
@@ -157,8 +169,10 @@ export interface FileRoutesByFullPath {
   '/guia-intercambios': typeof GuiaIntercambiosRoute
   '/hidratacion': typeof HidratacionRoute
   '/historial': typeof HistorialRoute
+  '/informe-anual': typeof InformeAnualRoute
   '/informes': typeof InformesRoute
   '/intercambios': typeof IntercambiosRoute
+  '/multas': typeof MultasRoute
   '/objetivos': typeof ObjetivosRoute
   '/objetivos-jugadora': typeof ObjetivosJugadoraRoute
   '/pesajes': typeof PesajesRoute
@@ -181,8 +195,10 @@ export interface FileRoutesByTo {
   '/guia-intercambios': typeof GuiaIntercambiosRoute
   '/hidratacion': typeof HidratacionRoute
   '/historial': typeof HistorialRoute
+  '/informe-anual': typeof InformeAnualRoute
   '/informes': typeof InformesRoute
   '/intercambios': typeof IntercambiosRoute
+  '/multas': typeof MultasRoute
   '/objetivos': typeof ObjetivosRoute
   '/objetivos-jugadora': typeof ObjetivosJugadoraRoute
   '/pesajes': typeof PesajesRoute
@@ -206,8 +222,10 @@ export interface FileRoutesById {
   '/guia-intercambios': typeof GuiaIntercambiosRoute
   '/hidratacion': typeof HidratacionRoute
   '/historial': typeof HistorialRoute
+  '/informe-anual': typeof InformeAnualRoute
   '/informes': typeof InformesRoute
   '/intercambios': typeof IntercambiosRoute
+  '/multas': typeof MultasRoute
   '/objetivos': typeof ObjetivosRoute
   '/objetivos-jugadora': typeof ObjetivosJugadoraRoute
   '/pesajes': typeof PesajesRoute
@@ -232,8 +250,10 @@ export interface FileRouteTypes {
     | '/guia-intercambios'
     | '/hidratacion'
     | '/historial'
+    | '/informe-anual'
     | '/informes'
     | '/intercambios'
+    | '/multas'
     | '/objetivos'
     | '/objetivos-jugadora'
     | '/pesajes'
@@ -256,8 +276,10 @@ export interface FileRouteTypes {
     | '/guia-intercambios'
     | '/hidratacion'
     | '/historial'
+    | '/informe-anual'
     | '/informes'
     | '/intercambios'
+    | '/multas'
     | '/objetivos'
     | '/objetivos-jugadora'
     | '/pesajes'
@@ -280,8 +302,10 @@ export interface FileRouteTypes {
     | '/guia-intercambios'
     | '/hidratacion'
     | '/historial'
+    | '/informe-anual'
     | '/informes'
     | '/intercambios'
+    | '/multas'
     | '/objetivos'
     | '/objetivos-jugadora'
     | '/pesajes'
@@ -305,8 +329,10 @@ export interface RootRouteChildren {
   GuiaIntercambiosRoute: typeof GuiaIntercambiosRoute
   HidratacionRoute: typeof HidratacionRoute
   HistorialRoute: typeof HistorialRoute
+  InformeAnualRoute: typeof InformeAnualRoute
   InformesRoute: typeof InformesRoute
   IntercambiosRoute: typeof IntercambiosRoute
+  MultasRoute: typeof MultasRoute
   ObjetivosRoute: typeof ObjetivosRoute
   ObjetivosJugadoraRoute: typeof ObjetivosJugadoraRoute
   PesajesRoute: typeof PesajesRoute
@@ -409,6 +435,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistorialRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/informe-anual': {
+      id: '/informe-anual'
+      path: '/informe-anual'
+      fullPath: '/informe-anual'
+      preLoaderRoute: typeof InformeAnualRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/informes': {
       id: '/informes'
       path: '/informes'
@@ -421,6 +454,13 @@ declare module '@tanstack/react-router' {
       path: '/intercambios'
       fullPath: '/intercambios'
       preLoaderRoute: typeof IntercambiosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/multas': {
+      id: '/multas'
+      path: '/multas'
+      fullPath: '/multas'
+      preLoaderRoute: typeof MultasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/objetivos': {
@@ -489,8 +529,10 @@ const rootRouteChildren: RootRouteChildren = {
   GuiaIntercambiosRoute: GuiaIntercambiosRoute,
   HidratacionRoute: HidratacionRoute,
   HistorialRoute: HistorialRoute,
+  InformeAnualRoute: InformeAnualRoute,
   InformesRoute: InformesRoute,
   IntercambiosRoute: IntercambiosRoute,
+  MultasRoute: MultasRoute,
   ObjetivosRoute: ObjetivosRoute,
   ObjetivosJugadoraRoute: ObjetivosJugadoraRoute,
   PesajesRoute: PesajesRoute,
