@@ -43,17 +43,18 @@ export function resolvePlayerId(name: string, players: Player[]) {
 
   if (exactAlias?.id != null) return exactAlias.id;
 
-  const tokens = target.split(" ");
-
-  if (tokens.length === 1) {
-    const matches = players.filter((player) =>
-      normalizeName(player.name).split(" ").includes(tokens[0]),
-    );
-
-    if (matches.length === 1 && matches[0].id != null) {
-      return matches[0].id;
-    }
-  }
+  // Los Excel históricos alternan orden apellido/nombre y omiten segundos nombres.
+  // Vinculamos únicamente si la coincidencia es inequívoca en todo el plantel.
+  const tokens = [...new Set(target.split(" ").filter(Boolean))];
+  const matches = players.filter((player) => {
+    const playerTokens = new Set(normalizeName(player.name).split(" "));
+    if (tokens.length === 1) return playerTokens.has(tokens[0]);
+    // Evita emparejar dos personas distintas por un solo nombre compartido.
+    return tokens.every((token) => playerTokens.has(token)) ||
+      (tokens.length >= 3 && [...playerTokens].filter((token) => tokens.includes(token)).length >= 2 &&
+        [...playerTokens].every((token) => tokens.includes(token)));
+  });
+  if (matches.length === 1 && matches[0].id != null) return matches[0].id;
 
   return null;
 }
