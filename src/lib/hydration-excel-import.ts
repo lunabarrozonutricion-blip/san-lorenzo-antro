@@ -183,7 +183,7 @@ export function buildPreview(
       if (rows.length === 0) continue;
       const warnings: string[] = [];
       if (!date) warnings.push("La hoja no tiene fecha completa (día/mes/año): cargala a mano.");
-      if (hint && /\d{1,2}\s*[/.-]\s*\d{1,2}/.test(hint) || (hint && /\b(marzo|abril|mayo|junio|julio)\b/i.test(hint))) {
+      if (hint && (/\d{1,2}\s*[/.-]\s*\d{1,2}/.test(hint) || /\b(marzo|abril|mayo|junio|julio)\b/i.test(hint))) {
         warnings.push(`El encabezado interno dice "${hint}". Se usa la fecha del nombre de hoja.`);
       }
       const unmatched = rows.filter((r) => r.playerId == null).length;
