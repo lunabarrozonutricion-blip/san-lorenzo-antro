@@ -53,7 +53,13 @@ export function EducationalPdfLibrary({ kind }: { kind: Kind }) {
     if (!supabase) return;
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 120);
     if (error || !data?.signedUrl) { toast.error("No se pudo abrir el PDF"); return; }
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    const link = document.createElement("a");
+    link.href = data.signedUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   const remove = async (item: PdfItem) => {
@@ -67,7 +73,7 @@ export function EducationalPdfLibrary({ kind }: { kind: Kind }) {
   };
 
   const label = (name: string) => {
-    const encoded = name.replace(/^[^-]+--/, "").replace(/\.pdf$/i, "");
+    const encoded = name.replace(/^[0-9a-f-]{36}--/, "").replace(/\.pdf$/i, "");
     try { return decodeURIComponent(encoded); } catch { return encoded; }
   };
 
