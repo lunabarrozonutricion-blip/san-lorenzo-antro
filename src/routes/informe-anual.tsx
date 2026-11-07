@@ -4,6 +4,7 @@ import { BarChart3, Droplets, ClipboardList, Target, Printer, FileBarChart, Save
 import { toast } from "sonner";
 import { AppLayout } from "@/components/app-layout";
 import { EducationalPdfLibrary } from "@/components/educational-pdf-library";
+import { WorkshopPhotoGallery } from "@/components/workshop-photo-gallery";
 import { ClientOnly } from "@/components/client-only";
 import { Button } from "@/components/ui/button";
 import { useControls, useHydrationTests, usePlayers, useWeightRecords } from "@/lib/hooks";
@@ -218,7 +219,7 @@ function AnnualNutritionReport() {
       <div className="border-l-4 border-[#c8102e] bg-[#0b234a] px-5 py-4 text-white"><h3 className="font-semibold">Seis ejes de intervención · Temporada 2026</h3><p className="mt-1 text-xs text-[#cbd7e9]">Seleccioná cada eje para leer su descripción.</p></div>
       <div className="space-y-3 p-4 sm:p-5">{interventionAxes.map((axis,index)=><div key={axis.title} className="overflow-hidden rounded-xl border border-[#d5deeb] bg-white">
         <button type="button" aria-expanded={expandedIntervention===index} onClick={()=>setExpandedIntervention(current=>current===index?null:index)} className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left text-[#0b234a] hover:bg-[#f5f8fc]"><span className="flex items-center gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#e8eff8] text-sm font-bold text-[#c8102e]">{index+1}</span><span className="font-semibold">{axis.title}</span></span><span aria-hidden="true" className="text-lg font-bold">{expandedIntervention===index?"−":"+"}</span></button>
-        {expandedIntervention===index&&<div className="border-t border-[#e1e7f0] px-5 py-4 text-sm leading-7 text-[#42536c]">{axis.detail}{index===3 && <EducationalPdfLibrary kind="charlas" />}{index===5 && <EducationalPdfLibrary kind="talleres" />}</div>}
+        {expandedIntervention===index&&<div className="border-t border-[#e1e7f0] px-5 py-4 text-sm leading-7 text-[#42536c]">{axis.detail}{index===3 && <EducationalPdfLibrary kind="charlas" />}{index===5 && <EducationalPdfLibrary kind="talleres" />}{index===5 && <WorkshopPhotoGallery />}</div>}
       </div>)}</div>
     </div>
     <div className="rounded-xl border border-[#d5deeb] bg-white p-5"><h3 className="mb-2 font-semibold text-[#0b234a]">Actividades y documentación complementaria</h3><p className="mb-3 text-sm text-muted-foreground">Podés agregar títulos de charlas, fechas confirmadas, detalles del taller de cocina y referencias a materiales. No es necesario indicar una frecuencia de consultas que no esté documentada.</p><textarea className="min-h-44 w-full rounded-xl border border-input bg-background p-4 text-sm leading-7" placeholder="Ej.: Charlas realizadas, temáticas, taller de cocina, implementación del registro fotográfico..." value={notes.interventions} onChange={e=>{setNotes(n=>({...n,interventions:e.target.value}));setSaved(false);}} /><p className="mt-2 text-xs text-muted-foreground">Las notas se guardan con el botón Guardar del informe en este dispositivo. Los PDFs todavía no se adjuntan ni se sincronizan con Supabase.</p></div>
