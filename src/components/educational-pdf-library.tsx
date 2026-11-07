@@ -36,7 +36,7 @@ export function EducationalPdfLibrary({ kind }: { kind: Kind }) {
   const upload = async (file: File) => {
     if (!supabase || !folder) { toast.error("Iniciá sesión para guardar materiales."); return; }
     if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) { toast.error("Solo se admiten archivos PDF."); return; }
-    if (file.size > 15 * 1024 * 1024) { toast.error("El PDF debe pesar menos de 15 MB."); return; }
+    if (file.size > 50 * 1024 * 1024) { toast.error("Este PDF supera los 50 MB. Reducí su tamaño para subirlo."); return; }
     const cleanTitle = (title.trim() || file.name.replace(/\.pdf$/i, "")).replace(/[\\/]/g, "-");
     const name = `${crypto.randomUUID()}--${encodeURIComponent(cleanTitle)}.pdf`;
     setBusy(true);
@@ -83,7 +83,7 @@ export function EducationalPdfLibrary({ kind }: { kind: Kind }) {
       <div className="mt-3 space-y-2">{items.length === 0 && <p className="text-sm text-[#60738f]">Todavía no hay archivos PDF cargados.</p>}
         {items.map(item => <div key={item.path} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#d5deeb] bg-white p-3"><span className="min-w-0 flex-1 break-words text-sm font-medium text-[#0b234a]">{label(item.name)}</span><div className="flex gap-2"><button type="button" onClick={() => void open(item.path)} className="rounded-lg bg-[#0b234a] px-3 py-2 text-xs font-semibold text-white">Ver PDF</button><button type="button" disabled={busy} onClick={() => void remove(item)} className="rounded-lg border border-[#c8102e] px-3 py-2 text-xs font-semibold text-[#c8102e]">Eliminar</button></div></div>)}
       </div>
-      <div className="mt-4 border-t border-[#d5deeb] pt-4"><label className="block text-xs font-semibold text-[#0b234a]">Título del material (opcional)</label><input value={title} onChange={event => setTitle(event.target.value)} placeholder="Ej.: Charla sobre hidratación" className="mt-1 w-full rounded-lg border border-[#b6c7dd] bg-white px-3 py-2 text-sm" /><label className="mt-3 block text-xs font-semibold text-[#0b234a]">Subir nuevo PDF (máximo 15 MB)</label><input ref={input} type="file" accept=".pdf,application/pdf" disabled={busy} onChange={event => { const file = event.target.files?.[0]; if (file) void upload(file); }} className="mt-2 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#0b234a] file:px-4 file:py-2 file:font-semibold file:text-white" /></div>
+      <div className="mt-4 border-t border-[#d5deeb] pt-4"><label className="block text-xs font-semibold text-[#0b234a]">Título del material (opcional)</label><input value={title} onChange={event => setTitle(event.target.value)} placeholder="Ej.: Charla sobre hidratación" className="mt-1 w-full rounded-lg border border-[#b6c7dd] bg-white px-3 py-2 text-sm" /><label className="mt-3 block text-xs font-semibold text-[#0b234a]">Subir nuevo PDF (máximo 50 MB)</label><input ref={input} type="file" accept=".pdf,application/pdf" disabled={busy} onChange={event => { const file = event.target.files?.[0]; if (file) void upload(file); }} className="mt-2 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#0b234a] file:px-4 file:py-2 file:font-semibold file:text-white" /></div>
     </>}
   </div>;
 }
