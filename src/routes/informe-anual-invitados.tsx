@@ -21,6 +21,8 @@ function GuestReport(){
  const [section,setSection]=useState<"anthro"|"hydration"|"interventions"|"conclusions">("anthro");
  const [months,setMonths]=useState<number[]>([]);
  const [stat,setStat]=useState<"mediana"|"media">("mediana");
+ const [evolutionOnly,setEvolutionOnly]=useState(false);
+ const [evolutionMonths,setEvolutionMonths]=useState<number[]>([]);
  const [compare,setCompare]=useState<string>("latest");
  const [showDay,setShowDay]=useState(false);
  const [showMonth,setShowMonth]=useState(false);
@@ -49,6 +51,14 @@ function GuestReport(){
  const visible=useMemo(()=>report?.monthly.filter(m=>m.count>0&&(months.length===0||months.includes(m.month)))??[],[report,months]);
  const average=(values:number[])=>values.reduce((a,b)=>a+b,0)/values.length;
  const median=(values:number[])=>values.length%2?values[(values.length-1)/2]:(values[values.length/2-1]+values[values.length/2])/2;
+ const evolution=(report?.monthly??[]).filter(m=>m.count>0&&(!evolutionOnly||evolutionMonths.length===0||evolutionMonths.includes(m.month))&&m[stat==="media"?"mean":"median"]!==null);
+ const evolutionValues=evolution.map(m=>m[stat==="media"?"mean":"median"] as number);
+ const evolutionLast=evolutionValues.at(-1);
+ const evolutionDelta=evolutionValues.length>1?evolutionValues[evolutionValues.length-1]-evolutionValues[0]:null;
+ const evolutionMin=evolutionValues.length?Math.floor((Math.min(...evolutionValues)-5)/5)*5:0;
+ const evolutionMax=evolutionValues.length?Math.ceil((Math.max(...evolutionValues)+5)/5)*5:100;
+ const chartX=(index:number)=>55+index*(650/Math.max(1,evolution.length-1));
+ const chartY=(value:number)=>210-(value-evolutionMin)*150/Math.max(1,evolutionMax-evolutionMin);
  const days=report?.hydrationDays.filter(d=>d.count>0)??[];
  const current=days[days.length-1];
  const monthlyHydration=names.map((name,i)=>{const entries=days.filter(d=>Number(d.date.slice(5,7))===i+1);const count=entries.reduce((n,d)=>n+d.count,0);const inTarget=entries.reduce((n,d)=>n+d.inTarget,0);return {name,tests:entries.length,count,inTarget};}).filter(m=>m.tests>0);
@@ -86,6 +96,15 @@ function GuestReport(){
        return <div key={m.month} className="rounded-xl border p-4"><div className="mb-2 flex justify-between gap-2"><strong>{names[m.month-1]}</strong><span className="text-sm">{stat}: {value?.toFixed(1)??"—"} mm · {m.count} evaluadas</span></div><div className="flex h-4 overflow-hidden rounded-full bg-slate-100">{groups.map((n,i)=><div key={i} style={{width:`${100*n/m.count}%`,backgroundColor:["#32a47a","#e7b64b","#c8102e"][i]}}/>)}</div><p className="mt-2 text-xs text-slate-600">Menos de 70 mm: {groups[0]} · 70–90 mm: {groups[1]} · Más de 90 mm: {groups[2]}</p></div>;
       })}{visible.length===0&&<p>No hay mediciones disponibles.</p>}</div>
      </>}
+      <section className="overflow-hidden rounded-2xl border border-[#d5deeb] bg-white">
+       <div className="bg-[#153361] px-5 py-6 text-white sm:px-7"><p className="text-xs font-bold uppercase tracking-widest text-rose-200">Evolución de la temporada</p><h3 className="mt-1 text-xl font-bold">Evolución de la {stat} grupal de Sum6</h3><p className="mt-1 text-xs text-slate-200">Sumatoria de seis pliegues · milímetros</p></div>
+       <div className="space-y-6 p-5 sm:p-7">
+        <div className="rounded-xl border bg-[#f1f5fa] p-4"><label className="font-semibold"><input className="mr-2" type="checkbox" checked={evolutionOnly} onChange={e=>setEvolutionOnly(e.target.checked)}/>Comparar meses específicos en evolución grupal</label><p className="mt-2 text-xs text-slate-500">Por defecto se muestra toda la temporada. Este filtro es independiente de la distribución por rangos.</p>{evolutionOnly&&<div className="mt-3 flex flex-wrap gap-2">{(report?.monthly??[]).filter(m=>m.count>0).map(m=><label key={m.month} className="rounded-lg border bg-white px-3 py-2 text-xs"><input className="mr-2" type="checkbox" checked={evolutionMonths.includes(m.month)} onChange={e=>setEvolutionMonths(v=>e.target.checked?[...v,m.month]:v.filter(x=>x!==m.month))}/>{names[m.month-1]}</label>)}</div>}</div>
+        <div className="inline-flex rounded-xl bg-[#eaf0f8] p-1">{(["media","mediana"] as const).map(option=><button key={option} onClick={()=>setStat(option)} className={`rounded-lg px-5 py-2 font-semibold ${stat===option?"bg-[#0b234a] text-white":"text-[#0b234a]"}`}>{option==="media"?"Media":"Mediana"}</button>)}</div>
+        <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Última {stat} disponible</p><p className="mt-1 text-4xl font-extrabold">{evolutionLast===undefined?"—":evolutionLast.toFixed(1).replace(".",",")} <span className="text-base font-normal text-slate-500">mm</span></p></div><div className="rounded-xl bg-[#eaf0f8] px-5 py-4 text-right"><p className="text-xs text-slate-500">Variación entre períodos mostrados</p><p className={`text-2xl font-bold ${evolutionDelta!==null&&evolutionDelta<0?"text-emerald-700":"text-[#0b234a]"}`}>{evolutionDelta===null?"—":(evolutionDelta>0?"+":"")+evolutionDelta.toFixed(1).replace(".",",")+" mm"}</p></div></div>
+        {evolution.length>0?<div className="w-full overflow-x-auto"><svg viewBox="0 0 760 290" className="min-w-[520px] w-full" role="img" aria-label={`Evolución de la ${stat} grupal de Sum6`}>{Array.from({length:5},(_,j)=><line key={j} x1="45" x2="720" y1={60+j*38} y2={60+j*38} stroke="#d9e3ef" strokeDasharray="4 5"/>)}<polyline fill="none" stroke="#c8102e" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" points={evolutionValues.map((v,j)=>`${chartX(j)},${chartY(v)}`).join(" ")}/>{evolution.map((m,j)=><g key={m.month}><circle cx={chartX(j)} cy={chartY(evolutionValues[j])} r="6" fill="#c8102e" stroke="white" strokeWidth="2"/><text x={chartX(j)} y={chartY(evolutionValues[j])-15} textAnchor="middle" fontSize="12" fontWeight="bold" fill="#0b234a">{evolutionValues[j].toFixed(1).replace(".",",")} mm</text><text x={chartX(j)} y="260" textAnchor="middle" fontSize="12" fill="#60738f">{names[m.month-1].slice(0,3)}</text></g>)}</svg></div>:<p className="text-sm text-slate-500">No hay mediciones disponibles.</p>}
+       </div>
+      </section>
      {section==="hydration"&&<div className="space-y-6">
       <h2 className="text-xl font-bold">Hidratación del plantel</h2>
       <div className="overflow-hidden rounded-2xl border border-[#cbd6e5] bg-[#edf2f9]">
