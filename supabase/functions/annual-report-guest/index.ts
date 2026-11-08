@@ -1,7 +1,7 @@
 // Servidor privado: no publicar claves ni service_role en el navegador.
 // Configuración del propietario: Authorization: Bearer <Supabase access_token>
 // Invitados: contraseña -> token firmado (30 min) -> datos agregados del informe.
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 const url = Deno.env.get("SUPABASE_URL")!;
 const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
 const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
