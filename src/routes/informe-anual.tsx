@@ -145,24 +145,33 @@ function AnnualNutritionReport() {
   };
   const chart = <div className="space-y-4">{distributionMonths.length === 0 ? <p className="text-sm text-muted-foreground">Todavía no hay mediciones de Sum6 en esta temporada.</p> : distributionMonths.map(m => <div key={m.name} className="grid grid-cols-[80px_1fr] items-center gap-3"><span className="text-sm font-medium">{m.name}</span><div><div className="flex h-5 overflow-hidden rounded-full bg-muted">{(["green","yellow","red"] as const).map(key => <div key={key} style={{width:`${m.groups[key]/m.count*100}%`,backgroundColor:bandColors[key]}} />)}</div><div className="mt-1 flex flex-wrap gap-x-4 text-xs text-muted-foreground"><span>Verde {Math.round(m.groups.green/m.count*100)}%</span><span>Amarillo {Math.round(m.groups.yellow/m.count*100)}%</span><span>Rojo {Math.round(m.groups.red/m.count*100)}%</span><span>{m.count} jugadoras</span></div></div></div>)}</div>;
   const anthroContent = <div className="space-y-6">
-    <SectionTitle subtitle="Seguimiento antropométrico del plantel durante 2026.">Evolución antropométrica del plantel</SectionTitle>
-    <div className="grid gap-3 sm:grid-cols-3"><Metric label="Jugadoras evaluadas" value={String(measuredPlayers)} /><Metric label="Controles antropométricos con Sum6" value={String(yearControls.length)} /><Metric label="Jornadas de pesaje" value={String(weightDates.length)} detail={`${yearWeightRecords.length} registros de peso`} /></div>
     <div className="annual-screen-only rounded-xl border border-[#cbd6e5] bg-white p-4">
       <label className="flex items-center gap-2 font-semibold text-[#0b234a]"><input type="checkbox" checked={compareOnly} onChange={e=>setCompareOnly(e.target.checked)} /> Comparar meses seleccionados</label>
       <p className="mt-1 text-xs text-muted-foreground">Elegí los meses para la distribución mensual por rangos. Este filtro no modifica la evolución grupal. Si no seleccionás ninguno, se mostrarán todos.</p>
       <div className="mt-3 flex flex-wrap gap-2">{monthNames.map((name,index)=><label key={name} className={`cursor-pointer rounded-lg border px-3 py-2 text-xs font-semibold ${selectedMonths.includes(index)?"border-[#c8102e] bg-rose-50 text-[#0b234a]":"border-[#dbe3ef]"}`}><input type="checkbox" className="mr-2" checked={selectedMonths.includes(index)} onChange={e=>setSelectedMonths(old=>e.target.checked?[...old,index]:old.filter(item=>item!==index))} />{name}</label>)}</div>
     </div>
-    <div className={`rounded-xl border border-border p-5 ${printAnthroSection==="distribution"?"annual-section-print-target":""}`}><div className="mb-4 flex flex-wrap items-center justify-between gap-2"><h3 className="mb-4 font-semibold text-[#0b234a]">Distribución mensual por rangos de Sum6</h3><button type="button" onClick={() => printSection("distribution")} className="annual-screen-only inline-flex items-center gap-2 rounded-lg border border-[#cbd6e5] px-3 py-2 text-xs font-semibold text-[#0b234a]"><Printer className="h-4 w-4" /> Imprimir sección</button></div>{chart}
+    <div className={`overflow-hidden rounded-2xl border border-[#d5deeb] bg-white shadow-[0_5px_20px_rgba(11,35,74,0.07)] ${printAnthroSection==="distribution"?"annual-section-print-target":""}`}>
+      <div className="border-b border-[#dbe3ef] bg-gradient-to-r from-[#0b234a] to-[#173b70] px-5 py-5 text-white sm:px-7">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#f3a4b1]">Evolución de la temporada</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="mt-1 text-xl font-bold">Evolución antropométrica del plantel</h3>
+          <button type="button" onClick={() => printSection("distribution")} className="annual-screen-only inline-flex items-center gap-2 rounded-lg border border-white/40 px-3 py-2 text-xs font-semibold text-white"><Printer className="h-4 w-4" /> Imprimir sección</button>
+        </div>
+        <p className="mt-1 text-xs text-[#cbd7e9]">Distribución mensual por rangos de Sum6</p>
+      </div>
+      <div className="p-5 sm:p-7">
+        {chart}
     <div className="mt-8 rounded-xl border border-[#cbd6e5] bg-[#edf2f9] p-4 sm:mt-10">
       <h3 className="mb-2 font-semibold text-[#0b234a]">Criterios de clasificación · Sumatoria de seis pliegues</h3>
       <div className="flex flex-wrap gap-3 text-sm"><span className="rounded-lg bg-emerald-100 px-3 py-2 text-emerald-900">Verde: &lt;70 mm</span><span className="rounded-lg bg-amber-100 px-3 py-2 text-amber-900">Amarillo: 70–90 mm</span><span className="rounded-lg bg-rose-100 px-3 py-2 text-rose-900">Rojo: &gt;90 mm</span></div>
       <p className="mt-2 text-xs text-muted-foreground">Rangos descriptivos utilizados por el área; no sustituyen la evaluación individual.</p>
     </div>
+      </div>
     </div>
     <div className={`overflow-hidden rounded-2xl border border-[#d5deeb] bg-white shadow-[0_5px_20px_rgba(11,35,74,0.07)] ${printAnthroSection==="evolution"?"annual-section-print-target":""}`}>
       <div className="border-b border-[#dbe3ef] bg-gradient-to-r from-[#0b234a] to-[#173b70] px-5 py-5 text-white sm:px-7">
         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#f3a4b1]">Evolución de la temporada</p>
-        <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="mt-1 text-xl font-bold">Evolución grupal de Sum6</h3><button type="button" onClick={() => printSection("evolution")} className="annual-screen-only inline-flex items-center gap-2 rounded-lg border border-white/40 px-3 py-2 text-xs font-semibold text-white"><Printer className="h-4 w-4" /> Imprimir sección</button></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="mt-1 text-xl font-bold">Evolución de la {sum6Statistic} grupal de Sum6</h3><button type="button" onClick={() => printSection("evolution")} className="annual-screen-only inline-flex items-center gap-2 rounded-lg border border-white/40 px-3 py-2 text-xs font-semibold text-white"><Printer className="h-4 w-4" /> Imprimir sección</button></div>
         <p className="mt-1 text-xs text-[#cbd7e9]">Sumatoria de seis pliegues · milímetros</p>
       </div>
       <div className="p-5 sm:p-7">
@@ -218,6 +227,17 @@ function AnnualNutritionReport() {
       </div>
     </div>
     
+    <div className="overflow-hidden rounded-2xl border border-[#d5deeb] bg-white">
+      <div className="bg-[#0b234a] px-5 py-4 text-white sm:px-7">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#f3a4b1]">Datos complementarios</p>
+        <h3 className="mt-1 text-lg font-bold">Datos generales de antropometría</h3>
+      </div>
+      <div className="grid gap-3 p-5 sm:grid-cols-3 sm:p-7">
+        <Metric label="Jugadoras evaluadas" value={String(measuredPlayers)} />
+        <Metric label="Controles antropométricos con Sum6" value={String(yearControls.length)} />
+        <Metric label="Jornadas de pesaje" value={String(weightDates.length)} detail={`${yearWeightRecords.length} registros de peso`} />
+      </div>
+    </div>
   </div>;
   const hydrationContent = <div className="space-y-6">
     <SectionTitle subtitle="Seguimiento del estado de hidratación y evolución de las jornadas registradas.">Hidratación del plantel</SectionTitle>
