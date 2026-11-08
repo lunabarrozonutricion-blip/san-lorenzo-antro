@@ -191,13 +191,13 @@ function AnnualNutritionReport() {
                 <p className="text-xs text-[#60738f]">Variación: {item.end-item.start>0?"+":""}{number(item.end-item.start)} mm</p>
               </div>)}
             </div>
-            <p className="mt-3 text-xs text-[#60738f]">Los extremos pueden corresponder a jugadoras diferentes. Su variación no demuestra cambios individuales.</p>
+            
           </div>}
-          <p className="mt-2 text-xs text-[#60738f]">Cada punto representa la {sum6Statistic} de las últimas mediciones de Sum6 disponibles en ese mes. La cantidad de jugadoras puede variar entre períodos.</p>
+          
         </>}
       </div>
     </div>
-    <p className="text-xs text-muted-foreground">Se utiliza la última evaluación válida de cada jugadora por mes. Los promedios son descriptivos y pueden representar grupos diferentes entre períodos. Los pesajes se contabilizan por fecha registrada en el módulo Pesajes.</p>
+    
   </div>;
   const hydrationContent = <div className="space-y-6">
     <SectionTitle subtitle="Seguimiento del estado de hidratación y evolución de las jornadas registradas.">Hidratación del plantel</SectionTitle>
