@@ -7,7 +7,7 @@ const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
 const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const admin = createClient(url, secret, { auth: { persistSession: false } });
 const encoder = new TextEncoder();
-const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,apikey,content-type", "Access-Control-Allow-Methods": "POST,OPTIONS" };
+const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization,apikey,content-type,x-client-info,x-supabase-api-version", "Access-Control-Allow-Methods": "POST,OPTIONS" };
 const json = (value: unknown, status=200) => new Response(JSON.stringify(value), {status,headers:{...cors,"Content-Type":"application/json","Cache-Control":"no-store"}});
 const b64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
 const unb64 = (value: string) => Uint8Array.from(atob(value.replace(/-/g,"+").replace(/_/g,"/")), c=>c.charCodeAt(0));
