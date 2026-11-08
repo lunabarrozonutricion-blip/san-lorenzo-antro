@@ -42,6 +42,7 @@ function AnnualNutritionReport() {
   const hydrationTests = useHydrationTests();
   const year = 2026;
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+  const [sum6Statistic, setSum6Statistic] = useState<"media" | "mediana">("media");
   const [compareOnly, setCompareOnly] = useState(false);
   const [section, setSection] = useState<Section>("anthro");
   const [comparisonDate, setComparisonDate] = useState<string>("");
@@ -85,10 +86,14 @@ function AnnualNutritionReport() {
     const values = month.values;
     const mean = month.average!;
     const variance = values.length > 1 ? values.reduce((total,value)=>total+(value-mean)**2,0)/(values.length-1) : null;
-    return {...month, min:Math.min(...values), max:Math.max(...values), sd:variance===null?null:Math.sqrt(variance)};
+    const sorted = [...values].sort((a,b)=>a-b);
+    const middle = Math.floor(sorted.length/2);
+    const median = sorted.length%2 ? sorted[middle] : (sorted[middle-1]+sorted[middle])/2;
+    return {...month, median, min:Math.min(...values), max:Math.max(...values), sd:variance===null?null:Math.sqrt(variance)};
   });
   const firstStats = sum6Stats[0];
   const lastStats = sum6Stats[sum6Stats.length-1];
+  const statisticValue = (month: (typeof sum6Stats)[number]) => sum6Statistic === "media" ? month.average! : month.median;
   const activeMonths = monthly.filter(m => m.count > 0);
   const first = activeMonths[0], last = activeMonths[activeMonths.length - 1];
   const tests = useMemo(() => (hydrationTests ?? []).filter(t => t.date.startsWith(String(year))).sort((a,b)=>a.date.localeCompare(b.date)), [hydrationTests, year]);
@@ -142,22 +147,25 @@ function AnnualNutritionReport() {
     <div className="overflow-hidden rounded-2xl border border-[#d5deeb] bg-white shadow-[0_5px_20px_rgba(11,35,74,0.07)]">
       <div className="border-b border-[#dbe3ef] bg-gradient-to-r from-[#0b234a] to-[#173b70] px-5 py-5 text-white sm:px-7">
         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#f3a4b1]">Evolución de la temporada</p>
-        <h3 className="mt-1 text-xl font-bold">Promedio grupal de Sum6</h3>
+        <h3 className="mt-1 text-xl font-bold">Evolución grupal de Sum6</h3>
         <p className="mt-1 text-xs text-[#cbd7e9]">Sumatoria de seis pliegues · milímetros</p>
       </div>
       <div className="p-5 sm:p-7">
+        <div className="mb-5 inline-flex rounded-xl border border-[#dbe3ef] bg-[#edf2f9] p-1" role="group" aria-label="Indicador estadístico de Sum6">
+          {(["media","mediana"] as const).map(option => <button key={option} type="button" aria-pressed={sum6Statistic===option} onClick={() => setSum6Statistic(option)} className={`rounded-lg px-5 py-2 text-sm font-semibold transition-colors ${sum6Statistic===option?"bg-[#0b234a] text-white shadow-sm":"text-[#0b234a] hover:bg-white"}`}>{option==="media"?"Media":"Mediana"}</button>)}
+        </div>
         {monthlySum6.length === 0 ? <p className="text-sm text-muted-foreground">No hay mediciones para los meses seleccionados.</p> : <>
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-            <div><p className="text-xs font-semibold uppercase tracking-wide text-[#60738f]">Último promedio disponible</p><p className="mt-1 text-3xl font-extrabold text-[#0b234a]">{number(monthlySum6[monthlySum6.length-1].average!)} <span className="text-base font-medium text-[#60738f]">mm</span></p></div>
-            {monthlySum6.length>1&&<div className="rounded-xl bg-[#edf2f9] px-4 py-3 text-right"><p className="text-xs text-[#60738f]">Variación entre períodos mostrados</p><p className={`text-lg font-bold ${monthlySum6[monthlySum6.length-1].average! - monthlySum6[0].average! <= 0?"text-emerald-700":"text-[#c8102e]"}`}>{monthlySum6[monthlySum6.length-1].average! - monthlySum6[0].average! > 0?"+":""}{number(monthlySum6[monthlySum6.length-1].average! - monthlySum6[0].average!)} mm</p></div>}
+            <div><p className="text-xs font-semibold uppercase tracking-wide text-[#60738f]">Última {sum6Statistic} disponible</p><p className="mt-1 text-3xl font-extrabold text-[#0b234a]">{number(statisticValue(lastStats))} <span className="text-base font-medium text-[#60738f]">mm</span></p></div>
+            {monthlySum6.length>1&&<div className="rounded-xl bg-[#edf2f9] px-4 py-3 text-right"><p className="text-xs text-[#60738f]">Variación entre períodos mostrados</p><p className={`text-lg font-bold ${statisticValue(lastStats) - statisticValue(firstStats) <= 0?"text-emerald-700":"text-[#c8102e]"}`}>{monthlySum6[monthlySum6.length-1].average! - monthlySum6[0].average! > 0?"+":""}{number(monthlySum6[monthlySum6.length-1].average! - monthlySum6[0].average!)} mm</p></div>}
           </div>
           {(() => {
-            const values=monthlySum6.map(m=>m.average!);
+            const values=sum6Stats.map(statisticValue);
             const low=Math.min(...values),high=Math.max(...values),span=Math.max(4,high-low);
             const min=low-span*.2,max=high+span*.2;
             const points=values.map((value,i)=>({x:55+(monthlySum6.length===1?0:i* (580/(monthlySum6.length-1))),y:210-(value-min)/(max-min)*160,value,label:monthlySum6[i].name}));
             const line=points.map((p,i)=>`${i===0?"M":"L"} ${p.x} ${p.y}`).join(" ");
-            return <div className="overflow-x-auto"><svg viewBox="0 0 700 265" className="h-auto min-w-[480px] w-full" role="img" aria-label="Gráfico de evolución del promedio grupal de sumatoria de seis pliegues por mes">
+            return <div className="overflow-x-auto"><svg viewBox="0 0 700 265" className="h-auto min-w-[480px] w-full" role="img" aria-label={`Gráfico de evolución de la ${sum6Statistic} grupal de sumatoria de seis pliegues por mes`}>
               {[0,1,2,3,4].map(i=><line key={i} x1="45" x2="650" y1={40+i*42} y2={40+i*42} stroke="#e4eaf2" strokeDasharray="4 5" />)}
               {points.length>1&&<path d={line} fill="none" stroke="#c8102e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />}
               {points.map((p,i)=><g key={i}><circle cx={p.x} cy={p.y} r="6" fill="#c8102e" stroke="white" strokeWidth="2"/><text x={p.x} y={p.y-14} textAnchor="middle" fontSize="13" fontWeight="700" fill="#0b234a">{number(p.value)} mm</text><text x={p.x} y="241" textAnchor="middle" fontSize="12" fill="#60738f">{p.label.slice(0,3)}</text></g>)}
@@ -165,7 +173,7 @@ function AnnualNutritionReport() {
           })()}
           <div className="mt-5 grid gap-3 sm:grid-cols-4">
             {[
-              {label:"Promedio grupal",value:`${number(lastStats.average!)} mm`},
+              {label:sum6Statistic==="media"?"Media grupal":"Mediana grupal",value:`${number(statisticValue(lastStats))} mm`},
               {label:"Mínimo",value:`${number(lastStats.min)} mm`},
               {label:"Máximo",value:`${number(lastStats.max)} mm`},
               {label:"Desviación estándar",value:lastStats.sd===null?"—":`${number(lastStats.sd)} mm`}
@@ -184,7 +192,7 @@ function AnnualNutritionReport() {
             </div>
             <p className="mt-3 text-xs text-[#60738f]">Los extremos pueden corresponder a jugadoras diferentes. Su variación no demuestra cambios individuales.</p>
           </div>}
-          <p className="mt-2 text-xs text-[#60738f]">Cada punto representa el promedio de las últimas mediciones de Sum6 disponibles en ese mes. La cantidad de jugadoras puede variar entre períodos.</p>
+          <p className="mt-2 text-xs text-[#60738f]">Cada punto representa la {sum6Statistic} de las últimas mediciones de Sum6 disponibles en ese mes. La cantidad de jugadoras puede variar entre períodos.</p>
         </>}
       </div>
     </div>
