@@ -18,7 +18,7 @@ async function hashPassword(password:string,salt:string) {
 }
 function safeEqual(a:string,b:string){let diff=a.length^b.length;for(let i=0;i<Math.max(a.length,b.length);i++) diff|=(a.charCodeAt(i)||0)^(b.charCodeAt(i)||0);return diff===0;}
 async function sign(payload:string) {
- const key=await crypto.subtle.importKey("raw",encoder.encode(secret),"HMAC",{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+ const key=await crypto.subtle.importKey("raw",encoder.encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
  return b64(new Uint8Array(await crypto.subtle.sign("HMAC",key,encoder.encode(payload))));
 }
 async function ownerFromAuth(req:Request) {
