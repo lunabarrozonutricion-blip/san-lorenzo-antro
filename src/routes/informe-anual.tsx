@@ -42,6 +42,8 @@ function AnnualNutritionReport() {
   const hydrationTests = useHydrationTests();
   const year = 2026;
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+  const [evolutionSelectedOnly, setEvolutionSelectedOnly] = useState(false);
+  const [evolutionMonths, setEvolutionMonths] = useState<number[]>([]);
   const [sum6Statistic, setSum6Statistic] = useState<"media" | "mediana">("mediana");
   const [compareOnly, setCompareOnly] = useState(false);
   const [section, setSection] = useState<Section>("anthro");
@@ -80,7 +82,8 @@ function AnnualNutritionReport() {
   const yearWeightRecords = (weightRecords ?? []).filter(record => record.date.startsWith("2026"));
   const weightDates = [...new Set(yearWeightRecords.map(record => record.date))];
   const visibleMonthly = monthly.filter((month,index) => !compareOnly || selectedMonths.length === 0 || selectedMonths.includes(index));
-  const monthlySum6 = monthly.map((month,index)=>({...month,index})).filter(month=>month.count>0 && (!compareOnly || selectedMonths.length === 0 || selectedMonths.includes(month.index)));
+  const distributionMonths = monthly.map((month,index)=>({...month,index})).filter(month=>month.count>0 && (!compareOnly || selectedMonths.length === 0 || selectedMonths.includes(month.index)));
+  const monthlySum6 = monthly.map((month,index)=>({...month,index})).filter(month=>month.count>0 && (!evolutionSelectedOnly || evolutionMonths.length === 0 || evolutionMonths.includes(month.index)));
 
   const sum6Stats = monthlySum6.map(month => {
     const values = month.values;
@@ -129,7 +132,7 @@ function AnnualNutritionReport() {
   const printReport = () => {
     window.print();
   };
-  const chart = <div className="space-y-4">{monthlySum6.length === 0 ? <p className="text-sm text-muted-foreground">Todavía no hay mediciones de Sum6 en esta temporada.</p> : monthlySum6.map(m => <div key={m.name} className="grid grid-cols-[80px_1fr] items-center gap-3"><span className="text-sm font-medium">{m.name}</span><div><div className="flex h-5 overflow-hidden rounded-full bg-muted">{(["green","yellow","red"] as const).map(key => <div key={key} style={{width:`${m.groups[key]/m.count*100}%`,backgroundColor:bandColors[key]}} />)}</div><div className="mt-1 flex flex-wrap gap-x-4 text-xs text-muted-foreground"><span>Verde {Math.round(m.groups.green/m.count*100)}%</span><span>Amarillo {Math.round(m.groups.yellow/m.count*100)}%</span><span>Rojo {Math.round(m.groups.red/m.count*100)}%</span><span>{m.count} jugadoras</span></div></div></div>)}</div>;
+  const chart = <div className="space-y-4">{distributionMonths.length === 0 ? <p className="text-sm text-muted-foreground">Todavía no hay mediciones de Sum6 en esta temporada.</p> : distributionMonths.map(m => <div key={m.name} className="grid grid-cols-[80px_1fr] items-center gap-3"><span className="text-sm font-medium">{m.name}</span><div><div className="flex h-5 overflow-hidden rounded-full bg-muted">{(["green","yellow","red"] as const).map(key => <div key={key} style={{width:`${m.groups[key]/m.count*100}%`,backgroundColor:bandColors[key]}} />)}</div><div className="mt-1 flex flex-wrap gap-x-4 text-xs text-muted-foreground"><span>Verde {Math.round(m.groups.green/m.count*100)}%</span><span>Amarillo {Math.round(m.groups.yellow/m.count*100)}%</span><span>Rojo {Math.round(m.groups.red/m.count*100)}%</span><span>{m.count} jugadoras</span></div></div></div>)}</div>;
   const anthroContent = <div className="space-y-6">
     <SectionTitle subtitle="Seguimiento antropométrico del plantel durante 2026.">Evolución antropométrica del plantel</SectionTitle>
     <div className="rounded-xl border border-[#cbd6e5] bg-[#edf2f9] p-4">
@@ -140,7 +143,7 @@ function AnnualNutritionReport() {
     <div className="grid gap-3 sm:grid-cols-3"><Metric label="Jugadoras evaluadas" value={String(measuredPlayers)} /><Metric label="Controles antropométricos con Sum6" value={String(yearControls.length)} /><Metric label="Jornadas de pesaje" value={String(weightDates.length)} detail={`${yearWeightRecords.length} registros de peso`} /></div>
     <div className="annual-screen-only rounded-xl border border-[#cbd6e5] bg-white p-4">
       <label className="flex items-center gap-2 font-semibold text-[#0b234a]"><input type="checkbox" checked={compareOnly} onChange={e=>setCompareOnly(e.target.checked)} /> Comparar meses seleccionados</label>
-      <p className="mt-1 text-xs text-muted-foreground">Elegí los meses que querés mostrar en los gráficos. Si no seleccionás ninguno, se mostrarán todos.</p>
+      <p className="mt-1 text-xs text-muted-foreground">Elegí los meses para la distribución mensual por rangos. Este filtro no modifica la evolución grupal. Si no seleccionás ninguno, se mostrarán todos.</p>
       <div className="mt-3 flex flex-wrap gap-2">{monthNames.map((name,index)=><label key={name} className={`cursor-pointer rounded-lg border px-3 py-2 text-xs font-semibold ${selectedMonths.includes(index)?"border-[#c8102e] bg-rose-50 text-[#0b234a]":"border-[#dbe3ef]"}`}><input type="checkbox" className="mr-2" checked={selectedMonths.includes(index)} onChange={e=>setSelectedMonths(old=>e.target.checked?[...old,index]:old.filter(item=>item!==index))} />{name}</label>)}</div>
     </div>
     <div className="rounded-xl border border-border p-5"><h3 className="mb-4 font-semibold text-[#0b234a]">Distribución mensual por rangos de Sum6</h3>{chart}</div>
@@ -151,6 +154,11 @@ function AnnualNutritionReport() {
         <p className="mt-1 text-xs text-[#cbd7e9]">Sumatoria de seis pliegues · milímetros</p>
       </div>
       <div className="p-5 sm:p-7">
+        <div className="mb-5 rounded-xl border border-[#dbe3ef] bg-[#f4f7fb] p-3">
+          <label className="flex items-center gap-2 text-sm font-semibold text-[#0b234a]"><input type="checkbox" checked={evolutionSelectedOnly} onChange={e=>setEvolutionSelectedOnly(e.target.checked)} /> Comparar meses específicos en evolución grupal</label>
+          {evolutionSelectedOnly && <div className="mt-3 flex flex-wrap gap-2">{monthNames.map((name,index)=><label key={name} className={`cursor-pointer rounded-lg border px-3 py-2 text-xs font-semibold ${evolutionMonths.includes(index)?"border-[#c8102e] bg-rose-50 text-[#0b234a]":"border-[#dbe3ef] bg-white"}`}><input type="checkbox" className="mr-2" checked={evolutionMonths.includes(index)} onChange={e=>setEvolutionMonths(old=>e.target.checked?[...old,index]:old.filter(item=>item!==index))} />{name}</label>)}</div>}
+          <p className="mt-2 text-xs text-[#60738f]">Por defecto se muestra toda la temporada. Este filtro es independiente de la distribución por rangos.</p>
+        </div>
         <div className="mb-5 inline-flex rounded-xl border border-[#dbe3ef] bg-[#edf2f9] p-1" role="group" aria-label="Indicador estadístico de Sum6">
           {(["media","mediana"] as const).map(option => <button key={option} type="button" aria-pressed={sum6Statistic===option} onClick={() => setSum6Statistic(option)} className={`rounded-lg px-5 py-2 text-sm font-semibold transition-colors ${sum6Statistic===option?"bg-[#0b234a] text-white shadow-sm":"text-[#0b234a] hover:bg-white"}`}>{option==="media"?"Media":"Mediana"}</button>)}
         </div>
@@ -171,7 +179,7 @@ function AnnualNutritionReport() {
               {points.map((p,i)=><g key={i}><circle cx={p.x} cy={p.y} r="6" fill="#c8102e" stroke="white" strokeWidth="2"/><text x={p.x} y={p.y-14} textAnchor="middle" fontSize="13" fontWeight="700" fill="#0b234a">{number(p.value)} mm</text><text x={p.x} y="241" textAnchor="middle" fontSize="12" fill="#60738f">{p.label.slice(0,3)}</text></g>)}
             </svg></div>;
           })()}
-          <div className="mt-5"><h4 className="text-base font-bold text-[#0b234a]">Estadísticas del último período</h4><p className="mt-1 text-xs text-[#60738f]">{lastStats.name} {year} · {lastStats.count} jugadoras con mediciones válidas</p></div>
+          <div className="mt-7 border-t-2 border-[#dbe3ef] pt-5"><h4 className="text-lg font-extrabold text-[#0b234a]">Estadísticas del último período</h4><p className="mt-1 text-xs text-[#60738f]">{lastStats.name} {year} · {lastStats.count} jugadoras con mediciones válidas</p></div>
           <div className="mt-3 grid gap-3 sm:grid-cols-4">
             {[
               {label:sum6Statistic==="media"?"Media grupal":"Mediana grupal",value:`${number(statisticValue(lastStats))} mm`},
