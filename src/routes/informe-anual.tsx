@@ -157,7 +157,7 @@ function AnnualNutritionReport() {
         {monthlySum6.length === 0 ? <p className="text-sm text-muted-foreground">No hay mediciones para los meses seleccionados.</p> : <>
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
             <div><p className="text-xs font-semibold uppercase tracking-wide text-[#60738f]">Última {sum6Statistic} disponible</p><p className="mt-1 text-3xl font-extrabold text-[#0b234a]">{number(statisticValue(lastStats))} <span className="text-base font-medium text-[#60738f]">mm</span></p></div>
-            {monthlySum6.length>1&&<div className="rounded-xl bg-[#edf2f9] px-4 py-3 text-right"><p className="text-xs text-[#60738f]">Variación entre períodos mostrados</p><p className={`text-lg font-bold ${statisticValue(lastStats) - statisticValue(firstStats) <= 0?"text-emerald-700":"text-[#c8102e]"}`}>{monthlySum6[monthlySum6.length-1].average! - monthlySum6[0].average! > 0?"+":""}{number(monthlySum6[monthlySum6.length-1].average! - monthlySum6[0].average!)} mm</p></div>}
+            {monthlySum6.length>1&&<div className="rounded-xl bg-[#edf2f9] px-4 py-3 text-right"><p className="text-xs text-[#60738f]">Variación entre períodos mostrados</p><p className={`text-lg font-bold ${statisticValue(lastStats) - statisticValue(firstStats) <= 0?"text-emerald-700":"text-[#c8102e]"}`}>{statisticValue(lastStats) - statisticValue(firstStats) > 0?"+":""}{number(statisticValue(lastStats) - statisticValue(firstStats))} mm</p></div>}
           </div>
           {(() => {
             const values=sum6Stats.map(statisticValue);
@@ -171,15 +171,16 @@ function AnnualNutritionReport() {
               {points.map((p,i)=><g key={i}><circle cx={p.x} cy={p.y} r="6" fill="#c8102e" stroke="white" strokeWidth="2"/><text x={p.x} y={p.y-14} textAnchor="middle" fontSize="13" fontWeight="700" fill="#0b234a">{number(p.value)} mm</text><text x={p.x} y="241" textAnchor="middle" fontSize="12" fill="#60738f">{p.label.slice(0,3)}</text></g>)}
             </svg></div>;
           })()}
-          <div className="mt-5 grid gap-3 sm:grid-cols-4">
+          <div className="mt-5"><h4 className="text-base font-bold text-[#0b234a]">Estadísticas del último período</h4><p className="mt-1 text-xs text-[#60738f]">{lastStats.name} {year} · {lastStats.count} jugadoras con mediciones válidas</p></div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-4">
             {[
               {label:sum6Statistic==="media"?"Media grupal":"Mediana grupal",value:`${number(statisticValue(lastStats))} mm`},
-              {label:"Mínimo",value:`${number(lastStats.min)} mm`},
-              {label:"Máximo",value:`${number(lastStats.max)} mm`},
+              {label:"Valor mínimo",value:`${number(lastStats.min)} mm`},
+              {label:"Valor máximo",value:`${number(lastStats.max)} mm`},
               {label:"Desviación estándar",value:lastStats.sd===null?"—":`${number(lastStats.sd)} mm`}
             ].map(item=><div key={item.label} className="rounded-xl border border-[#dbe3ef] bg-[#f4f7fb] px-4 py-4"><p className="text-[11px] font-semibold uppercase tracking-wide text-[#60738f]">{item.label}</p><p className="mt-2 text-xl font-extrabold text-[#0b234a]">{item.value}</p></div>)}
           </div>
-          <p className="mt-2 text-xs text-[#60738f]">Último período mostrado: {lastStats.name} · {lastStats.count} jugadoras con mediciones válidas.</p>
+          <p className="mt-2 text-xs text-[#60738f]">El mínimo y el máximo corresponden a las mediciones individuales más baja y más alta de este período. La desviación estándar describe la dispersión de los valores.</p>
           {sum6Stats.length>1&&<div className="mt-5 rounded-xl border border-[#dbe3ef] bg-white p-4">
             <p className="text-sm font-bold text-[#0b234a]">Evolución de los valores extremos</p>
             <p className="mt-1 text-xs text-[#60738f]">{firstStats.name} → {lastStats.name}</p>
