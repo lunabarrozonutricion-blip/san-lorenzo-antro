@@ -550,6 +550,7 @@ const rootRouteChildren: RootRouteChildren = {
   HidratacionRoute: HidratacionRoute,
   HistorialRoute: HistorialRoute,
   InformeAnualRoute: InformeAnualRoute,
+  InformeAnualInvitadosRoute: InformeAnualInvitadosRoute,
   InformesRoute: InformesRoute,
   IntercambiosRoute: IntercambiosRoute,
   MultasRoute: MultasRoute,
