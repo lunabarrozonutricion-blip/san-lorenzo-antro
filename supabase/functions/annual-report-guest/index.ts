@@ -87,7 +87,7 @@ Deno.serve(async(req)=>{
   if(claims.owner!==owner || claims.exp<Date.now() || claims.version!==config.updated_at) return json({error:"Sesión vencida"},403);
   try {
    const [controls,hydration,weights,notes]=await Promise.all([
-    getAll("controls","player_id,date,triceps,subscapular,supraespinal,abdominal,thigh_skinfold,calf_skinfold",owner),
+    getAll("controls","id,player_id,date,triceps,subscapular,supraespinal,abdominal,thigh_skinfold,calf_skinfold",owner),
     getAll("hydration_tests","date,entries",owner),
     getAll("weight_records","date,player_id,weight",owner),
     admin.from("annual_report_notes").select("interventions,conclusions").eq("owner_id",owner).eq("report_year",2026).maybeSingle()
@@ -95,13 +95,15 @@ Deno.serve(async(req)=>{
    // Solo métricas agregadas: no nombres, DNI, teléfonos, emails ni fichas individuales.
    const monthly=Array.from({length:12},(_,month)=>{
     const prefix="2026-"+String(month+1).padStart(2,"0");
-    const latest=new Map<number, {date:string;sum6:number}>();
+    const latest=new Map<number, {date:string;id:number;sum6:number}>();
     for(const row of controls){
      if(!String(row.date).startsWith(prefix)) continue;
-     const values=["triceps","subscapular","supraespinal","abdominal","thigh_skinfold","calf_skinfold"].map(k=>Number(row[k]));
-     if(values.some(v=>!Number.isFinite(v)||v<=0)) continue;
-     const id=Number(row.player_id), date=String(row.date), sum6=values.reduce((a,b)=>a+b,0);
-     if(!latest.has(id)||latest.get(id)!.date<=date) latest.set(id,{date,sum6});
+     const raw=["triceps","subscapular","supraespinal","abdominal","thigh_skinfold","calf_skinfold"].map(k=>row[k]);
+     if(raw.some(v=>v===null||v===undefined||!Number.isFinite(Number(v)))) continue;
+     const values=raw.map(v=>Number(v));
+     const playerId=Number(row.player_id), id=Number(row.id), date=String(row.date), sum6=Math.round(values.reduce((a,b)=>a+b,0)*100)/100;
+     const previous=latest.get(playerId);
+     if(!previous||date>previous.date||(date===previous.date&&id>previous.id)) latest.set(playerId,{date,id,sum6});
     }
     const values=[...latest.values()].map(v=>v.sum6).sort((a,b)=>a-b);
     const n=values.length;
@@ -109,7 +111,7 @@ Deno.serve(async(req)=>{
    });
    const hydrationDays=hydration.filter(row=>String(row.date).startsWith("2026")).map(row=>{
     const entries=Array.isArray(row.entries)?row.entries:[];
-    const values=entries.map((entry:Record<string,unknown>)=>Number(entry?.value)).filter((v:number)=>Number.isFinite(v)&&v>=1000&&v<=1100);
+    const values=entries.map((entry:Record<string,unknown>)=>entry?.value).filter((v:unknown)=>typeof v==="number"&&Number.isFinite(v)) as number[];
     return {date:row.date,count:values.length,inTarget:values.filter((v:number)=>v<1020).length};
    }).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
    const weightDays=[...new Set(weights.filter(row=>String(row.date).startsWith("2026")).map(row=>String(row.date)))];
