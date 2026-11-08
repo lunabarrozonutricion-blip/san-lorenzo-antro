@@ -47,8 +47,8 @@ function AnnualNutritionReport() {
   const [evolutionMonths, setEvolutionMonths] = useState<number[]>([]);
   const [sum6Statistic, setSum6Statistic] = useState<"media" | "mediana">("mediana");
   const [compareOnly, setCompareOnly] = useState(false);
-  const [printAnthroSection, setPrintAnthroSection] = useState<"distribution" | "evolution" | null>(null);
-  const printSection = (target: "distribution" | "evolution") => {
+  const [printAnthroSection, setPrintAnthroSection] = useState<"distribution" | "evolution" | "hydration" | null>(null);
+  const printSection = (target: "distribution" | "evolution" | "hydration") => {
     setPrintAnthroSection(target);
     window.setTimeout(() => window.print(), 80);
   };
@@ -241,16 +241,22 @@ function AnnualNutritionReport() {
   </div>;
   const hydrationContent = <div className="space-y-6">
     <SectionTitle subtitle="Seguimiento del estado de hidratación y evolución de las jornadas registradas.">Hidratación del plantel</SectionTitle>
-    <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-xl border border-[#173b70] bg-[#0b234a] p-5 text-white"><p className="text-xs font-semibold uppercase tracking-wider text-[#cbd7e9]">Jornadas de test</p><p className="mt-2 text-4xl font-extrabold">{tests.length}</p></div><div className="rounded-xl border border-[#cbd6e5] bg-[#eaf0f8] p-5"><p className="text-xs font-semibold uppercase tracking-wider text-[#60738f]">Mediciones válidas</p><p className="mt-2 text-4xl font-extrabold text-[#0b234a]">{hydration.measured}</p></div></div>
-    <div className="overflow-hidden rounded-2xl border border-[#cbd6e5] bg-[#edf2f9] shadow-sm">
-      <div className="bg-[#0b234a] px-5 py-5 text-white sm:px-6"><h3 className="text-lg font-bold">Comparativa de jornadas</h3><p className="mt-1 text-xs text-[#cbd7e9]">Resultados válidos · barras de porcentaje dentro del objetivo y orina concentrada</p></div>
+    <div className={`overflow-hidden rounded-2xl border border-[#cbd6e5] bg-[#edf2f9] shadow-sm ${printAnthroSection==="hydration"?"annual-section-print-target":""}`}>
+      <div className="bg-[#0b234a] px-5 py-5 text-white sm:px-6">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#f3a4b1]">Evolución de la temporada</p>
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-xl font-bold">Comparativa entre jornadas de hidratación</h3>
+          <button type="button" onClick={() => printSection("hydration")} className="annual-screen-only inline-flex items-center gap-2 rounded-lg border border-white/40 px-3 py-2 text-xs font-semibold text-white"><Printer className="h-4 w-4" /> Imprimir sección</button>
+        </div>
+        <p className="mt-1 text-xs text-[#cbd7e9]">Resultados válidos · porcentaje dentro del objetivo y orina concentrada</p>
+      </div>
       <div className="p-5 sm:p-6">
-        <div className="mb-5 flex flex-wrap items-center gap-3"><label htmlFor="hydration-compare-date" className="text-sm font-semibold text-[#0b234a]">Comparar el inicio con:</label><select id="hydration-compare-date" value={comparisonDate} onChange={event=>setComparisonDate(event.target.value)} className="max-w-full rounded-lg border border-[#b6c7dd] bg-white px-3 py-2 text-sm text-[#0b234a]"><option value="">Última jornada registrada</option>{comparisonOptions.map(item=><option key={item.index} value={String(item.index)}>{item.date} · Test {item.index+1}{tests[item.index]?.context === "pre_entreno" ? " · Preentreno" : tests[item.index]?.context === "otro" ? " · Otro" : " · "+tests[item.index]?.context.replaceAll("_"," ")}</option>)}</select></div>
+        <div className="annual-screen-only mb-5 flex flex-wrap items-center gap-3"><label htmlFor="hydration-compare-date" className="text-sm font-semibold text-[#0b234a]">Comparar el inicio con:</label><select id="hydration-compare-date" value={comparisonDate} onChange={event=>setComparisonDate(event.target.value)} className="max-w-full rounded-lg border border-[#b6c7dd] bg-white px-3 py-2 text-sm text-[#0b234a]"><option value="">Última jornada registrada</option>{comparisonOptions.map(item=><option key={item.index} value={String(item.index)}>{item.date} · Test {item.index+1}{tests[item.index]?.context === "pre_entreno" ? " · Preentreno" : tests[item.index]?.context === "otro" ? " · Otro" : " · "+tests[item.index]?.context.replaceAll("_"," ")}</option>)}</select></div>
         <div className="grid gap-4 md:grid-cols-2">{[{label:"Inicio",data:firstHydration},{label:comparisonDate?"Jornada seleccionada":"Última jornada",data:comparisonValue}].map(({label,data})=><div key={label} className="rounded-xl border border-[#dbe3ef] bg-white p-5 shadow-sm"><p className="text-xs font-bold uppercase tracking-wider text-[#c8102e]">{label}</p><p className="mt-1 text-sm font-semibold text-[#0b234a]">{data?.date ?? "Sin datos"}</p>{data&&data.count>0?<><div className="mt-5 flex h-44 items-end justify-center gap-10 border-b border-[#dbe3ef] pb-1">{[{name:"Dentro del objetivo",count:data.hydrated,color:"#14866d"},{name:"Orina concentrada",count:data.count-data.hydrated,color:"#c8102e"}].map(bar=><div key={bar.name} className="flex h-full w-24 flex-col items-center justify-end gap-1"><span className="text-sm font-bold text-[#0b234a]">{number(bar.count/data.count*100,0)}%</span><div className="w-16 rounded-t-md" style={{height:`${Math.max(3,bar.count/data.count*100)}%`,backgroundColor:bar.color}} /></div>)}</div><div className="mt-3 grid grid-cols-2 gap-3 text-center text-xs"><div><span className="font-bold text-[#14866d]">Dentro del objetivo</span><p className="mt-1 text-[#60738f]">{data.hydrated} jugadoras</p></div><div><span className="font-bold text-[#c8102e]">Orina concentrada</span><p className="mt-1 text-[#60738f]">{data.count-data.hydrated} jugadoras</p></div></div><p className="mt-3 text-center text-xs text-[#60738f]">{data.count} mediciones válidas</p></>:<p className="mt-5 text-sm text-[#60738f]">Sin mediciones válidas</p>}</div>)}</div>
       </div>
     </div>
     <div className="overflow-hidden rounded-2xl border border-[#cbd6e5] bg-[#f1f5fa]">
-      <div className="border-b border-[#d5deeb] bg-[#e6edf6] px-5 py-4"><h3 className="font-bold text-[#0b234a]">Evolución histórica de hidratación</h3><p className="mt-1 text-xs text-[#60738f]">Consultá el seguimiento solo cuando lo necesites.</p></div>
+      <div className="border-b border-[#d5deeb] bg-[#0b234a] px-5 py-5 text-white"><h3 className="text-lg font-bold">Evolución histórica de hidratación</h3><p className="mt-1 text-xs text-[#cbd7e9]">Consultá el seguimiento solo cuando lo necesites.</p></div>
       <div className="space-y-4 p-5">
         <div className="flex flex-wrap gap-3">
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-[#b6c7dd] bg-white px-4 py-3 text-sm font-semibold text-[#0b234a]"><input type="checkbox" checked={showHydrationByDay} onChange={event=>setShowHydrationByDay(event.target.checked)} /> Mostrar evolución por jornada</label>
@@ -258,6 +264,16 @@ function AnnualNutritionReport() {
         </div>
         {showHydrationByDay && <div className="rounded-xl border border-[#d5deeb] bg-white p-5"><h4 className="mb-4 font-semibold text-[#0b234a]">Evolución por jornada</h4><div className="space-y-4">{hydrationEvolution.map((item,index)=><div key={`${item.date}-${index}`} className="grid grid-cols-[90px_1fr] items-center gap-3"><span className="text-xs">{item.date}</span><div><div className="h-4 overflow-hidden rounded-full bg-rose-200">{item.percent!==null&&<div className="h-full bg-emerald-500" style={{width:`${item.percent}%`}} />}</div><p className="mt-1 text-xs text-muted-foreground">{item.percent===null?"Sin mediciones válidas":`${number(item.percent,0)}% dentro del objetivo · ${item.count} resultados`}</p></div></div>)}{hydrationEvolution.length===0&&<p className="text-sm text-muted-foreground">No hay jornadas registradas en 2026.</p>}</div></div>}
         {showHydrationByMonth && <div className="rounded-xl border border-[#d5deeb] bg-white p-5"><h4 className="mb-3 font-semibold text-[#0b234a]">Evolución mensual de hidratación</h4><div className="space-y-3">{hydrationByMonth.filter(month => month.tests > 0).map(month => <div key={month.name} className="grid grid-cols-[75px_1fr] items-center gap-3"><span className="text-sm font-medium">{month.name}</span><div><div className="h-4 overflow-hidden rounded-full bg-rose-200">{month.percent !== null && <div className="h-full bg-emerald-500" style={{width:`${month.percent}%`}} />}</div><p className="mt-1 text-xs text-muted-foreground">{month.measured ? `${number(month.percent!, 0)}% dentro del objetivo · ${month.measured} mediciones · ${month.tests} tests` : `${month.tests} tests · sin mediciones válidas`}</p></div></div>)}{tests.length === 0 && <p className="text-sm text-muted-foreground">No hay tests registrados.</p>}</div></div>}
+      </div>
+    </div>
+    <div className="overflow-hidden rounded-2xl border border-[#cbd6e5] bg-white">
+      <div className="bg-[#0b234a] px-5 py-4 text-white">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#f3a4b1]">Datos complementarios</p>
+        <h3 className="mt-1 text-lg font-bold">Datos generales de hidratación</h3>
+      </div>
+      <div className="grid gap-3 p-5 sm:grid-cols-2">
+        <div className="rounded-xl border border-[#173b70] bg-[#0b234a] p-5 text-white"><p className="text-xs font-semibold uppercase tracking-wider text-[#cbd7e9]">Jornadas de test</p><p className="mt-2 text-4xl font-extrabold">{tests.length}</p></div>
+        <div className="rounded-xl border border-[#cbd6e5] bg-[#eaf0f8] p-5"><p className="text-xs font-semibold uppercase tracking-wider text-[#60738f]">Mediciones válidas</p><p className="mt-2 text-4xl font-extrabold text-[#0b234a]">{hydration.measured}</p></div>
       </div>
     </div>
     <p className="text-xs text-muted-foreground">Criterio operativo: USG &lt;1,020 dentro del objetivo; USG ≥1,020 indica orina concentrada / posible hipohidratación, no un diagnóstico clínico. Se excluyen valores ausentes; el momento de muestreo y la composición del plantel pueden variar.</p>
