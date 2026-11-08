@@ -10,6 +10,7 @@ import { ClientOnly } from "@/components/client-only";
 import { Button } from "@/components/ui/button";
 import { useControls, useHydrationTests, usePlayers, useWeightRecords } from "@/lib/hooks";
 import { metricValue } from "@/lib/calc";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/informe-anual")({
   component: () => <ClientOnly><AnnualNutritionReport /></ClientOnly>,
@@ -66,15 +67,46 @@ function AnnualNutritionReport() {
   const [saved, setSaved] = useState(true);
   const storageKey = `sl-annual-nutrition-${year}`;
   useEffect(() => {
-    try {
-      const parsed = JSON.parse(localStorage.getItem(storageKey) ?? "null");
-      setNotes(parsed && typeof parsed.interventions === "string" && typeof parsed.conclusions === "string" ? parsed : emptyNotes);
-    } catch { setNotes(emptyNotes); }
+    let active = true;
+    const loadNotes = async () => {
+      let local: Notes = emptyNotes;
+      try {
+        const parsed = JSON.parse(localStorage.getItem(storageKey) ?? "null");
+        if (parsed && typeof parsed.interventions === "string" && typeof parsed.conclusions === "string") local = parsed;
+      } catch { /* Ignorar datos locales dañados. */ }
+      if (active) { setNotes(local); setSaved(true); }
+      if (!supabase) return;
+      const { data: userResult, error: authError } = await supabase.auth.getUser();
+      if (!active || authError || !userResult.user) return;
+      const { data, error } = await supabase.from("annual_report_notes")
+        .select("interventions, conclusions")
+        .eq("owner_id", userResult.user.id).eq("report_year", year).maybeSingle();
+      if (!active) return;
+      if (error) { console.warn("No se pudieron cargar las notas sincronizadas:", error.message); return; }
+      if (data) {
+        const cloud = { interventions: data.interventions ?? "", conclusions: data.conclusions ?? "" };
+        setNotes(cloud);
+        try { localStorage.setItem(storageKey, JSON.stringify(cloud)); } catch { /* Sin caché local. */ }
+      }
+    };
+    void loadNotes();
+    return () => { active = false; };
+  }, [storageKey, year]);
+  const saveNotes = async () => {
+    if (!supabase) { toast.error("No hay conexión configurada para guardar el informe."); return; }
+    const { data: userResult, error: authError } = await supabase.auth.getUser();
+    if (authError || !userResult.user) { toast.error("Iniciá sesión para guardar el informe."); return; }
+    const { error } = await supabase.from("annual_report_notes").upsert({
+      owner_id: userResult.user.id,
+      report_year: year,
+      interventions: notes.interventions,
+      conclusions: notes.conclusions,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "owner_id,report_year" });
+    if (error) { toast.error("No se pudo sincronizar el informe: " + error.message); return; }
+    try { localStorage.setItem(storageKey, JSON.stringify(notes)); } catch { /* Guardado remoto exitoso. */ }
     setSaved(true);
-  }, [storageKey]);
-  const saveNotes = () => {
-    try { localStorage.setItem(storageKey, JSON.stringify(notes)); setSaved(true); toast.success("Textos guardados en este dispositivo"); }
-    catch { toast.error("No se pudieron guardar los textos"); }
+    toast.success("Textos guardados y sincronizados.");
   };
   const yearControls = useMemo(() => (controls ?? []).filter(c => c.date.startsWith(String(year)) && metricValue(c, "sum6") != null), [controls, year]);
   const monthly = useMemo(() => monthNames.map((name, month) => {
@@ -287,7 +319,7 @@ function AnnualNutritionReport() {
         {expandedIntervention===index&&<div className="border-t border-[#e1e7f0] px-5 py-4 text-sm leading-7 text-[#42536c]">{axis.detail}{index===3 && <EducationalPdfLibrary kind="charlas" />}{index===5 && <EducationalPdfLibrary kind="talleres" />}{index===5 && <WorkshopPhotoGallery />}</div>}
       </div>)}</div>
     </div>
-    <div className="rounded-xl border border-[#d5deeb] bg-white p-5"><h3 className="mb-2 font-semibold text-[#0b234a]">Actividades y documentación complementaria</h3><p className="mb-3 text-sm text-muted-foreground">Podés agregar títulos de charlas, fechas confirmadas, detalles del taller de cocina y referencias a materiales. No es necesario indicar una frecuencia de consultas que no esté documentada.</p><textarea className="min-h-44 w-full rounded-xl border border-input bg-background p-4 text-sm leading-7" placeholder="Ej.: Charlas realizadas, temáticas, taller de cocina, implementación del registro fotográfico..." value={notes.interventions} onChange={e=>{setNotes(n=>({...n,interventions:e.target.value}));setSaved(false);}} /><p className="mt-2 text-xs text-muted-foreground">Las notas se guardan con el botón Guardar del informe en este dispositivo. Los PDFs todavía no se adjuntan ni se sincronizan con Supabase.</p></div>
+    <div className="rounded-xl border border-[#d5deeb] bg-white p-5"><h3 className="mb-2 font-semibold text-[#0b234a]">Actividades y documentación complementaria</h3><p className="mb-3 text-sm text-muted-foreground">Podés agregar títulos de charlas, fechas confirmadas, detalles del taller de cocina y referencias a materiales. No es necesario indicar una frecuencia de consultas que no esté documentada.</p><textarea className="min-h-44 w-full rounded-xl border border-input bg-background p-4 text-sm leading-7" placeholder="Ej.: Charlas realizadas, temáticas, taller de cocina, implementación del registro fotográfico..." value={notes.interventions} onChange={e=>{setNotes(n=>({...n,interventions:e.target.value}));setSaved(false);}} /><p className="mt-2 text-xs text-muted-foreground">Las notas se guardan con el botón Guardar del informe en este dispositivo. Los textos se sincronizan al guardar. Los materiales adjuntos se administran por separado.</p></div>
   </div>;
   const conclusionsContent = <div className="space-y-4"><SectionTitle subtitle="Interpretación profesional, limitaciones de los registros y prioridades de la próxima temporada.">Conclusiones y proyecciones</SectionTitle><textarea className="min-h-56 w-full rounded-xl border border-input bg-background p-4 text-sm leading-7" placeholder="Escribí las conclusiones, los resultados observados y las propuestas para la próxima temporada..." value={notes.conclusions} onChange={e=>{setNotes(n=>({...n,conclusions:e.target.value}));setSaved(false);}} /><p className="text-xs text-muted-foreground">Evitá atribuir causalidad a las intervenciones sin una evaluación específica.</p></div>;
   return <AppLayout title="Informe Anual Nutricional" subtitle="San Lorenzo · Primera División – Fútbol Femenino">
