@@ -10,6 +10,7 @@ import { ClientOnly } from "@/components/client-only";
 import { Button } from "@/components/ui/button";
 import { useControls, useHydrationTests, usePlayers, useWeightRecords } from "@/lib/hooks";
 import { metricValue } from "@/lib/calc";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/informe-anual")({
   component: () => <ClientOnly><AnnualNutritionReport /></ClientOnly>,
@@ -64,17 +65,80 @@ function AnnualNutritionReport() {
   const [expandedIntervention, setExpandedIntervention] = useState<number | null>(null);
   const [notes, setNotes] = useState<Notes>(emptyNotes);
   const [saved, setSaved] = useState(true);
+  const [guestOwnerId, setGuestOwnerId] = useState<string | null>(null);
+  const [guestPassword, setGuestPassword] = useState("");
+  const [guestBusy, setGuestBusy] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void supabase?.auth.getUser().then(({ data }) => {
+      if (active) setGuestOwnerId(data.user?.id ?? null);
+    });
+    return () => { active = false; };
+  }, []);
+  const configureGuestAccess = async () => {
+    if (!supabase || !guestOwnerId) return;
+    if (guestPassword.length < 12) { toast.error("Elegí una clave de al menos 12 caracteres."); return; }
+    setGuestBusy(true);
+    const { data, error } = await supabase.functions.invoke("annual-report-guest", {
+      body: { action: "configure", ownerId: guestOwnerId, password: guestPassword },
+    });
+    setGuestBusy(false);
+    if (error || data?.error) { toast.error(data?.error ?? "No se pudo configurar el acceso."); return; }
+    setGuestPassword("");
+    toast.success("Clave de invitados configurada. Compartí el enlace.");
+  };
+  const disableGuestAccess = async () => {
+    if (!supabase || !guestOwnerId) return;
+    setGuestBusy(true);
+    const { data, error } = await supabase.functions.invoke("annual-report-guest", {
+      body: { action: "disable", ownerId: guestOwnerId },
+    });
+    setGuestBusy(false);
+    if (error || data?.error) { toast.error(data?.error ?? "No se pudo desactivar el acceso."); return; }
+    toast.success("Acceso de invitados desactivado.");
+  };
   const storageKey = `sl-annual-nutrition-${year}`;
   useEffect(() => {
-    try {
-      const parsed = JSON.parse(localStorage.getItem(storageKey) ?? "null");
-      setNotes(parsed && typeof parsed.interventions === "string" && typeof parsed.conclusions === "string" ? parsed : emptyNotes);
-    } catch { setNotes(emptyNotes); }
+    let active = true;
+    const loadNotes = async () => {
+      let local: Notes = emptyNotes;
+      try {
+        const parsed = JSON.parse(localStorage.getItem(storageKey) ?? "null");
+        if (parsed && typeof parsed.interventions === "string" && typeof parsed.conclusions === "string") local = parsed;
+      } catch { /* Ignorar datos locales dañados. */ }
+      if (active) { setNotes(local); setSaved(true); }
+      if (!supabase) return;
+      const { data: userResult, error: authError } = await supabase.auth.getUser();
+      if (!active || authError || !userResult.user) return;
+      const { data, error } = await supabase.from("annual_report_notes")
+        .select("interventions, conclusions")
+        .eq("owner_id", userResult.user.id).eq("report_year", year).maybeSingle();
+      if (!active) return;
+      if (error) { console.warn("No se pudieron cargar las notas sincronizadas:", error.message); return; }
+      if (data) {
+        const cloud = { interventions: data.interventions ?? "", conclusions: data.conclusions ?? "" };
+        setNotes(cloud);
+        try { localStorage.setItem(storageKey, JSON.stringify(cloud)); } catch { /* Sin caché local. */ }
+      }
+    };
+    void loadNotes();
+    return () => { active = false; };
+  }, [storageKey, year]);
+  const saveNotes = async () => {
+    if (!supabase) { toast.error("No hay conexión configurada para guardar el informe."); return; }
+    const { data: userResult, error: authError } = await supabase.auth.getUser();
+    if (authError || !userResult.user) { toast.error("Iniciá sesión para guardar el informe."); return; }
+    const { error } = await supabase.from("annual_report_notes").upsert({
+      owner_id: userResult.user.id,
+      report_year: year,
+      interventions: notes.interventions,
+      conclusions: notes.conclusions,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "owner_id,report_year" });
+    if (error) { toast.error("No se pudo sincronizar el informe: " + error.message); return; }
+    try { localStorage.setItem(storageKey, JSON.stringify(notes)); } catch { /* Guardado remoto exitoso. */ }
     setSaved(true);
-  }, [storageKey]);
-  const saveNotes = () => {
-    try { localStorage.setItem(storageKey, JSON.stringify(notes)); setSaved(true); toast.success("Textos guardados en este dispositivo"); }
-    catch { toast.error("No se pudieron guardar los textos"); }
+    toast.success("Textos guardados y sincronizados.");
   };
   const yearControls = useMemo(() => (controls ?? []).filter(c => c.date.startsWith(String(year)) && metricValue(c, "sum6") != null), [controls, year]);
   const monthly = useMemo(() => monthNames.map((name, month) => {
@@ -287,7 +351,7 @@ function AnnualNutritionReport() {
         {expandedIntervention===index&&<div className="border-t border-[#e1e7f0] px-5 py-4 text-sm leading-7 text-[#42536c]">{axis.detail}{index===3 && <EducationalPdfLibrary kind="charlas" />}{index===5 && <EducationalPdfLibrary kind="talleres" />}{index===5 && <WorkshopPhotoGallery />}</div>}
       </div>)}</div>
     </div>
-    <div className="rounded-xl border border-[#d5deeb] bg-white p-5"><h3 className="mb-2 font-semibold text-[#0b234a]">Actividades y documentación complementaria</h3><p className="mb-3 text-sm text-muted-foreground">Podés agregar títulos de charlas, fechas confirmadas, detalles del taller de cocina y referencias a materiales. No es necesario indicar una frecuencia de consultas que no esté documentada.</p><textarea className="min-h-44 w-full rounded-xl border border-input bg-background p-4 text-sm leading-7" placeholder="Ej.: Charlas realizadas, temáticas, taller de cocina, implementación del registro fotográfico..." value={notes.interventions} onChange={e=>{setNotes(n=>({...n,interventions:e.target.value}));setSaved(false);}} /><p className="mt-2 text-xs text-muted-foreground">Las notas se guardan con el botón Guardar del informe en este dispositivo. Los PDFs todavía no se adjuntan ni se sincronizan con Supabase.</p></div>
+    <div className="rounded-xl border border-[#d5deeb] bg-white p-5"><h3 className="mb-2 font-semibold text-[#0b234a]">Actividades y documentación complementaria</h3><p className="mb-3 text-sm text-muted-foreground">Podés agregar títulos de charlas, fechas confirmadas, detalles del taller de cocina y referencias a materiales. No es necesario indicar una frecuencia de consultas que no esté documentada.</p><textarea className="min-h-44 w-full rounded-xl border border-input bg-background p-4 text-sm leading-7" placeholder="Ej.: Charlas realizadas, temáticas, taller de cocina, implementación del registro fotográfico..." value={notes.interventions} onChange={e=>{setNotes(n=>({...n,interventions:e.target.value}));setSaved(false);}} /><p className="mt-2 text-xs text-muted-foreground">Las notas se guardan con el botón Guardar del informe en este dispositivo. Los textos se sincronizan al guardar. Los materiales adjuntos se administran por separado.</p></div>
   </div>;
   const conclusionsContent = <div className="space-y-4"><SectionTitle subtitle="Interpretación profesional, limitaciones de los registros y prioridades de la próxima temporada.">Conclusiones y proyecciones</SectionTitle><textarea className="min-h-56 w-full rounded-xl border border-input bg-background p-4 text-sm leading-7" placeholder="Escribí las conclusiones, los resultados observados y las propuestas para la próxima temporada..." value={notes.conclusions} onChange={e=>{setNotes(n=>({...n,conclusions:e.target.value}));setSaved(false);}} /><p className="text-xs text-muted-foreground">Evitá atribuir causalidad a las intervenciones sin una evaluación específica.</p></div>;
   return <AppLayout title="Informe Anual Nutricional" subtitle="San Lorenzo · Primera División – Fútbol Femenino">
@@ -328,6 +392,12 @@ function AnnualNutritionReport() {
             <div className="flex flex-wrap gap-3"><Button variant="outline" className="border-[#b7c6d9] bg-white text-[#0b234a] hover:bg-[#edf2f9]" onClick={saveNotes}><Save className="mr-2 h-4 w-4" />{saved?"Guardar textos":"Guardar cambios"}</Button><Button className="bg-[#0b234a] text-white hover:bg-[#173c71]" onClick={printReport}><Printer className="mr-2 h-4 w-4" />Imprimir / Guardar PDF</Button></div>
           </div>
         </div>
+      </div>
+      <div className="annual-screen-only rounded-2xl border border-[#d6deea] bg-white p-5 shadow-sm">
+        <h2 className="text-base font-bold text-[#0b234a]">Acceso de invitados al informe</h2>
+        <p className="mt-1 text-sm text-[#60738f]">Configurá una clave compartida. Los invitados solo podrán consultar estadísticas agregadas, sin acceder a fichas individuales.</p>
+        {guestOwnerId && <div className="mt-3 flex flex-wrap items-center gap-2"><input className="min-w-0 flex-1 rounded-lg border p-2 text-xs" readOnly value={`${window.location.origin}/informe-anual-invitados?owner=${guestOwnerId}`} aria-label="Enlace para invitados" /><Button variant="outline" onClick={() => { void navigator.clipboard.writeText(`${window.location.origin}/informe-anual-invitados?owner=${guestOwnerId}`); toast.success("Enlace copiado."); }}>Copiar enlace</Button></div>}
+        <div className="mt-3 flex flex-wrap gap-2"><input type="password" autoComplete="new-password" className="min-w-52 flex-1 rounded-lg border p-2 text-sm" placeholder="Nueva clave (mínimo 12 caracteres)" value={guestPassword} onChange={e=>setGuestPassword(e.target.value)} /><Button disabled={guestBusy || !guestOwnerId} onClick={() => void configureGuestAccess()}>Guardar clave</Button><Button variant="outline" disabled={guestBusy || !guestOwnerId} onClick={() => void disableGuestAccess()}>Desactivar acceso</Button></div>
       </div>
       <div id="annual-report-details" className="annual-screen-only annual-report-shell overflow-hidden rounded-2xl border border-[#d6deea] bg-white shadow-[0_8px_24px_rgba(11,35,74,0.07)]">
         <div className="flex items-center gap-3 border-b border-[#dbe3ef] bg-[#0b234a] px-6 py-4 text-white"><span className="h-7 w-1 rounded-full bg-[#c8102e]" /><span className="text-sm font-bold uppercase tracking-wider">{sections.find(item=>item.id===section)?.label}</span><span className="ml-auto text-xs text-[#cbd7e9]">Temporada {year}</span></div>

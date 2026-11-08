@@ -23,6 +23,7 @@ import { Route as GuiaIntercambiosRouteImport } from './routes/guia-intercambios
 import { Route as HidratacionRouteImport } from './routes/hidratacion'
 import { Route as HistorialRouteImport } from './routes/historial'
 import { Route as InformeAnualRouteImport } from './routes/informe-anual'
+import { Route as InformeAnualInvitadosRouteImport } from './routes/informe-anual-invitados'
 import { Route as InformesRouteImport } from './routes/informes'
 import { Route as IntercambiosRouteImport } from './routes/intercambios'
 import { Route as MultasRouteImport } from './routes/multas'
@@ -104,6 +105,11 @@ const InformeAnualRoute = InformeAnualRouteImport.update({
   path: '/informe-anual',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InformeAnualInvitadosRoute = InformeAnualInvitadosRouteImport.update({
+  id: '/informe-anual-invitados',
+  path: '/informe-anual-invitados',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InformesRoute = InformesRouteImport.update({
   id: '/informes',
   path: '/informes',
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/hidratacion': typeof HidratacionRoute
   '/historial': typeof HistorialRoute
   '/informe-anual': typeof InformeAnualRoute
+  '/informe-anual-invitados': typeof InformeAnualInvitadosRoute
   '/informes': typeof InformesRoute
   '/intercambios': typeof IntercambiosRoute
   '/multas': typeof MultasRoute
@@ -196,6 +203,7 @@ export interface FileRoutesByTo {
   '/hidratacion': typeof HidratacionRoute
   '/historial': typeof HistorialRoute
   '/informe-anual': typeof InformeAnualRoute
+  '/informe-anual-invitados': typeof InformeAnualInvitadosRoute
   '/informes': typeof InformesRoute
   '/intercambios': typeof IntercambiosRoute
   '/multas': typeof MultasRoute
@@ -223,6 +231,7 @@ export interface FileRoutesById {
   '/hidratacion': typeof HidratacionRoute
   '/historial': typeof HistorialRoute
   '/informe-anual': typeof InformeAnualRoute
+  '/informe-anual-invitados': typeof InformeAnualInvitadosRoute
   '/informes': typeof InformesRoute
   '/intercambios': typeof IntercambiosRoute
   '/multas': typeof MultasRoute
@@ -251,6 +260,7 @@ export interface FileRouteTypes {
     | '/hidratacion'
     | '/historial'
     | '/informe-anual'
+    | '/informe-anual-invitados'
     | '/informes'
     | '/intercambios'
     | '/multas'
@@ -277,6 +287,7 @@ export interface FileRouteTypes {
     | '/hidratacion'
     | '/historial'
     | '/informe-anual'
+    | '/informe-anual-invitados'
     | '/informes'
     | '/intercambios'
     | '/multas'
@@ -303,6 +314,7 @@ export interface FileRouteTypes {
     | '/hidratacion'
     | '/historial'
     | '/informe-anual'
+    | '/informe-anual-invitados'
     | '/informes'
     | '/intercambios'
     | '/multas'
@@ -330,6 +342,7 @@ export interface RootRouteChildren {
   HidratacionRoute: typeof HidratacionRoute
   HistorialRoute: typeof HistorialRoute
   InformeAnualRoute: typeof InformeAnualRoute
+  InformeAnualInvitadosRoute: typeof InformeAnualInvitadosRoute
   InformesRoute: typeof InformesRoute
   IntercambiosRoute: typeof IntercambiosRoute
   MultasRoute: typeof MultasRoute
@@ -435,6 +448,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistorialRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/informe-anual-invitados': {
+      id: '/informe-anual-invitados'
+      path: '/informe-anual-invitados'
+      fullPath: '/informe-anual-invitados'
+      preLoaderRoute: typeof InformeAnualInvitadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/informe-anual': {
       id: '/informe-anual'
       path: '/informe-anual'
@@ -530,6 +550,7 @@ const rootRouteChildren: RootRouteChildren = {
   HidratacionRoute: HidratacionRoute,
   HistorialRoute: HistorialRoute,
   InformeAnualRoute: InformeAnualRoute,
+  InformeAnualInvitadosRoute: InformeAnualInvitadosRoute,
   InformesRoute: InformesRoute,
   IntercambiosRoute: IntercambiosRoute,
   MultasRoute: MultasRoute,
