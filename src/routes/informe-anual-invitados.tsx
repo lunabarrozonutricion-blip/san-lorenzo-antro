@@ -18,6 +18,7 @@ function GuestReport(){
  const [report,setReport]=useState<Report|null>(null);
  const [error,setError]=useState("");
  const [busy,setBusy]=useState(false);
+ const [refreshedAt,setRefreshedAt]=useState<string>("");
  const [section,setSection]=useState<"anthro"|"hydration"|"interventions"|"conclusions">("anthro");
  const [months,setMonths]=useState<number[]>([]);
  const [stat,setStat]=useState<"mediana"|"media">("mediana");
@@ -38,13 +39,13 @@ function GuestReport(){
   try{
    const result=await call({action:"login",password});
    const data=await call({action:"report",token:result.token});
-   setToken(result.token);setReport(data);setPassword("");
+   setToken(result.token);setReport(data);setPassword("");setRefreshedAt("");
   }catch(e){setError(e instanceof Error?e.message:"Error de acceso");}
   finally{setBusy(false);}
  };
  const reload=async()=>{
   setBusy(true);setError("");
-  try{setReport(await call({action:"report",token}));}
+  try{setReport(await call({action:"report",token}));setRefreshedAt(new Date().toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}));}
   catch(e){setError(e instanceof Error?e.message:"Sesión vencida");setToken("");setReport(null);}
   finally{setBusy(false);}
  };
@@ -80,7 +81,7 @@ function GuestReport(){
    </form>:<>
     <div className="flex flex-wrap items-center justify-between gap-3">
      <nav className="flex flex-wrap gap-2">{([["anthro","Antropometría"],["hydration","Hidratación"],["interventions","Intervenciones"],["conclusions","Conclusiones"]] as const).map(([key,label])=><button key={key} onClick={()=>setSection(key)} className={`rounded-lg border px-4 py-2 text-sm font-semibold ${section===key?"border-[#0b234a] bg-[#0b234a] text-white":"border-slate-300 bg-white"}`}>{label}</button>)}</nav>
-     <button disabled={busy} onClick={()=>void reload()} className="rounded-lg border bg-white px-4 py-2 text-sm">Actualizar datos</button>
+     <div className="flex flex-col items-end gap-1"><button disabled={busy} onClick={()=>void reload()} className="rounded-lg border bg-white px-4 py-2 text-sm disabled:opacity-60">{busy?"Actualizando…":"Actualizar datos"}</button>{refreshedAt&&<span role="status" className="text-xs text-emerald-700">Datos actualizados a las {refreshedAt}</span>}</div>
     </div>
     {error&&<p role="alert" className="text-red-700">{error}</p>}
     <main className="space-y-5 rounded-2xl bg-white p-5 shadow sm:p-8">
@@ -118,7 +119,7 @@ function GuestReport(){
       <div className="overflow-hidden rounded-2xl border"><div className="bg-[#0b234a] p-5 text-white"><p className="text-xs uppercase tracking-widest text-rose-200">Datos complementarios</p><h3 className="text-lg font-bold">Datos generales de hidratación</h3></div><div className="grid gap-3 p-5 sm:grid-cols-2"><div className="rounded-xl bg-[#0b234a] p-5 text-white"><p className="text-xs uppercase">Jornadas de test</p><p className="mt-2 text-4xl font-extrabold">{days.length}</p></div><div className="rounded-xl bg-[#eaf0f8] p-5"><p className="text-xs uppercase">Mediciones válidas</p><p className="mt-2 text-4xl font-extrabold">{hydrationCount}</p></div></div></div>
      </div>}
      {section==="interventions"&&<><h2 className="text-xl font-bold">Intervenciones y estrategias de abordaje nutricional</h2><div className="overflow-hidden rounded-2xl border bg-[#edf2f9]"><div className="bg-[#0b234a] p-4 text-white"><h3 className="font-semibold">Seis ejes de intervención · Temporada 2026</h3><p className="mt-1 text-xs">Seleccioná cada eje para leer su descripción.</p></div><div className="space-y-3 p-4">{interventionAxes.map(([title,detail],i)=><div key={title} className="rounded-xl border bg-white"><button type="button" onClick={()=>setExpandedAxis(v=>v===i?null:i)} className="flex w-full items-center justify-between p-4 text-left font-semibold"><span>{i+1}. {title}</span><span>{expandedAxis===i?"−":"+"}</span></button>{expandedAxis===i&&<div className="space-y-3 px-4 pb-4"><p className="text-sm leading-7">{detail}</p>
-          {i===3&&<div className="rounded-lg border border-[#d5deeb] bg-[#f4f7fb] p-4"><h4 className="font-semibold">Material de educación alimentaria y nutricional</h4><p className="mt-1 text-xs text-slate-600">Presentaciones y documentos de las charlas educativas.</p><div className="mt-3 space-y-2">{(report.materials??[]).filter(m=>m.kind==="charlas").map(m=><a key={m.url} href={m.url} target="_blank" rel="noopener noreferrer" className="block rounded-lg border bg-white px-3 py-2 text-sm font-medium text-[#0b234a] underline">Ver material · {m.name}</a>)}{!(report.materials??[]).some(m=>m.kind==="charlas")&&<p className="text-sm text-slate-500">Todavía no hay PDF de charlas disponibles.</p>}</div></div>}
+          {i===3&&<div className="rounded-lg border border-[#d5deeb] bg-[#f4f7fb] p-4"><h4 className="font-semibold">Material de educación alimentaria y nutricional</h4><p className="mt-1 text-xs text-slate-600">Presentaciones y documentos de las charlas educativas.</p><div className="mt-3 space-y-2">{(report.materials??[]).filter(m=>m.kind==="charlas"&&!/carbohidratos en deportes intermitentes/i.test(m.name)).map(m=><a key={m.url} href={m.url} target="_blank" rel="noopener noreferrer" className="block rounded-lg border bg-white px-3 py-2 text-sm font-medium text-[#0b234a] underline">Ver material · {m.name}</a>)}{!(report.materials??[]).some(m=>m.kind==="charlas")&&<p className="text-sm text-slate-500">Todavía no hay PDF de charlas disponibles.</p>}</div></div>}
           {i===5&&<div className="space-y-4 rounded-lg border border-[#d5deeb] bg-[#f4f7fb] p-4"><div><h4 className="font-semibold">Ideas de recetas y materiales del taller</h4><div className="mt-3 space-y-2">{(report.materials??[]).filter(m=>m.kind==="talleres").map(m=><a key={m.url} href={m.url} target="_blank" rel="noopener noreferrer" className="block rounded-lg border bg-white px-3 py-2 text-sm font-medium underline">Ver material · {m.name}</a>)}{!(report.materials??[]).some(m=>m.kind==="talleres")&&<p className="text-sm text-slate-500">Todavía no hay documentos o recetas disponibles.</p>}</div></div><div><h4 className="font-semibold">Fotografías del taller</h4><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">{(report.materials??[]).filter(m=>m.kind==="fotos").map(m=><a key={m.url} href={m.url} target="_blank" rel="noopener noreferrer"><img src={m.url} alt="Fotografía del taller práctico de alimentación" loading="lazy" className="aspect-square w-full rounded-lg object-cover"/></a>)}</div>{!(report.materials??[]).some(m=>m.kind==="fotos")&&<p className="mt-2 text-sm text-slate-500">Todavía no hay fotografías disponibles.</p>}</div></div>}
          </div>}</div>)}</div></div><p className="whitespace-pre-wrap leading-7">{report.notes.interventions||"Todavía no hay textos publicados."}</p>
      </>}
