@@ -104,7 +104,8 @@ Deno.serve(async(req)=>{
      if(!latest.has(id)||latest.get(id)!.date<=date) latest.set(id,{date,sum6});
     }
     const values=[...latest.values()].map(v=>v.sum6).sort((a,b)=>a-b);
-    return {month:month+1,count:values.length,values};
+    const n=values.length;
+    return {month:month+1,count:n,mean:n?values.reduce((a,b)=>a+b,0)/n:null,median:n?(n%2?values[(n-1)/2]:(values[n/2-1]+values[n/2])/2):null,groups:[values.filter(v=>v<70).length,values.filter(v=>v>=70&&v<=90).length,values.filter(v=>v>90).length]};
    });
    const hydrationDays=hydration.filter(row=>String(row.date).startsWith("2026")).map(row=>{
     const entries=Array.isArray(row.entries)?row.entries:[];
