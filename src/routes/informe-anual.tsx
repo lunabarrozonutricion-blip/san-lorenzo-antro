@@ -79,11 +79,18 @@ function AnnualNutritionReport() {
     if (!supabase || !guestOwnerId) return;
     if (guestPassword.length < 12) { toast.error("Elegí una clave de al menos 12 caracteres."); return; }
     setGuestBusy(true);
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session?.access_token) {
+      setGuestBusy(false);
+      toast.error("Tu sesión venció. Cerrá sesión y volvé a ingresar para configurar la clave.");
+      return;
+    }
     const { data, error } = await supabase.functions.invoke("annual-report-guest", {
+      headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       body: { action: "configure", ownerId: guestOwnerId, password: guestPassword },
     });
     setGuestBusy(false);
-    if (error || data?.error) { toast.error(data?.error ?? "No se pudo configurar el acceso."); return; }
+    if (error || data?.error) { toast.error(data?.error ?? (error ? `No se pudo configurar el acceso: ${error.message}` : "No se pudo configurar el acceso.")); return; }
     setGuestPassword("");
     toast.success("Clave de invitados configurada. Compartí el enlace.");
   };
