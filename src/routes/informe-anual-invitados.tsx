@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 export const Route = createFileRoute("/informe-anual-invitados")({
   component: () => <ClientOnly><GuestReport /></ClientOnly>,
 });
-type Month = { month:number; count:number; values:number[] };
+type Month = { month:number; count:number; mean:number|null; median:number|null; groups:number[] };
 type Day = {date:string;count:number;inTarget:number};
 type Report = {year:number;monthly:Month[];hydrationDays:Day[];weightDays:number;notes:{interventions:string;conclusions:string}};
 const names=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -74,9 +74,9 @@ function GuestReport(){
       <div className="flex flex-wrap items-center gap-4"><label className="text-sm">Estadístico <select value={stat} onChange={e=>setStat(e.target.value as "media"|"mediana")} className="ml-2 rounded border p-2"><option value="mediana">Mediana</option><option value="media">Media</option></select></label><button onClick={()=>setMonths([])} className="text-sm underline">Todos los meses</button></div>
       <div className="flex flex-wrap gap-2">{report.monthly.filter(m=>m.count>0).map(m=><label key={m.month} className="rounded-lg border px-3 py-2 text-xs"><input type="checkbox" className="mr-2" checked={months.includes(m.month)} onChange={e=>setMonths(v=>e.target.checked?[...v,m.month]:v.filter(x=>x!==m.month))}/>{names[m.month-1]}</label>)}</div>
       <div className="space-y-4">{visible.map(m=>{
-       const value=stat==="media"?average(m.values):median(m.values);
-       const groups=[m.values.filter(v=>v<70).length,m.values.filter(v=>v>=70&&v<=90).length,m.values.filter(v=>v>90).length];
-       return <div key={m.month} className="rounded-xl border p-4"><div className="mb-2 flex justify-between gap-2"><strong>{names[m.month-1]}</strong><span className="text-sm">{stat}: {value.toFixed(1)} mm · {m.count} evaluadas</span></div><div className="flex h-4 overflow-hidden rounded-full bg-slate-100">{groups.map((n,i)=><div key={i} style={{width:`${100*n/m.count}%`,backgroundColor:["#32a47a","#e7b64b","#c8102e"][i]}}/>)}</div><p className="mt-2 text-xs text-slate-600">Menos de 70 mm: {groups[0]} · 70–90 mm: {groups[1]} · Más de 90 mm: {groups[2]}</p></div>;
+       const value=stat==="media"?m.mean:m.median;
+       const groups=m.groups;
+       return <div key={m.month} className="rounded-xl border p-4"><div className="mb-2 flex justify-between gap-2"><strong>{names[m.month-1]}</strong><span className="text-sm">{stat}: {value?.toFixed(1)??"—"} mm · {m.count} evaluadas</span></div><div className="flex h-4 overflow-hidden rounded-full bg-slate-100">{groups.map((n,i)=><div key={i} style={{width:`${100*n/m.count}%`,backgroundColor:["#32a47a","#e7b64b","#c8102e"][i]}}/>)}</div><p className="mt-2 text-xs text-slate-600">Menos de 70 mm: {groups[0]} · 70–90 mm: {groups[1]} · Más de 90 mm: {groups[2]}</p></div>;
       })}{visible.length===0&&<p>No hay mediciones disponibles.</p>}</div>
      </>}
      {section==="hydration"&&<>
