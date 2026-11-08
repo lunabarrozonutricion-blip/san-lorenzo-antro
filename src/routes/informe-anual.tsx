@@ -42,7 +42,7 @@ function AnnualNutritionReport() {
   const hydrationTests = useHydrationTests();
   const year = 2026;
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
-  const [sum6Statistic, setSum6Statistic] = useState<"media" | "mediana">("media");
+  const [sum6Statistic, setSum6Statistic] = useState<"media" | "mediana">("mediana");
   const [compareOnly, setCompareOnly] = useState(false);
   const [section, setSection] = useState<Section>("anthro");
   const [comparisonDate, setComparisonDate] = useState<string>("");
