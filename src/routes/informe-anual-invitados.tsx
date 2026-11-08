@@ -8,7 +8,7 @@ export const Route = createFileRoute("/informe-anual-invitados")({
 });
 type Month = { month:number; count:number; mean:number|null; median:number|null; groups:number[] };
 type Day = {date:string;count:number;inTarget:number};
-type Report = {year:number;monthly:Month[];hydrationDays:Day[];weightDays:number;notes:{interventions:string;conclusions:string}};
+type Report = {year:number;monthly:Month[];hydrationDays:Day[];weightDays:number;materials:{kind:string;name:string;url:string}[];notes:{interventions:string;conclusions:string}};
 const names=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 function GuestReport(){
  const owner = new URLSearchParams(window.location.search).get("owner")??"";
@@ -87,7 +87,13 @@ function GuestReport(){
       <h3 className="font-semibold">Evolución por jornada</h3>
       <div className="space-y-3">{days.map(d=><div key={d.date} className="grid grid-cols-[100px_1fr_55px] items-center gap-3 text-xs"><span>{d.date}</span><div className="h-4 overflow-hidden rounded-full bg-slate-100"><div className="h-full bg-[#0b234a]" style={{width:`${100*d.inTarget/d.count}%`}}/></div><span>{(100*d.inTarget/d.count).toFixed(0)}%</span></div>)}</div>
      </>}
-     {section==="interventions"&&<><h2 className="text-xl font-bold">Intervenciones nutricionales</h2><p className="whitespace-pre-wrap leading-7">{report.notes.interventions||"Todavía no hay textos publicados."}</p></>}
+     {section==="interventions"&&<><h2 className="text-xl font-bold">Intervenciones nutricionales</h2><p className="whitespace-pre-wrap leading-7">{report.notes.interventions||"Todavía no hay textos publicados."}</p>
+      <h3 className="mt-6 font-semibold">Material educativo y talleres</h3>
+      <div className="space-y-2">{(report.materials??[]).filter(m=>m.kind!=="fotos").map(m=><a key={m.url} href={m.url} target="_blank" rel="noopener noreferrer" className="block rounded-lg border border-slate-200 p-3 text-sm text-[#0b234a] underline">{m.kind==="charlas"?"Charla":"Taller"} · {decodeURIComponent(m.name.split("--").slice(1).join("--")||m.name)}</a>)}</div>
+      <h3 className="mt-6 font-semibold">Registro fotográfico del taller</h3>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{(report.materials??[]).filter(m=>m.kind==="fotos").map(m=><a key={m.url} href={m.url} target="_blank" rel="noopener noreferrer"><img src={m.url} alt="Registro fotográfico de taller" loading="lazy" className="aspect-square w-full rounded-lg object-cover" /></a>)}</div>
+      {(report.materials??[]).length===0&&<p className="text-sm text-slate-500">Todavía no hay materiales compartidos.</p>}
+     </>}
      {section==="conclusions"&&<><h2 className="text-xl font-bold">Conclusiones y proyecciones</h2><p className="whitespace-pre-wrap leading-7">{report.notes.conclusions||"Todavía no hay conclusiones publicadas."}</p></>}
     </main>
     <p className="text-center text-xs text-slate-500">Información grupal agregada · Sin acceso a fichas individuales · La sesión vence automáticamente a los 30 minutos.</p>
