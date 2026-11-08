@@ -119,9 +119,9 @@ Deno.serve(async(req)=>{
    // URLs firmadas por 15 minutos; nunca se expone la clave del servidor.
    const materials: {kind:string;name:string;url:string}[]=[];
    for(const [bucket,folder,kind,pattern] of [
-     ["sl-educational-pdfs","charlas","charlas",/\\.pdf$/i],
-     ["sl-educational-pdfs","talleres","talleres",/\\.pdf$/i],
-     ["sl-workshop-photos","talleres","fotos",/\\.(jpe?g|png|webp)$/i],
+     ["sl-educational-pdfs","charlas","charlas",/\.pdf$/i],
+     ["sl-educational-pdfs","talleres","talleres",/\.pdf$/i],
+     ["sl-workshop-photos","talleres","fotos",/\.(jpe?g|png|webp)$/i],
    ] as const){
      const {data:files,error:listError}=await admin.storage.from(bucket).list(`${owner}/${folder}`,{limit:200});
      if(listError) throw listError;
