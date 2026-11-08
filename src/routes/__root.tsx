@@ -271,7 +271,9 @@ function RootComponent() {
 
   const publicGuide =
     pathname === "/guia-intercambios" ||
-    pathname === "/guia-intercambios/";
+    pathname === "/guia-intercambios/" ||
+    pathname === "/informe-anual-invitados" ||
+    pathname === "/informe-anual-invitados/";
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) {
