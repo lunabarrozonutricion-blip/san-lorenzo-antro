@@ -94,7 +94,6 @@ function GuestReport(){
        const groups=m.groups;
        return <div key={m.month} className="rounded-xl border p-4"><div className="mb-2 flex justify-between gap-2"><strong>{names[m.month-1]}</strong><span className="text-sm">{stat}: {value?.toFixed(1)??"—"} mm · {m.count} evaluadas</span></div><div className="flex h-4 overflow-hidden rounded-full bg-slate-100">{groups.map((n,i)=><div key={i} style={{width:`${100*n/m.count}%`,backgroundColor:["#32a47a","#e7b64b","#c8102e"][i]}}/>)}</div><p className="mt-2 text-xs text-slate-600">Menos de 70 mm: {groups[0]} · 70–90 mm: {groups[1]} · Más de 90 mm: {groups[2]}</p></div>;
       })}{visible.length===0&&<p>No hay mediciones disponibles.</p>}</div>
-     </>}
       <section className="overflow-hidden rounded-2xl border border-[#d5deeb] bg-white">
        <div className="bg-[#153361] px-5 py-6 text-white sm:px-7"><p className="text-xs font-bold uppercase tracking-widest text-rose-200">Evolución de la temporada</p><h3 className="mt-1 text-xl font-bold">Evolución de la {stat} grupal de Sum6</h3><p className="mt-1 text-xs text-slate-200">Sumatoria de seis pliegues · milímetros</p></div>
        <div className="space-y-6 p-5 sm:p-7">
@@ -104,6 +103,7 @@ function GuestReport(){
         {evolution.length>0?<div className="w-full overflow-x-auto"><svg viewBox="0 0 760 290" className="min-w-[520px] w-full" role="img" aria-label={`Evolución de la ${stat} grupal de Sum6`}>{Array.from({length:5},(_,j)=><line key={j} x1="45" x2="720" y1={60+j*38} y2={60+j*38} stroke="#d9e3ef" strokeDasharray="4 5"/>)}<polyline fill="none" stroke="#c8102e" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" points={evolutionValues.map((v,j)=>`${chartX(j)},${chartY(v)}`).join(" ")}/>{evolution.map((m,j)=><g key={m.month}><circle cx={chartX(j)} cy={chartY(evolutionValues[j])} r="6" fill="#c8102e" stroke="white" strokeWidth="2"/><text x={chartX(j)} y={chartY(evolutionValues[j])-15} textAnchor="middle" fontSize="12" fontWeight="bold" fill="#0b234a">{evolutionValues[j].toFixed(1).replace(".",",")} mm</text><text x={chartX(j)} y="260" textAnchor="middle" fontSize="12" fill="#60738f">{names[m.month-1].slice(0,3)}</text></g>)}</svg></div>:<p className="text-sm text-slate-500">No hay mediciones disponibles.</p>}
        </div>
       </section>
+     </>}
      {section==="hydration"&&<div className="space-y-6">
       <h2 className="text-xl font-bold">Hidratación del plantel</h2>
       <div className="overflow-hidden rounded-2xl border border-[#cbd6e5] bg-[#edf2f9]">
