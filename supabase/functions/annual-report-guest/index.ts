@@ -113,7 +113,28 @@ Deno.serve(async(req)=>{
     return {date:row.date,count:values.length,inTarget:values.filter((v:number)=>v<1020).length};
    }).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
    const weightDays=[...new Set(weights.filter(row=>String(row.date).startsWith("2026")).map(row=>String(row.date)))];
-   return json({year:2026,monthly,hydrationDays,weightDays:weightDays.length,notes:notes.data??{interventions:"",conclusions:""}});
+   // Archivos limitados a las carpetas documentales del propietario.
+   // URLs firmadas por 15 minutos; nunca se expone la clave del servidor.
+   const materials: {kind:string;name:string;url:string}[]=[];
+   for(const [bucket,folder,kind,pattern] of [
+     ["sl-educational-pdfs","charlas","charlas",/\\.pdf$/i],
+     ["sl-educational-pdfs","talleres","talleres",/\\.pdf$/i],
+     ["sl-workshop-photos","talleres","fotos",/\\.(jpe?g|png|webp)$/i],
+   ] as const){
+     const {data:files,error:listError}=await admin.storage.from(bucket).list(`${owner}/${folder}`,{limit:200});
+     if(listError) throw listError;
+     const allowed=(files??[]).filter(file=>pattern.test(file.name)).slice(0,100);
+     const paths=allowed.map(file=>`${owner}/${folder}/${file.name}`);
+     if(paths.length){
+       const {data:signed,error:signError}=await admin.storage.from(bucket).createSignedUrls(paths,900);
+       if(signError) throw signError;
+       for(let i=0;i<paths.length;i++){
+         const signedUrl=signed?.[i]?.signedUrl;
+         if(signedUrl) materials.push({kind,name:allowed[i].name,url:signedUrl});
+       }
+     }
+   }
+   return json({year:2026,monthly,hydrationDays,weightDays:weightDays.length,notes:notes.data??{interventions:"",conclusions:""},materials});
   }catch{return json({error:"No se pudo consultar el informe"},500);}
  }
  return json({error:"Acción desconocida"},400);
