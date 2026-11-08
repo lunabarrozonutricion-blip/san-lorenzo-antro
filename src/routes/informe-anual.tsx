@@ -1,3 +1,4 @@
+// GitHub-to-Lovable sync marker 2026-11-08; no functional changes.
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { BarChart3, Droplets, ClipboardList, Target, Printer, FileBarChart, Save } from "lucide-react";
