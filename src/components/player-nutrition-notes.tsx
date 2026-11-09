@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 type Note = { id: number; category: "seguimiento" | "balance" | "proyeccion"; note_date: string; content: string; season: number };
 const currentSeason = 2026;
-export function PlayerNutritionNotes({ playerId }: { playerId: number }) {
+export function PlayerNutritionNotes({ playerId, onSaved }: { playerId: number; onSaved?: () => void }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,6 +51,7 @@ export function PlayerNutritionNotes({ playerId }: { playerId: number }) {
       toast.success("Observación guardada");
       if (category === "seguimiento") { setEntry(""); setEditingId(null); }
       await load();
+      onSaved?.();
     } catch (error) { toast.error(error instanceof Error ? error.message : "No se pudo guardar"); }
     finally { setSaving(false); }
   }
@@ -60,7 +61,7 @@ export function PlayerNutritionNotes({ playerId }: { playerId: number }) {
     if (!user) return;
     const { error } = await supabase.from("player_nutrition_notes").delete().eq("id", id).eq("owner_id", user.id);
     if (error) toast.error("No se pudo eliminar");
-    else { toast.success("Observación eliminada"); await load(); }
+    else { toast.success("Observación eliminada"); await load(); onSaved?.(); }
   }
   const history = notes.filter(n => n.category === "seguimiento");
   return (
