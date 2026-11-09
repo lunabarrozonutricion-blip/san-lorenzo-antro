@@ -25,6 +25,7 @@ function IndividualReport() {
   const [notesVersion,setNotesVersion] = useState(0);
   const [showSum6Details,setShowSum6Details] = useState(false);
   const [showWeightDetails,setShowWeightDetails] = useState(false);
+  const [showHydrationDetails,setShowHydrationDetails] = useState(false);
   useEffect(() => { if (playerId == null && players?.length) setPlayerId(players[0].id ?? null); },[players,playerId]);
   const player = players?.find(p => p.id === playerId);
   const controls = useControls(playerId);
@@ -186,6 +187,8 @@ function IndividualReport() {
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4"><p className="text-sm font-semibold text-emerald-800">Orina dentro del objetivo</p><p className="mt-1 text-3xl font-bold text-emerald-800">{objectiveCount}</p></div>
             <div className="rounded-lg border border-rose-200 bg-rose-50 p-4"><p className="text-sm font-semibold text-rose-800">Orina concentrada</p><p className="mt-1 text-3xl font-bold text-rose-800">{concentratedCount}</p></div>
           </div>
+          <label className="no-print mt-4 flex cursor-pointer items-center gap-3 rounded-lg border border-[#D6DFEC] bg-[#EFF3FA] px-4 py-3 text-sm font-semibold text-[#0B234A]"><input type="checkbox" checked={showHydrationDetails} onChange={e=>setShowHydrationDetails(e.target.checked)} className="h-4 w-4 accent-[#8D1731]"/>Mostrar todos los tests de hidratación ({hydrationRows.length})</label>
+          {showHydrationDetails && <>
           <div className="mt-4 overflow-hidden rounded-lg border border-[#D6DDE8]">
             <table className="w-full text-sm">
               <thead className="bg-[#E6ECF5] text-left text-[#0B234A]"><tr><th className="px-3 py-3">Fecha</th><th className="px-3 py-3">UGS</th><th className="px-3 py-3">Clasificación</th></tr></thead>
@@ -199,9 +202,10 @@ function IndividualReport() {
               })}</tbody>
             </table>
           </div>
+          </>}
           <div className="mt-4 rounded-lg border border-[#C9D5E5] bg-[#EDF3FA] p-4">
             <h4 className="font-semibold text-[#0B234A]">Recuento final de la temporada 2026</h4>
-            <p className="mt-2 text-sm text-[#243B5A]">De <strong>{hydrationRows.length} tests</strong>, <strong className="text-emerald-800">{objectiveCount}</strong> registraron orina dentro del objetivo y <strong className="text-rose-800">{concentratedCount}</strong> registraron orina concentrada.</p>
+            <p className="mt-2 text-xs text-[#466083]">Distribución porcentual de los tests realizados</p>
             <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-[#D8E0EA]">
               <div className="bg-emerald-500" style={{width: `${objectiveCount / hydrationRows.length * 100}%`}} />
               <div className="bg-rose-400" style={{width: `${concentratedCount / hydrationRows.length * 100}%`}} />
