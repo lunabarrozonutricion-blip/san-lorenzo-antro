@@ -96,15 +96,26 @@ function IndividualReport() {
           </div>
           {sum6.length > 1 && <div className="mt-5 rounded-xl border border-[#D6E0ED] bg-[#F5F8FC] p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h4 className="font-semibold text-[#0B234A]">Tendencia de Sum6</h4>
+              <h4 className="font-semibold text-[#0B234A]">Tendencia de Sum6 <span className="font-normal text-xs text-[#526A89]">· Valores en mm</span></h4>
               <span className="rounded-full bg-[#E3EAF5] px-3 py-1 text-xs font-medium text-[#365478]">{sum6.length} mediciones</span>
             </div>
-            <svg viewBox="0 0 640 150" preserveAspectRatio="none" role="img" aria-label="Gráfico de evolución de Sum6 durante 2026" className="h-40 w-full overflow-visible">
-              {[25,75,125].map(y=><line key={y} x1="10" x2="630" y1={y} y2={y} stroke="#D8E2EE" strokeDasharray="4 5" />)}
-              <polyline fill="none" stroke="#8D1731" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
-                points={sum6.map((v,i)=>`${20+i*600/(sum6.length-1)},${125-(v.value-Math.min(...sum6.map(x=>x.value)))/(Math.max(...sum6.map(x=>x.value))-Math.min(...sum6.map(x=>x.value))||1)*100}`).join(" ")} />
-              {sum6.map((v,i)=><circle key={i} cx={20+i*600/(sum6.length-1)} cy={125-(v.value-Math.min(...sum6.map(x=>x.value)))/(Math.max(...sum6.map(x=>x.value))-Math.min(...sum6.map(x=>x.value))||1)*100} r="4" fill="#8D1731" stroke="white" strokeWidth="1.5" />)}
-            </svg>
+            <div className="overflow-x-auto pb-1">
+              <svg viewBox="0 0 700 210" role="img" aria-label="Gráfico de evolución de Sum6 con valores de cada medición" className="h-52 min-w-[640px] w-full">
+                {[50,105,160].map(y=><line key={y} x1="24" x2="676" y1={y} y2={y} stroke="#D8E2EE" strokeDasharray="4 5" />)}
+                <polyline fill="none" stroke="#8D1731" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                  points={sum6.map((v,i)=>`${34+i*632/(sum6.length-1)},${165-(v.value-Math.min(...sum6.map(x=>x.value)))/(Math.max(...sum6.map(x=>x.value))-Math.min(...sum6.map(x=>x.value))||1)*105}`).join(" ")} />
+                {sum6.map((v,i)=>{
+                  const x=34+i*632/(sum6.length-1);
+                  const y=165-(v.value-Math.min(...sum6.map(x=>x.value)))/(Math.max(...sum6.map(x=>x.value))-Math.min(...sum6.map(x=>x.value))||1)*105;
+                  const labelY=y<83?y+23:y-12;
+                  return <g key={i}>
+                    <circle cx={x} cy={y} r="4.5" fill="#8D1731" stroke="white" strokeWidth="1.8" />
+                    <text x={x} y={labelY} textAnchor="middle" fontSize="11" fontWeight="700" fill="#0B234A" stroke="#F5F8FC" strokeWidth="3.5" paintOrder="stroke" strokeLinejoin="round">{fmt(v.value)}</text>
+                    <title>{dateFmt(v.date)}: {fmt(v.value," mm")}</title>
+                  </g>;
+                })}
+              </svg>
+            </div>
             <div className="flex justify-between text-xs text-[#526A89]"><span>{dateFmt(sum6[0].date)}</span><span>{dateFmt(sum6[sum6.length-1].date)}</span></div>
           </div>}
           <div className="mt-5 overflow-hidden rounded-xl border border-[#D6DFEC]">
