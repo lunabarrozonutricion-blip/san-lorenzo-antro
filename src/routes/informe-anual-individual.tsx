@@ -71,12 +71,55 @@ function IndividualReport() {
           {[[ "Controles Sum6",String(sum6.length)],["Pesajes",String(yearWeights.length)],["Antropometrías completas",String(yearFull.length)],["Tests de hidratación",String(hydrationRows.length)]].map(([label,value])=><div key={label} className="rounded-lg border border-[#DCE5F1] bg-gradient-to-br from-[#EDF3FA] to-[#F7F9FC] p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-bold">{value}</p></div>)}
         </div>
       </section>
-      <section className={card}><h3 className="mb-3 text-lg font-semibold">Evolución antropométrica · Sumatoria de seis pliegues</h3>
-        {sum6.length ? <><div className="grid gap-3 rounded-lg bg-[#EFF3FA] p-4 sm:grid-cols-3">
-          <div><p className="text-xs text-muted-foreground">Primera medición</p><p className="font-bold">{fmt(sum6[0].value," mm")}</p><p className="text-xs">{dateFmt(sum6[0].date)}</p></div>
-          <div><p className="text-xs text-muted-foreground">Última medición</p><p className="font-bold">{fmt(sum6[sum6.length-1].value," mm")}</p><p className="text-xs">{dateFmt(sum6[sum6.length-1].date)}</p></div>
-          <div><p className="text-xs text-muted-foreground">Variación</p><p className="font-bold">{fmt(sum6[sum6.length-1].value-sum6[0].value," mm")}</p></div>
-        </div><div className="mt-4 overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-left"><th className="py-2">Fecha</th><th>Sum6</th></tr></thead><tbody>{sum6.map((v,i)=><tr key={i} className="border-b border-border/50"><td className="py-2">{dateFmt(v.date)}</td><td>{fmt(v.value," mm")}</td></tr>)}</tbody></table></div></> : <p className="text-sm text-muted-foreground">No hay controles Sum6 registrados para 2026.</p>}
+      <section className={card}>
+        <div className="mb-4 rounded-lg bg-gradient-to-r from-[#0B234A] via-[#183761] to-[#8D1731] px-4 py-4 text-white">
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/70">Composición corporal · Temporada 2026</p>
+          <h3 className="mt-1 text-lg font-semibold">Evolución antropométrica · Sumatoria de seis pliegues</h3>
+        </div>
+        {sum6.length ? <>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-[#C8D9EE] bg-[#EDF3FA] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#466083]">Primera medición</p>
+              <p className="mt-2 text-2xl font-bold text-[#0B234A]">{fmt(sum6[0].value," mm")}</p>
+              <p className="mt-1 text-xs text-[#466083]">{dateFmt(sum6[0].date)}</p>
+            </div>
+            <div className="rounded-xl border border-[#E6C6CE] bg-[#FCF0F3] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#9C3149]">Última medición</p>
+              <p className="mt-2 text-2xl font-bold text-[#8D1731]">{fmt(sum6[sum6.length-1].value," mm")}</p>
+              <p className="mt-1 text-xs text-[#9C3149]">{dateFmt(sum6[sum6.length-1].date)}</p>
+            </div>
+            <div className="rounded-xl border border-[#D4DFEB] bg-gradient-to-br from-[#E8F0F9] to-[#F7F0F2] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#466083]">Variación del período</p>
+              <p className="mt-2 text-2xl font-bold text-[#0B234A]">{fmt(sum6[sum6.length-1].value-sum6[0].value," mm")}</p>
+              <p className="mt-1 text-xs text-[#466083]">Primera vs. última evaluación</p>
+            </div>
+          </div>
+          {sum6.length > 1 && <div className="mt-5 rounded-xl border border-[#D6E0ED] bg-[#F5F8FC] p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h4 className="font-semibold text-[#0B234A]">Tendencia de Sum6</h4>
+              <span className="rounded-full bg-[#E3EAF5] px-3 py-1 text-xs font-medium text-[#365478]">{sum6.length} mediciones</span>
+            </div>
+            <svg viewBox="0 0 640 150" preserveAspectRatio="none" role="img" aria-label="Gráfico de evolución de Sum6 durante 2026" className="h-40 w-full overflow-visible">
+              {[25,75,125].map(y=><line key={y} x1="10" x2="630" y1={y} y2={y} stroke="#D8E2EE" strokeDasharray="4 5" />)}
+              <polyline fill="none" stroke="#8D1731" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
+                points={sum6.map((v,i)=>`${20+i*600/(sum6.length-1)},${125-(v.value-Math.min(...sum6.map(x=>x.value)))/(Math.max(...sum6.map(x=>x.value))-Math.min(...sum6.map(x=>x.value))||1)*100}`).join(" ")} />
+              {sum6.map((v,i)=><circle key={i} cx={20+i*600/(sum6.length-1)} cy={125-(v.value-Math.min(...sum6.map(x=>x.value)))/(Math.max(...sum6.map(x=>x.value))-Math.min(...sum6.map(x=>x.value))||1)*100} r="4" fill="#8D1731" stroke="white" strokeWidth="1.5" />)}
+            </svg>
+            <div className="flex justify-between text-xs text-[#526A89]"><span>{dateFmt(sum6[0].date)}</span><span>{dateFmt(sum6[sum6.length-1].date)}</span></div>
+          </div>}
+          <div className="mt-5 overflow-hidden rounded-xl border border-[#D6DFEC]">
+            <div className="bg-[#E7EDF6] px-4 py-3 text-sm font-semibold text-[#0B234A]">Detalle de controles antropométricos</div>
+            <table className="w-full text-sm">
+              <thead className="bg-[#F1F5FA] text-left text-[#365478]"><tr><th className="px-4 py-3">Fecha</th><th className="px-4 py-3">Sum6</th><th className="px-4 py-3">Cambio vs. anterior</th></tr></thead>
+              <tbody>{sum6.map((v,i)=><tr key={i} className={i%2===0?"border-t border-[#E2E8F1] bg-white":"border-t border-[#E2E8F1] bg-[#F7F9FD]"}>
+                <td className="px-4 py-3 text-[#203858]">{dateFmt(v.date)}</td>
+                <td className="px-4 py-3 font-semibold text-[#0B234A]">{fmt(v.value," mm")}</td>
+                <td className="px-4 py-3">{i===0?<span className="text-xs text-muted-foreground">Inicial</span>:<span className={v.value-sum6[i-1].value<0?"rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800":v.value-sum6[i-1].value>0?"rounded-full bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-800":"rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600"}>{v.value-sum6[i-1].value>0?"+":""}{fmt(v.value-sum6[i-1].value," mm")}</span>}</td>
+              </tr>)}</tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">Los cambios se muestran de forma descriptiva; su interpretación depende de los objetivos y del contexto de cada jugadora.</p>
+        </> : <p className="text-sm text-muted-foreground">No hay controles Sum6 registrados para 2026.</p>}
       </section>
       <section className={card}><h3 className="mb-3 text-lg font-semibold">Evolución del peso corporal</h3>
         {yearWeights.length ? <><p className="mb-3 rounded-lg bg-[#EFF3FA] p-4 text-sm">Primer registro: <strong>{fmt(yearWeights[0].weight," kg")}</strong> · Último registro: <strong>{fmt(yearWeights[yearWeights.length-1].weight," kg")}</strong> · Variación: <strong>{fmt((yearWeights[yearWeights.length-1].weight ?? 0)-(yearWeights[0].weight ?? 0)," kg")}</strong></p><p className="text-xs text-muted-foreground">Registros de peso: {yearWeights.length}. Se muestran el primero y el último para evitar repetir toda la planilla.</p></> : <p className="text-sm text-muted-foreground">Sin pesajes en 2026.</p>}
