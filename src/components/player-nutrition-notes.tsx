@@ -11,7 +11,6 @@ export function PlayerNutritionNotes({ playerId, onSaved }: { playerId: number; 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [balance, setBalance] = useState("");
-  const [projection, setProjection] = useState("");
   async function load() {
     if (!supabase) { setLoading(false); return; }
     setLoading(true);
@@ -25,7 +24,6 @@ export function PlayerNutritionNotes({ playerId, onSaved }: { playerId: number; 
       const all = (data ?? []) as Note[];
       setNotes(all);
       setBalance(all.find(n => n.category === "balance" && n.season === currentSeason)?.content ?? "");
-      setProjection(all.find(n => n.category === "proyeccion" && n.season === currentSeason)?.content ?? "");
     }
     setLoading(false);
   }
@@ -51,24 +49,17 @@ export function PlayerNutritionNotes({ playerId, onSaved }: { playerId: number; 
   }
   const history = notes.filter(n => n.category === "seguimiento");
   return (
-    <section className="mt-6 overflow-hidden rounded-xl border border-border bg-card shadow-panel">
-      <div className="border-b border-border bg-gradient-to-r from-[#0B234A]/5 to-[#C8102E]/5 px-5 py-4">
-        <div className="flex items-center gap-2"><NotebookPen className="h-5 w-5 text-[#C8102E]" /><h2 className="font-display text-xl font-semibold">Balance y proyecciones individuales</h2></div>
-        <p className="mt-1 text-sm text-muted-foreground">Observaciones profesionales privadas de esta jugadora. No se comparten en el informe anual de invitados.</p>
+    <section className="mt-6 overflow-hidden rounded-xl border border-[#D6DDE8] bg-white shadow-panel">
+      <div className="m-4 mb-0 rounded-lg bg-gradient-to-r from-[#0B234A] to-[#8D1731] px-4 py-4 text-white">
+        <div className="flex items-center gap-2"><NotebookPen className="h-5 w-5" /><h2 className="font-display text-xl font-semibold">Balance nutricional individual 2026</h2></div>
       </div>
       <div className="space-y-6 p-5">
         <div className="space-y-3">
-          <h3 className="font-semibold">Balance nutricional individual · 2026</h3>
-          <p className="text-sm text-muted-foreground">Conclusión profesional de la temporada. Podés editarla y volver a guardarla cuando quieras.</p>
           <textarea rows={5} value={balance} onChange={e => setBalance(e.target.value)} placeholder="Balance de la evolución antropométrica, hábitos, objetivos alcanzados y aspectos pendientes..." className="w-full rounded-md border border-input bg-background p-3 text-sm" />
           <Button type="button" disabled={saving || !balance.trim()} onClick={() => void save("balance", balance)}><Save className="mr-2 h-4 w-4" />Guardar balance</Button>
         </div>
         {history.length > 0 && <details className="rounded-lg border border-border bg-muted/20 p-3"><summary className="cursor-pointer text-sm font-medium">Ver observaciones anteriores ({history.length})</summary><div className="mt-3 space-y-3">{history.map(note => <div key={note.id} className="border-l-2 border-[#8D1731] pl-3"><p className="text-xs text-muted-foreground">{note.note_date.split("-").reverse().join("/")}</p><p className="whitespace-pre-wrap text-sm">{note.content}</p></div>)}</div></details>}
-        <div className="border-t border-border pt-5 space-y-3">
-          <h3 className="font-semibold">Objetivos y recomendaciones · 2027</h3>
-          <textarea rows={4} value={projection} onChange={e => setProjection(e.target.value)} placeholder="Objetivos individuales, estrategias de alimentación, hidratación y seguimiento para la próxima temporada..." className="w-full rounded-md border border-input bg-background p-3 text-sm" />
-          <Button type="button" disabled={saving || !projection.trim()} onClick={() => void save("proyeccion", projection)}><Save className="mr-2 h-4 w-4" />Guardar proyecciones</Button>
-        </div>
+
       </div>
     </section>
   );
