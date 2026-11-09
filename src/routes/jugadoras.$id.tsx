@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { createPortal } from "react-dom";
 
 import { AppLayout } from "@/components/app-layout";
+import { PlayerNutritionNotes } from "@/components/player-nutrition-notes";
 import { ClientOnly } from "@/components/client-only";
 import {
   Diff,
@@ -1248,6 +1249,8 @@ function Ficha() {
         </div>
         <p className="mt-2 text-xs text-muted-foreground">El objetivo elegido solo modifica este resumen; no cambia los objetivos guardados.</p>
       </section>
+
+      <PlayerNutritionNotes playerId={playerId} />
 
       {/* ===================================================
           ÚLTIMO CONTROL
