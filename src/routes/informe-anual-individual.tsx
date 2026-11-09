@@ -7,9 +7,8 @@ import { PlayerAnnualTargets } from "@/components/player-annual-targets";
 import { ClientOnly } from "@/components/client-only";
 import { PlayerNav } from "@/components/player-nav";
 import { Button } from "@/components/ui/button";
-import { usePlayers, useControls, useWeightRecords, useFullAnthropometries, useHydrationTests, useObjectivePeriods } from "@/lib/hooks";
+import { usePlayers, useControls, useWeightRecords, useFullAnthropometries, useHydrationTests } from "@/lib/hooks";
 import { metricValue } from "@/lib/calc";
-import { targetForPlayer } from "@/lib/objectives";
 import { supabase } from "@/lib/supabase";
 type Note = { category: string; note_date: string; content: string; season: number };
 export const Route = createFileRoute("/informe-anual-individual")({
@@ -24,13 +23,14 @@ function IndividualReport() {
   const [playerId, setPlayerId] = useState<number | null>(search.player ?? null);
   const [notes,setNotes] = useState<Note[]>([]);
   const [notesVersion,setNotesVersion] = useState(0);
+  const [showSum6Details,setShowSum6Details] = useState(false);
+  const [showWeightDetails,setShowWeightDetails] = useState(false);
   useEffect(() => { if (playerId == null && players?.length) setPlayerId(players[0].id ?? null); },[players,playerId]);
   const player = players?.find(p => p.id === playerId);
   const controls = useControls(playerId);
   const weights = useWeightRecords(playerId);
   const full = useFullAnthropometries(playerId);
   const hydration = useHydrationTests();
-  const objectives = useObjectivePeriods();
   useEffect(() => {
     let active = true;
     setNotes([]);
@@ -48,7 +48,14 @@ function IndividualReport() {
   const yearWeights = (weights ?? []).filter(w=>w.date.startsWith("2026") && w.weight != null).sort((a,b)=>a.date.localeCompare(b.date));
   const yearFull = (full ?? []).filter(f=>f.date.startsWith("2026")).sort((a,b)=>a.date.localeCompare(b.date));
   const hydrationRows = (hydration ?? []).filter(t=>t.date.startsWith("2026")).flatMap(t=>t.entries.filter(e=>e.playerId === playerId && e.value != null).map(e=>({date:t.date,value:e.value!}))).sort((a,b)=>a.date.localeCompare(b.date));
-  const objectiveRows = (objectives ?? []).filter(o=>o.year === 2026).map(o=>({label:o.label,target:targetForPlayer(o,player)})).filter(o=>o.target!=null);
+  const firstFull = yearFull[0], lastFull = yearFull[yearFull.length-1];
+  const mass = (f: typeof firstFull, key: "muscle"|"adipose"|"bone") => f?.results?.weightAdjustedMassesKg?.[key] ?? null;
+  const imo = (f: typeof firstFull) => { const m=mass(f,"muscle"),b=mass(f,"bone");return m!=null&&b!=null&&b>0?m/b:null; };
+  const composition = [
+    {label:"Índice músculo-óseo (IMO)",unit:"",initial:imo(firstFull),final:imo(lastFull)},
+    {label:"Masa muscular",unit:" kg",initial:mass(firstFull,"muscle"),final:mass(lastFull,"muscle")},
+    {label:"Masa adiposa (cinco componentes)",unit:" kg",initial:mass(firstFull,"adipose"),final:mass(lastFull,"adipose")}
+  ];
   const balance = notes.find(n=>n.category==="balance")?.content;
   const projection = notes.find(n=>n.category==="proyeccion")?.content;
   const history = notes.filter(n=>n.category==="seguimiento");
@@ -121,7 +128,9 @@ function IndividualReport() {
             </div>
             <div className="flex justify-between text-xs text-[#526A89]"><span>{dateFmt(sum6[0].date)}</span><span>{dateFmt(sum6[sum6.length-1].date)}</span></div>
           </div>}
-          <div className="mt-5 overflow-hidden rounded-xl border border-[#D6DFEC]">
+          <label className="no-print mt-5 flex cursor-pointer items-center gap-3 rounded-lg border border-[#D6DFEC] bg-[#EFF3FA] px-4 py-3 text-sm font-semibold text-[#0B234A]"><input type="checkbox" checked={showSum6Details} onChange={e=>setShowSum6Details(e.target.checked)} className="h-4 w-4 accent-[#8D1731]"/>Mostrar detalle de controles antropométricos</label>
+          {showSum6Details && <>
+          <div className="mt-3 overflow-hidden rounded-xl border border-[#D6DFEC]">
             <div className="bg-[#E7EDF6] px-4 py-3 text-sm font-semibold text-[#0B234A]">Detalle de controles antropométricos</div>
             <table className="w-full text-sm">
               <thead className="bg-[#F1F5FA] text-left text-[#365478]"><tr><th className="px-4 py-3">Fecha</th><th className="px-4 py-3">Sum6</th><th className="px-4 py-3">Cambio vs. anterior</th></tr></thead>
@@ -132,14 +141,39 @@ function IndividualReport() {
               </tr>)}</tbody>
             </table>
           </div>
+          </>}
           <p className="mt-3 text-xs text-muted-foreground">Los cambios se muestran de forma descriptiva; su interpretación depende de los objetivos y del contexto de cada jugadora.</p>
         </> : <p className="text-sm text-muted-foreground">No hay controles Sum6 registrados para 2026.</p>}
       </section>
-      <section className={card}><h3 className="mb-3 text-lg font-semibold">Evolución del peso corporal</h3>
-        {yearWeights.length ? <><p className="mb-3 rounded-lg bg-[#EFF3FA] p-4 text-sm">Primer registro: <strong>{fmt(yearWeights[0].weight," kg")}</strong> · Último registro: <strong>{fmt(yearWeights[yearWeights.length-1].weight," kg")}</strong> · Variación: <strong>{fmt((yearWeights[yearWeights.length-1].weight ?? 0)-(yearWeights[0].weight ?? 0)," kg")}</strong></p><p className="text-xs text-muted-foreground">Registros de peso: {yearWeights.length}. Se muestran el primero y el último para evitar repetir toda la planilla.</p></> : <p className="text-sm text-muted-foreground">Sin pesajes en 2026.</p>}
+      <section className={card}>
+        <h3 className="mb-3 text-lg font-semibold text-[#0B234A]">Evolución del peso corporal</h3>
+        {yearWeights.length ? <>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              {label:"Primer registro",value:yearWeights[0].weight,date:yearWeights[0].date},
+              {label:"Último registro",value:yearWeights[yearWeights.length-1].weight,date:yearWeights[yearWeights.length-1].date},
+              {label:"Variación",value:(yearWeights[yearWeights.length-1].weight??0)-(yearWeights[0].weight??0),date:null}
+            ].map((item,i)=><div key={item.label} className={i===1?"rounded-xl border border-[#E6C6CE] bg-[#FCF0F3] p-4":"rounded-xl border border-[#C8D9EE] bg-[#EDF3FA] p-4"}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#466083]">{item.label}</p>
+              <p className="mt-2 text-2xl font-bold text-[#0B234A]">{fmt(item.value," kg")}</p>
+              {item.date&&<p className="mt-1 text-xs text-[#466083]">{dateFmt(item.date)}</p>}
+            </div>)}
+          </div>
+          <label className="no-print mt-4 flex cursor-pointer items-center gap-3 rounded-lg border border-[#D6DFEC] bg-[#EFF3FA] px-4 py-3 text-sm font-semibold text-[#0B234A]"><input type="checkbox" checked={showWeightDetails} onChange={e=>setShowWeightDetails(e.target.checked)} className="h-4 w-4 accent-[#8D1731]"/>Mostrar todos los registros de peso ({yearWeights.length})</label>
+          {showWeightDetails&&<div className="mt-3 overflow-hidden rounded-xl border border-[#D6DFEC]"><table className="w-full text-sm"><thead className="bg-[#E7EDF6] text-left text-[#0B234A]"><tr><th className="px-4 py-3">Fecha</th><th className="px-4 py-3">Peso</th></tr></thead><tbody>{yearWeights.map((w,i)=><tr key={i} className={i%2?"border-t bg-[#F7F9FD]":"border-t bg-white"}><td className="px-4 py-3">{dateFmt(w.date)}</td><td className="px-4 py-3 font-semibold">{fmt(w.weight," kg")}</td></tr>)}</tbody></table></div>}
+        </>:<p className="text-sm text-muted-foreground">Sin pesajes en 2026.</p>}
       </section>
-      <section className={card}><h3 className="mb-3 text-lg font-semibold">Objetivos antropométricos 2026</h3>
-        {objectiveRows.length ? <div className="space-y-2">{objectiveRows.map((o,i)=><div key={i} className="flex justify-between border-b border-border/50 py-2 text-sm"><span>{o.label}</span><strong>{fmt(o.target," mm")}</strong></div>)}</div> : <p className="text-sm text-muted-foreground">Sin objetivos individuales registrados.</p>}
+      <section className={card}>
+        <div className="mb-4 rounded-lg bg-gradient-to-r from-[#0B234A] to-[#8D1731] px-4 py-4 text-white"><p className="text-xs font-semibold uppercase tracking-widest text-white/70">Composición corporal · Antropometrías completas</p><h3 className="mt-1 text-lg font-semibold">Evolución de indicadores antropométricos</h3></div>
+        {firstFull&&lastFull&&yearFull.length>1?<>
+          <p className="mb-4 text-xs text-muted-foreground">Primera evaluación: {dateFmt(firstFull.date)} · Última evaluación: {dateFmt(lastFull.date)}</p>
+          <div className="grid gap-3 md:grid-cols-3">{composition.map((item,i)=><div key={item.label} className={i===1?"rounded-xl border border-[#C8D9EE] bg-[#EDF3FA] p-4":i===2?"rounded-xl border border-[#E6C6CE] bg-[#FCF0F3] p-4":"rounded-xl border border-[#D4DFEB] bg-[#F0F3FA] p-4"}>
+            <h4 className="mb-3 font-semibold text-[#0B234A]">{item.label}</h4>
+            <div className="space-y-2 text-sm"><div className="flex justify-between"><span>Inicial</span><strong>{fmt(item.initial,item.unit)}</strong></div><div className="flex justify-between"><span>Final</span><strong>{fmt(item.final,item.unit)}</strong></div></div>
+            <div className="mt-3 border-t border-[#CED8E5] pt-3"><p className="text-xs text-[#466083]">Variación</p><p className="mt-1 text-xl font-bold text-[#0B234A]">{item.initial!=null&&item.final!=null?fmt(item.final-item.initial,item.unit):"Sin datos"}</p></div>
+          </div>)}</div>
+          <p className="mt-3 text-xs text-muted-foreground">Masas del modelo de cinco componentes, no equivalencias adiposas de Sum6. Las variaciones son descriptivas.</p>
+        </>:<p className="text-sm text-muted-foreground">Se necesitan al menos dos antropometrías completas de 2026 para comparar estos indicadores.</p>}
       </section>
       <section className={card}>
         <div className="mb-4 rounded-lg bg-gradient-to-r from-[#0B234A] to-[#274B75] px-4 py-3 text-white">
