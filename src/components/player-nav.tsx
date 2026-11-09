@@ -17,6 +17,7 @@ type PlayerSection =
   | "componentes"
   | "evolucion"
   | "informe"
+  | "informe-anual-individual"
   | "historial"
   | "objetivos";
 
@@ -146,6 +147,12 @@ export function PlayerNav({
           >
             <FileText className="h-4 w-4" />
             Informe
+          </Link>
+        </Button>
+
+        <Button asChild size="sm" variant={current === "informe-anual-individual" ? "default" : "outline"}>
+          <Link to="/informe-anual-individual" search={{ player: playerId }}>
+            <FileText className="h-4 w-4" />Informe anual individual
           </Link>
         </Button>
 
