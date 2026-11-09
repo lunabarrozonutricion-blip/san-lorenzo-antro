@@ -72,6 +72,11 @@ export const NAV = [
     icon: FileBarChart,
   },
   {
+    to: "/informe-anual-individual",
+    label: "Informe Anual Nutricional Individual",
+    icon: FileBarChart,
+  },
+  {
     to: "/datos",
     label: "Importar / Exportar",
     icon: Database,
