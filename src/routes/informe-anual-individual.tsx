@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Printer, FileText } from "lucide-react";
 import { AppLayout } from "@/components/app-layout";
+import { PlayerNutritionNotes } from "@/components/player-nutrition-notes";
+import { PlayerAnnualTargets } from "@/components/player-annual-targets";
 import { ClientOnly } from "@/components/client-only";
 import { PlayerNav } from "@/components/player-nav";
 import { Button } from "@/components/ui/button";
@@ -21,6 +23,7 @@ function IndividualReport() {
   const players = usePlayers();
   const [playerId, setPlayerId] = useState<number | null>(search.player ?? null);
   const [notes,setNotes] = useState<Note[]>([]);
+  const [notesVersion,setNotesVersion] = useState(0);
   useEffect(() => { if (playerId == null && players?.length) setPlayerId(players[0].id ?? null); },[players,playerId]);
   const player = players?.find(p => p.id === playerId);
   const controls = useControls(playerId);
@@ -39,7 +42,7 @@ function IndividualReport() {
       if(active) setNotes((data ?? []) as Note[]);
     })();
     return () => { active=false; };
-  },[playerId]);
+  },[playerId,notesVersion]);
   const yearControls = useMemo(() => (controls ?? []).filter(c => c.date.startsWith("2026")).sort((a,b)=>a.date.localeCompare(b.date)),[controls]);
   const sum6 = yearControls.map(c=>({date:c.date,value:metricValue(c,"sum6")})).filter((v):v is {date:string;value:number}=>v.value!=null);
   const yearWeights = (weights ?? []).filter(w=>w.date.startsWith("2026") && w.weight != null).sort((a,b)=>a.date.localeCompare(b.date));
@@ -173,11 +176,17 @@ function IndividualReport() {
           </div>
         </> : <p className="text-sm text-muted-foreground">No hay tests de hidratación vinculados a esta jugadora en 2026.</p>}
       </section>
-      <section className={card}><h3 className="mb-3 text-lg font-semibold">Seguimiento nutricional y observaciones profesionales</h3>
-        {history.length ? <div className="space-y-3">{history.map((n,i)=><div key={i} className="border-l-2 border-[#C8102E] pl-3"><p className="text-xs text-muted-foreground">{dateFmt(n.note_date)}</p><p className="whitespace-pre-wrap text-sm">{n.content}</p></div>)}</div> : <p className="text-sm text-muted-foreground">Sin observaciones de seguimiento cargadas.</p>}
-      </section>
-      <section className={card}><h3 className="mb-3 text-lg font-semibold">Balance nutricional individual · 2026</h3><p className="whitespace-pre-wrap text-sm">{balance || "Pendiente de completar en la ficha de la jugadora."}</p></section>
-      <section className={card}><h3 className="mb-3 text-lg font-semibold">Proyecciones y recomendaciones · 2027</h3><p className="whitespace-pre-wrap text-sm">{projection || "Pendiente de completar en la ficha de la jugadora."}</p></section>
+      <div className="no-print">
+        <PlayerNutritionNotes key={playerId} playerId={playerId} onSaved={()=>setNotesVersion(v=>v+1)} />
+        <PlayerAnnualTargets key={playerId} playerId={playerId} />
+      </div>
+      <div className="hidden print:block">
+        <section className={card}><h3 className="mb-3 text-lg font-semibold">Seguimiento nutricional y observaciones profesionales</h3>
+          {history.length ? history.map((n,i)=><div key={i} className="mb-3 border-l-2 border-[#8D1731] pl-3"><p className="text-xs">{dateFmt(n.note_date)}</p><p className="whitespace-pre-wrap text-sm">{n.content}</p></div>):<p className="text-sm">Sin observaciones cargadas.</p>}
+        </section>
+        <section className={card}><h3 className="mb-3 text-lg font-semibold">Balance nutricional individual · 2026</h3><p className="whitespace-pre-wrap text-sm">{balance||"Pendiente de completar."}</p></section>
+        <section className={card}><h3 className="mb-3 text-lg font-semibold">Proyecciones y recomendaciones · 2027</h3><p className="whitespace-pre-wrap text-sm">{projection||"Pendiente de completar."}</p></section>
+      </div>
       <p className="text-xs text-muted-foreground">Informe interno. Los datos corresponden a registros disponibles de la temporada 2026. La interpretación profesional debe considerar el contexto individual.</p>
     </div>}
   </AppLayout>;
