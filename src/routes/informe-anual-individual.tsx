@@ -46,6 +46,14 @@ function IndividualReport() {
   },[playerId,notesVersion]);
   const yearControls = useMemo(() => (controls ?? []).filter(c => c.date.startsWith("2026")).sort((a,b)=>a.date.localeCompare(b.date)),[controls]);
   const sum6 = yearControls.map(c=>({date:c.date,value:metricValue(c,"sum6")})).filter((v):v is {date:string;value:number}=>v.value!=null);
+  const monthNames = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const sum6Months = sum6.reduce<{key:string;start:number;end:number;label:string}[]>((groups,point,index)=>{
+    const key=point.date.slice(0,7);
+    const previous=groups[groups.length-1];
+    if(previous?.key===key){previous.end=index;return groups;}
+    groups.push({key,start:index,end:index,label:monthNames[Number(key.slice(5,7))-1]??key});
+    return groups;
+  },[]);
   const yearWeights = (weights ?? []).filter(w=>w.date.startsWith("2026") && w.weight != null).sort((a,b)=>a.date.localeCompare(b.date));
   const yearFull = (full ?? []).filter(f=>f.date.startsWith("2026")).sort((a,b)=>a.date.localeCompare(b.date));
   const hydrationRows = (hydration ?? []).filter(t=>t.date.startsWith("2026")).flatMap(t=>t.entries.filter(e=>e.playerId === playerId && e.value != null).map(e=>({date:t.date,value:e.value!}))).sort((a,b)=>a.date.localeCompare(b.date));
@@ -111,7 +119,7 @@ function IndividualReport() {
               <span className="rounded-full bg-[#E3EAF5] px-3 py-1 text-xs font-medium text-[#365478]">{sum6.length} mediciones</span>
             </div>
             <div className="overflow-x-auto pb-1">
-              <svg viewBox="0 0 700 210" role="img" aria-label="Gráfico de evolución de Sum6 con valores de cada medición" className="h-52 min-w-[640px] w-full">
+              <svg viewBox="0 0 700 250" role="img" aria-label="Gráfico de evolución de Sum6 con agrupación mensual" className="h-64 min-w-[640px] w-full">
                 {[50,105,160].map(y=><line key={y} x1="24" x2="676" y1={y} y2={y} stroke="#D8E2EE" strokeDasharray="4 5" />)}
                 <polyline fill="none" stroke="#8D1731" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
                   points={sum6.map((v,i)=>`${34+i*632/(sum6.length-1)},${165-(v.value-Math.min(...sum6.map(x=>x.value)))/(Math.max(...sum6.map(x=>x.value))-Math.min(...sum6.map(x=>x.value))||1)*105}`).join(" ")} />
@@ -123,6 +131,15 @@ function IndividualReport() {
                     <circle cx={x} cy={y} r="4.5" fill="#8D1731" stroke="white" strokeWidth="1.8" />
                     <text x={x} y={labelY} textAnchor="middle" fontSize="11" fontWeight="700" fill="#0B234A" stroke="#F5F8FC" strokeWidth="3.5" paintOrder="stroke" strokeLinejoin="round">{fmt(v.value)}</text>
                     <title>{dateFmt(v.date)}: {fmt(v.value," mm")}</title>
+                  </g>;
+                })}
+                {sum6Months.map(group=>{
+                  const position=(i:number)=>34+i*632/(sum6.length-1);
+                  const first=position(group.start),last=position(group.end);
+                  const left=Math.max(18,first-9),right=Math.min(682,last+9);
+                  return <g key={group.key}>
+                    <path d={"M "+left+" 191 V 199 H "+right+" V 191"} fill="none" stroke="#607797" strokeWidth="1.5" strokeLinecap="round"/>
+                    <text x={(left+right)/2} y="218" textAnchor="middle" fontSize="11" fontWeight="600" fill="#365478">{group.label}</text>
                   </g>;
                 })}
               </svg>
