@@ -47,9 +47,12 @@ function IndividualReport() {
   const yearControls = useMemo(() => (controls ?? []).filter(c => c.date.startsWith("2026")).sort((a,b)=>a.date.localeCompare(b.date)),[controls]);
   const sum6 = yearControls.map(c=>({date:c.date,value:metricValue(c,"sum6")})).filter((v):v is {date:string;value:number}=>v.value!=null);
   const monthNames = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-  const sum6Min = Math.min(60,...sum6.map(x=>x.value))-3;
-  const sum6Max = Math.max(70,...sum6.map(x=>x.value))+3;
-  const sum6Y = (value:number)=>165-(value-sum6Min)/(sum6Max-sum6Min)*125;
+  const sum6Min = Math.floor((Math.min(45,...sum6.map(x=>x.value))-3)/15)*15;
+  const sum6Max = Math.ceil((Math.max(120,...sum6.map(x=>x.value))+3)/15)*15;
+  const sum6Y = (value:number)=>30+(sum6Max-value)*4;
+  const sum6Bottom = sum6Y(sum6Min);
+  const sum6Height = sum6Bottom+70;
+  const sum6Ticks = Array.from({length:(sum6Max-sum6Min)/15+1},(_,i)=>sum6Min+i*15);
   const sum6Months = sum6.reduce<{key:string;start:number;end:number;label:string}[]>((groups,point,index)=>{
     const key=point.date.slice(0,7);
     const previous=groups[groups.length-1];
@@ -122,15 +125,15 @@ function IndividualReport() {
               <span className="rounded-full bg-[#E3EAF5] px-3 py-1 text-xs font-medium text-[#365478]">{sum6.length} mediciones</span>
             </div>
             <div className="overflow-x-auto pb-1">
-              <svg viewBox="0 0 855 250" role="img" aria-label="Gráfico de evolución de Sum6 con agrupación mensual y referencias internas de 70 y 60 mm" className="h-64 min-w-[855px] w-full">
-                {[50,105,160].map(y=><line key={y} x1="24" x2="676" y1={y} y2={y} stroke="#D8E2EE" strokeDasharray="4 5" />)}
-                {[{value:70,color:"#16A34A",label:"70 mm · Mínimo esperado",width:2.5},{value:60,color:"#007A29",label:"60 mm · Nivel óptimo",width:3}].map(ref=><g key={ref.value}><line x1="24" x2="676" y1={sum6Y(ref.value)} y2={sum6Y(ref.value)} stroke={ref.color} strokeWidth={ref.width} strokeDasharray="7 4"/><text x="684" y={sum6Y(ref.value)} dominantBaseline="middle" fontSize="11" fontWeight="700" fill={ref.color}>{ref.label}</text></g>)}
+              <svg viewBox={"0 0 855 "+sum6Height} role="img" aria-label="Gráfico de evolución de Sum6 con agrupación mensual y referencias internas de 70 y 60 mm" className="block w-full min-w-[855px]" style={{height:sum6Height}} preserveAspectRatio="xMidYMid meet">
+                {sum6Ticks.map(value=><g key={value}><line x1="30" x2="676" y1={sum6Y(value)} y2={sum6Y(value)} stroke="#CBD8E8" strokeDasharray="4 5"/><text x="24" y={sum6Y(value)} dominantBaseline="middle" textAnchor="end" fontSize="10" fill="#526A89">{value}</text></g>)}
+                {[{value:70,color:"#16A34A",label:"70 mm · Mínimo esperado",width:2.5},{value:60,color:"#007A29",label:"60 mm · Nivel óptimo",width:3}].map(ref=><g key={ref.value}><line x1="30" x2="676" y1={sum6Y(ref.value)} y2={sum6Y(ref.value)} stroke={ref.color} strokeWidth={ref.width} strokeDasharray="7 4"/><text x="684" y={sum6Y(ref.value)} dominantBaseline="middle" fontSize="11" fontWeight="700" fill={ref.color}>{ref.label}</text></g>)}
                 <polyline fill="none" stroke="#8D1731" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
                   points={sum6.map((v,i)=>`${34+i*632/(sum6.length-1)},${sum6Y(v.value)}`).join(" ")} />
                 {sum6.map((v,i)=>{
                   const x=34+i*632/(sum6.length-1);
                   const y=sum6Y(v.value);
-                  const labelY=y<83?y+23:y-12;
+                  const labelY=y<45?y+23:y-12;
                   return <g key={i}>
                     <circle cx={x} cy={y} r="4.5" fill="#8D1731" stroke="white" strokeWidth="1.8" />
                     <text x={x} y={labelY} textAnchor="middle" fontSize="11" fontWeight="700" fill="#0B234A" stroke="#F5F8FC" strokeWidth="3.5" paintOrder="stroke" strokeLinejoin="round">{fmt(v.value)}</text>
@@ -142,8 +145,8 @@ function IndividualReport() {
                   const first=position(group.start),last=position(group.end);
                   const left=Math.max(18,first-9),right=Math.min(682,last+9);
                   return <g key={group.key}>
-                    <path d={"M "+left+" 191 V 199 H "+right+" V 191"} fill="none" stroke="#607797" strokeWidth="1.5" strokeLinecap="round"/>
-                    <text x={(left+right)/2} y="218" textAnchor="middle" fontSize="11" fontWeight="600" fill="#365478">{group.label}</text>
+                    <path d={"M "+left+" "+(sum6Bottom+18)+" V "+(sum6Bottom+26)+" H "+right+" V "+(sum6Bottom+18)} fill="none" stroke="#607797" strokeWidth="1.5" strokeLinecap="round"/>
+                    <text x={(left+right)/2} y={sum6Bottom+45} textAnchor="middle" fontSize="11" fontWeight="600" fill="#365478">{group.label}</text>
                   </g>;
                 })}
               </svg>
