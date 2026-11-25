@@ -47,12 +47,12 @@ function IndividualReport() {
   const yearControls = useMemo(() => (controls ?? []).filter(c => c.date.startsWith("2026")).sort((a,b)=>a.date.localeCompare(b.date)),[controls]);
   const sum6 = yearControls.map(c=>({date:c.date,value:metricValue(c,"sum6")})).filter((v):v is {date:string;value:number}=>v.value!=null);
   const monthNames = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-  const sum6Min = Math.floor((Math.min(45,...sum6.map(x=>x.value))-3)/15)*15;
-  const sum6Max = Math.ceil((Math.max(120,...sum6.map(x=>x.value))+3)/15)*15;
+  const sum6Min = Math.floor(Math.min(40,...sum6.map(x=>x.value))/20)*20;
+  const sum6Max = Math.ceil(Math.max(120,...sum6.map(x=>x.value))/20)*20;
   const sum6Y = (value:number)=>30+(sum6Max-value)*4;
   const sum6Bottom = sum6Y(sum6Min);
   const sum6Height = sum6Bottom+70;
-  const sum6Ticks = Array.from({length:(sum6Max-sum6Min)/15+1},(_,i)=>sum6Min+i*15);
+  const sum6Ticks = Array.from({length:(sum6Max-sum6Min)/20+1},(_,i)=>sum6Min+i*20);
   const sum6Months = sum6.reduce<{key:string;start:number;end:number;label:string}[]>((groups,point,index)=>{
     const key=point.date.slice(0,7);
     const previous=groups[groups.length-1];
