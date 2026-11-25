@@ -47,6 +47,9 @@ function IndividualReport() {
   const yearControls = useMemo(() => (controls ?? []).filter(c => c.date.startsWith("2026")).sort((a,b)=>a.date.localeCompare(b.date)),[controls]);
   const sum6 = yearControls.map(c=>({date:c.date,value:metricValue(c,"sum6")})).filter((v):v is {date:string;value:number}=>v.value!=null);
   const monthNames = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const sum6Min = Math.min(60,...sum6.map(x=>x.value))-3;
+  const sum6Max = Math.max(70,...sum6.map(x=>x.value))+3;
+  const sum6Y = (value:number)=>165-(value-sum6Min)/(sum6Max-sum6Min)*125;
   const sum6Months = sum6.reduce<{key:string;start:number;end:number;label:string}[]>((groups,point,index)=>{
     const key=point.date.slice(0,7);
     const previous=groups[groups.length-1];
@@ -118,14 +121,16 @@ function IndividualReport() {
               <h4 className="font-semibold text-[#0B234A]">Tendencia de Sum6 <span className="font-normal text-xs text-[#526A89]">· Valores en mm</span></h4>
               <span className="rounded-full bg-[#E3EAF5] px-3 py-1 text-xs font-medium text-[#365478]">{sum6.length} mediciones</span>
             </div>
+            <div className="mb-2 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold"><span className="flex items-center gap-2 text-[#94600E]"><span className="w-8 border-t-2 border-dashed border-[#B77916]"/>70 mm · Mínimo esperado</span><span className="flex items-center gap-2 text-[#00853D]"><span className="w-8 border-t-2 border-dashed border-[#00853D]"/>60 mm · Nivel óptimo</span></div>
             <div className="overflow-x-auto pb-1">
-              <svg viewBox="0 0 700 250" role="img" aria-label="Gráfico de evolución de Sum6 con agrupación mensual" className="h-64 min-w-[640px] w-full">
+              <svg viewBox="0 0 700 250" role="img" aria-label="Gráfico de evolución de Sum6 con agrupación mensual y referencias internas de 70 y 60 mm" className="h-64 min-w-[640px] w-full">
                 {[50,105,160].map(y=><line key={y} x1="24" x2="676" y1={y} y2={y} stroke="#D8E2EE" strokeDasharray="4 5" />)}
+                {[{value:70,color:"#B77916"},{value:60,color:"#00853D"}].map(ref=><line key={ref.value} x1="24" x2="676" y1={sum6Y(ref.value)} y2={sum6Y(ref.value)} stroke={ref.color} strokeWidth="2" strokeDasharray="7 4"/>)}
                 <polyline fill="none" stroke="#8D1731" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
-                  points={sum6.map((v,i)=>`${34+i*632/(sum6.length-1)},${165-(v.value-Math.min(...sum6.map(x=>x.value)))/(Math.max(...sum6.map(x=>x.value))-Math.min(...sum6.map(x=>x.value))||1)*105}`).join(" ")} />
+                  points={sum6.map((v,i)=>`${34+i*632/(sum6.length-1)},${sum6Y(v.value)}`).join(" ")} />
                 {sum6.map((v,i)=>{
                   const x=34+i*632/(sum6.length-1);
-                  const y=165-(v.value-Math.min(...sum6.map(x=>x.value)))/(Math.max(...sum6.map(x=>x.value))-Math.min(...sum6.map(x=>x.value))||1)*105;
+                  const y=sum6Y(v.value);
                   const labelY=y<83?y+23:y-12;
                   return <g key={i}>
                     <circle cx={x} cy={y} r="4.5" fill="#8D1731" stroke="white" strokeWidth="1.8" />
