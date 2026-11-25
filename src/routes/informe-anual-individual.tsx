@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Printer, Share2 } from "lucide-react";
+import { buildIndividualPdf } from "@/lib/individual-pdf";
+import { shareFile } from "@/lib/share-file";
 import { AppLayout } from "@/components/app-layout";
 import { PlayerNutritionNotes } from "@/components/player-nutrition-notes";
 import { PlayerAnnualTargets } from "@/components/player-annual-targets";
@@ -25,6 +27,8 @@ function IndividualReport() {
   const [playerId, setPlayerId] = useState<number | null>(search.player ?? null);
   const [notes,setNotes] = useState<Note[]>([]);
   const [notesVersion,setNotesVersion] = useState(0);
+  const [shareBusy,setShareBusy] = useState(false);
+  const [preparedPdf,setPreparedPdf] = useState<File|null>(null);
   const [shareMessage,setShareMessage] = useState("");
   const [printSettings,setPrintSettings] = useState(false);
   const [printSelection,setPrintSelection] = useState<Record<PrintKey,boolean>>(()=>Object.fromEntries(printOptions.map(([key,,enabled])=>[key,enabled])) as Record<PrintKey,boolean>);
@@ -81,12 +85,25 @@ function IndividualReport() {
   const objectiveCount = hydrationRows.filter(r => r.value <= 1020).length;
   const concentratedCount = hydrationRows.filter(r => r.value > 1020).length;
   const card = "overflow-hidden rounded-xl border border-[#D6DDE8] bg-white p-5 shadow-panel";
+  useEffect(()=>{setPreparedPdf(null);setShareMessage("");},[playerId,printSelection,notesVersion]);
+  const prepareShare = async () => {
+    if(!player||shareBusy)return;
+    setShareBusy(true);setShareMessage("");setPreparedPdf(null);
+    try {const root=document.querySelector<HTMLElement>(".individual-report");if(!root)throw Error("Missing report");const file=await buildIndividualPdf(player.name,root);setPreparedPdf(file);}
+    catch {setShareMessage("No se pudo generar el PDF. Utilizá la impresión original.");}
+    finally {setShareBusy(false);}
+  };
+  const sendShare = async () => {
+    if(!preparedPdf)return;
+    try {const result=await shareFile({blob:preparedPdf,fileName:preparedPdf.name,title:"Informe nutricional individual 2026"});if(result.status==="unsupported")setShareMessage(result.message);}
+    catch {setShareMessage("No se pudo compartir el PDF.");}
+  };
   return <AppLayout title="Informe Anual Nutricional Individual" subtitle="Temporada 2026 · Uso profesional privado" actions={<><Button className="no-print" variant="outline" onClick={()=>setPrintSettings(v=>!v)}><Printer className="mr-2 h-4 w-4"/>Imprimir / PDF</Button><Button className="no-print" variant="outline" onClick={()=>setPrintSettings(true)}><Share2 className="mr-2 h-4 w-4"/>Compartir por WhatsApp</Button></>}>
     {printSettings && <div className="no-print mb-5 rounded-xl border bg-white p-4">
       <h3 className="mb-3 font-semibold">Seleccionar secciones para imprimir / PDF</h3>
       <div className="grid gap-2 sm:grid-cols-2">{printOptions.map(([key,label])=><label key={key} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={printSelection[key]} onChange={e=>setPrintSelection(v=>({...v,[key]:e.target.checked}))}/>{label}</label>)}</div>
-      <div className="mt-4 flex gap-2"><Button onClick={()=>window.print()} disabled={!player}>Imprimir selección</Button><Button variant="outline" onClick={()=>{setShareMessage("Para compartir el diseño original, guardá el PDF desde la ventana de impresión y luego seleccioná el archivo para compartirlo.");window.print();}}>Preparar PDF para compartir</Button><Button variant="outline" onClick={()=>setPrintSettings(false)}>Cerrar</Button></div>
-      {shareMessage && <div className="mt-3 space-y-2"><p className="text-sm">{shareMessage}</p><label className="text-sm">Seleccionar PDF guardado <input type="file" accept="application/pdf" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;try{if(navigator.share&&navigator.canShare?.({files:[file]}))await navigator.share({files:[file]});else setShareMessage("Este navegador no admite compartir archivos directamente. Adjuntá el PDF guardado en WhatsApp.");}catch(err){if(!(err instanceof Error&&err.name==="AbortError"))setShareMessage("No se pudo abrir el menú de compartir.");}}}/></label></div>}
+      <div className="mt-4 flex gap-2"><Button onClick={()=>window.print()} disabled={!player}>Imprimir selección</Button><Button onClick={()=>void prepareShare()} disabled={!player||shareBusy}>{shareBusy?"Preparando PDF…":"Preparar PDF para compartir"}</Button>{preparedPdf&&<><Button variant="outline" onClick={()=>{const url=URL.createObjectURL(preparedPdf);window.open(url,"_blank");setTimeout(()=>URL.revokeObjectURL(url),120000);}}>Ver PDF</Button><Button onClick={()=>void sendShare()}>Compartir PDF</Button></>}<Button variant="outline" onClick={()=>setPrintSettings(false)}>Cerrar</Button></div>
+      {shareMessage && <p role="status" className="mt-3 text-sm">{shareMessage}</p>}
     </div>}
     <style>{`@media print {
       @page { size: A4 portrait; margin: 10mm; }
