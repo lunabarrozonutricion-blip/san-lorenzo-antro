@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Printer } from "lucide-react";
+import { Printer, Share2 } from "lucide-react";
 import { AppLayout } from "@/components/app-layout";
 import { PlayerNutritionNotes } from "@/components/player-nutrition-notes";
 import { PlayerAnnualTargets } from "@/components/player-annual-targets";
@@ -25,6 +25,8 @@ function IndividualReport() {
   const [playerId, setPlayerId] = useState<number | null>(search.player ?? null);
   const [notes,setNotes] = useState<Note[]>([]);
   const [notesVersion,setNotesVersion] = useState(0);
+  const [shareBusy,setShareBusy] = useState(false);
+  const [shareMessage,setShareMessage] = useState("");
   const [printSettings,setPrintSettings] = useState(false);
   const [printSelection,setPrintSelection] = useState<Record<PrintKey,boolean>>(()=>Object.fromEntries(printOptions.map(([key,,enabled])=>[key,enabled])) as Record<PrintKey,boolean>);
   const printClass = (key:PrintKey)=>printSelection[key]?"":" no-print";
@@ -80,11 +82,30 @@ function IndividualReport() {
   const objectiveCount = hydrationRows.filter(r => r.value <= 1020).length;
   const concentratedCount = hydrationRows.filter(r => r.value > 1020).length;
   const card = "overflow-hidden rounded-xl border border-[#D6DDE8] bg-white p-5 shadow-panel";
-  return <AppLayout title="Informe Anual Nutricional Individual" subtitle="Temporada 2026 · Uso profesional privado" actions={<Button className="no-print" variant="outline" onClick={()=>setPrintSettings(v=>!v)}><Printer className="mr-2 h-4 w-4"/>Imprimir / PDF</Button>}>
+  const sharePdf = async () => {
+    if (!player || shareBusy) return;
+    setShareBusy(true); setShareMessage("");
+    try {
+      const { buildIndividualPdf } = await import("@/lib/individual-pdf");
+      const file = await buildIndividualPdf(player.name, document.querySelector(".individual-report") as HTMLElement);
+      if (navigator.share && navigator.canShare?.({files:[file]})) {
+        await navigator.share({files:[file],title:"Informe nutricional individual 2026"});
+      } else {
+        const url=URL.createObjectURL(file);
+        const a=document.createElement("a"); a.href=url; a.download=file.name; a.click();
+        setTimeout(()=>URL.revokeObjectURL(url),60000);
+        setShareMessage("Este navegador no admite compartir archivos directamente. Se descargó el PDF para adjuntarlo en WhatsApp.");
+      }
+    } catch(e) {
+      if (!(e instanceof Error && e.name==="AbortError")) setShareMessage("No se pudo compartir el PDF. Probá nuevamente o utilizá Imprimir / PDF.");
+    } finally { setShareBusy(false); }
+  };
+  return <AppLayout title="Informe Anual Nutricional Individual" subtitle="Temporada 2026 · Uso profesional privado" actions={<><Button className="no-print" variant="outline" onClick={()=>setPrintSettings(v=>!v)}><Printer className="mr-2 h-4 w-4"/>Imprimir / PDF</Button><Button className="no-print" variant="outline" onClick={()=>setPrintSettings(true)}><Share2 className="mr-2 h-4 w-4"/>Compartir por WhatsApp</Button></>}>
     {printSettings && <div className="no-print mb-5 rounded-xl border bg-white p-4">
       <h3 className="mb-3 font-semibold">Seleccionar secciones para imprimir / PDF</h3>
       <div className="grid gap-2 sm:grid-cols-2">{printOptions.map(([key,label])=><label key={key} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={printSelection[key]} onChange={e=>setPrintSelection(v=>({...v,[key]:e.target.checked}))}/>{label}</label>)}</div>
-      <div className="mt-4 flex gap-2"><Button onClick={()=>window.print()} disabled={!player}>Imprimir selección</Button><Button variant="outline" onClick={()=>setPrintSettings(false)}>Cerrar</Button></div>
+      <div className="mt-4 flex gap-2"><Button onClick={()=>window.print()} disabled={!player}>Imprimir selección</Button><Button onClick={()=>void sharePdf()} disabled={!player||shareBusy}>{shareBusy?"Preparando PDF…":"Compartir PDF"}</Button><Button variant="outline" onClick={()=>setPrintSettings(false)}>Cerrar</Button></div>
+      {shareMessage && <p role="status" className="mt-3 text-sm">{shareMessage}</p>}
     </div>}
     <style>{`@media print {
       @page { size: A4 portrait; margin: 10mm; }
@@ -220,7 +241,7 @@ function IndividualReport() {
         </>:<p className="text-sm text-muted-foreground">Se necesitan al menos dos antropometrías completas de 2026 para comparar estos indicadores.</p>}
       </section>
       <section className={card+printClass("hydration")}>
-        <div className="mb-4 rounded-lg bg-gradient-to-r from-[#0B234A] to-[#274B75] px-4 py-3 text-white">
+        <div className="mb-4 rounded-lg bg-gradient-to-r from-[#0B234A] to-[#8D1731] px-4 py-3 text-white">
           <h3 className="text-lg font-semibold">Monitoreo de hidratación</h3>
           <p className="text-xs text-white/80">Clasificación por densidad urinaria (UGS) · Objetivo ≤ 1.020</p>
         </div>
@@ -262,7 +283,7 @@ function IndividualReport() {
         <PlayerAnnualTargets key={playerId} playerId={playerId} />
       </div>
       {printSelection.balance && <div className="hidden print:block">
-        <section className={card+" print-balance"}><h3 className="mb-3 text-lg font-semibold">Balance nutricional individual · 2026</h3><p className="whitespace-pre-wrap text-sm">{balance||"Pendiente de completar."}</p></section>
+        <section className={card+" print-balance"}><h3 className="mb-3 rounded-lg bg-gradient-to-r from-[#0B234A] to-[#8D1731] px-4 py-3 text-lg font-semibold text-white">Balance nutricional individual · 2026</h3><p className="whitespace-pre-wrap text-sm">{balance||"Pendiente de completar."}</p></section>
       </div>}
     </div>}
   </AppLayout>;
