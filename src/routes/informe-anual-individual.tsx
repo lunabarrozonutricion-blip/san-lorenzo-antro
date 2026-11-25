@@ -188,7 +188,6 @@ function IndividualReport() {
             </table>
           </div>
           </>}
-          <p className="mt-3 text-xs text-muted-foreground">Los cambios se muestran de forma descriptiva; su interpretación depende de los objetivos y del contexto de cada jugadora.</p>
         </> : <p className="text-sm text-muted-foreground">No hay controles Sum6 registrados para 2026.</p>}
       </section>
       <section className={card+printClass("weight")}>
@@ -218,7 +217,6 @@ function IndividualReport() {
             <div className="space-y-2 text-sm"><div className="flex justify-between"><span>Inicial</span><strong>{fmt(item.initial,item.unit)}</strong></div><div className="flex justify-between"><span>Final</span><strong>{fmt(item.final,item.unit)}</strong></div></div>
             <div className="mt-3 border-t border-[#CED8E5] pt-3"><p className="text-xs text-[#466083]">Variación</p><p className="mt-1 text-xl font-bold text-[#0B234A]">{item.initial!=null&&item.final!=null?fmt(item.final-item.initial,item.unit):"Sin datos"}</p></div>
           </div>)}</div>
-          <p className="mt-3 text-xs text-muted-foreground">Masas del modelo de cinco componentes, no equivalencias adiposas de Sum6. Las variaciones son descriptivas.</p>
         </>:<p className="text-sm text-muted-foreground">Se necesitan al menos dos antropometrías completas de 2026 para comparar estos indicadores.</p>}
       </section>
       <section className={card+printClass("hydration")}>
@@ -266,7 +264,6 @@ function IndividualReport() {
       {printSelection.balance && <div className="hidden print:block">
         <section className={card+" print-balance"}><h3 className="mb-3 text-lg font-semibold">Balance nutricional individual · 2026</h3><p className="whitespace-pre-wrap text-sm">{balance||"Pendiente de completar."}</p></section>
       </div>}
-      <p className="text-xs text-muted-foreground">Informe interno. Los datos corresponden a registros disponibles de la temporada 2026. La interpretación profesional debe considerar el contexto individual.</p>
     </div>}
   </AppLayout>;
 }
