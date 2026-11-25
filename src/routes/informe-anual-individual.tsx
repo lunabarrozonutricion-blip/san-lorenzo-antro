@@ -121,11 +121,10 @@ function IndividualReport() {
               <h4 className="font-semibold text-[#0B234A]">Tendencia de Sum6 <span className="font-normal text-xs text-[#526A89]">· Valores en mm</span></h4>
               <span className="rounded-full bg-[#E3EAF5] px-3 py-1 text-xs font-medium text-[#365478]">{sum6.length} mediciones</span>
             </div>
-            <div className="mb-2 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold"><span className="flex items-center gap-2 text-[#467D59]"><span className="w-8 border-t-2 border-dashed border-[#659B78]"/>70 mm · Mínimo esperado</span><span className="flex items-center gap-2 text-[#008C32]"><span className="w-8 border-t-2 border-dashed border-[#008C32]"/>60 mm · Nivel óptimo</span></div>
             <div className="overflow-x-auto pb-1">
-              <svg viewBox="0 0 700 250" role="img" aria-label="Gráfico de evolución de Sum6 con agrupación mensual y referencias internas de 70 y 60 mm" className="h-64 min-w-[640px] w-full">
+              <svg viewBox="0 0 855 250" role="img" aria-label="Gráfico de evolución de Sum6 con agrupación mensual y referencias internas de 70 y 60 mm" className="h-64 min-w-[855px] w-full">
                 {[50,105,160].map(y=><line key={y} x1="24" x2="676" y1={y} y2={y} stroke="#D8E2EE" strokeDasharray="4 5" />)}
-                {[{value:70,color:"#659B78"},{value:60,color:"#008C32"}].map(ref=><line key={ref.value} x1="24" x2="676" y1={sum6Y(ref.value)} y2={sum6Y(ref.value)} stroke={ref.color} strokeWidth="2" strokeDasharray="7 4"/>)}
+                {[{value:70,color:"#16A34A",label:"70 mm · Mínimo esperado",width:2.5},{value:60,color:"#007A29",label:"60 mm · Nivel óptimo",width:3}].map(ref=><g key={ref.value}><line x1="24" x2="676" y1={sum6Y(ref.value)} y2={sum6Y(ref.value)} stroke={ref.color} strokeWidth={ref.width} strokeDasharray="7 4"/><text x="684" y={sum6Y(ref.value)} dominantBaseline="middle" fontSize="11" fontWeight="700" fill={ref.color}>{ref.label}</text></g>)}
                 <polyline fill="none" stroke="#8D1731" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
                   points={sum6.map((v,i)=>`${34+i*632/(sum6.length-1)},${sum6Y(v.value)}`).join(" ")} />
                 {sum6.map((v,i)=>{
