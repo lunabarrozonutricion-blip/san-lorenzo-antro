@@ -81,7 +81,7 @@ function IndividualReport() {
     {label:"Masa muscular",unit:" kg",initial:mass(firstFull,"muscle"),final:mass(lastFull,"muscle")},
     {label:"Masa adiposa (cinco componentes)",unit:" kg",initial:mass(firstFull,"adipose"),final:mass(lastFull,"adipose")}
   ];
-  const balance = notes.find(n=>n.category==="balance")?.content;
+
   const objectiveCount = hydrationRows.filter(r => r.value <= 1020).length;
   const concentratedCount = hydrationRows.filter(r => r.value > 1020).length;
   const card = "overflow-hidden rounded-xl border border-[#D6DDE8] bg-white p-5 shadow-panel";
@@ -113,6 +113,7 @@ function IndividualReport() {
       .individual-report .print-chart-scroll { overflow: visible !important; width: 100% !important; }
       .individual-report .print-chart-scroll svg { min-width: 0 !important; width: 100% !important; height: auto !important; max-height: 115mm; display: block; }
       .individual-report .print-three { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
+      .individual-report [data-balance-print="no"] { display: none !important; }
       .individual-report .print-balance { break-inside: auto; page-break-inside: auto; box-shadow: none !important; }
       .individual-report .print-balance h3 { break-after: avoid; }
       .individual-report .print-detail { display: block !important; }
