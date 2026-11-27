@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 type Note = { id: number; category: "seguimiento" | "balance" | "proyeccion"; note_date: string; content: string; season: number };
 const currentSeason = 2026;
-export function PlayerNutritionNotes({ playerId, onSaved }: { playerId: number; onSaved?: () => void }) {
+export function PlayerNutritionNotes({ playerId, playerName, includeInPrint = false, onSaved }: { playerId: number; playerName?: string; includeInPrint?: boolean; onSaved?: () => void }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -58,11 +58,11 @@ export function PlayerNutritionNotes({ playerId, onSaved }: { playerId: number; 
   }
   const history = notes.filter(n => n.category === "seguimiento");
   return (
-    <section className="mt-6 overflow-hidden rounded-xl border border-[#D6DDE8] bg-white shadow-panel">
+    <section className={"mt-6 overflow-hidden rounded-xl border border-[#D6DDE8] bg-white shadow-panel print-balance"} data-balance-print={includeInPrint ? "yes" : "no"} data-player-id={playerId}>
       <div className="m-4 mb-0 rounded-lg bg-gradient-to-r from-[#0B234A] to-[#8D1731] px-4 py-4 text-white">
-        <div className="flex items-center gap-2"><NotebookPen className="h-5 w-5" /><h2 className="font-display text-xl font-semibold">Balance nutricional individual 2026</h2></div>
+        <div className="flex items-center gap-2"><NotebookPen className="h-5 w-5" /><h2 className="font-display text-xl font-semibold">Balance nutricional individual 2026{playerName ? ` · ${playerName}` : ""}</h2></div>
       </div>
-      <div className="space-y-6 p-5">
+      <div className="space-y-6 p-5 no-print">
         <div className="space-y-3">
           {loading && <p className="text-sm text-muted-foreground">Cargando balance de la jugadora...</p>}
           {loadFailed && <Button type="button" onClick={() => void load()}>Reintentar carga</Button>}
@@ -72,6 +72,7 @@ export function PlayerNutritionNotes({ playerId, onSaved }: { playerId: number; 
         {history.length > 0 && <details className="rounded-lg border border-border bg-muted/20 p-3"><summary className="cursor-pointer text-sm font-medium">Ver observaciones anteriores ({history.length})</summary><div className="mt-3 space-y-3">{history.map(note => <div key={note.id} className="border-l-2 border-[#8D1731] pl-3"><p className="text-xs text-muted-foreground">{note.note_date.split("-").reverse().join("/")}</p><p className="whitespace-pre-wrap text-sm">{note.content}</p></div>)}</div></details>}
 
       </div>
+      <div className="hidden print:block p-5 whitespace-pre-wrap text-sm" data-balance-print-content>{notes.find(n => n.category === "balance" && n.season === currentSeason)?.content || "Pendiente de completar."}</div>
     </section>
   );
 }
