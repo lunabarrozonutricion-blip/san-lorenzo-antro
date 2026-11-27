@@ -125,7 +125,7 @@ function IndividualReport() {
       </select>
     </div>
     <div className="no-print">{playerId != null && <PlayerNav playerId={playerId} playerName={player?.name} current="informe-anual-individual" />}</div>
-    {!player ? <p>Seleccioná una jugadora para visualizar su informe.</p> : <div className="individual-report space-y-5 rounded-2xl bg-gradient-to-b from-[#EFF3FA] via-[#F7F0F2] to-[#EFF4F6] p-3 sm:p-5">
+    {!player ? <p>Seleccioná una jugadora para visualizar su informe.</p> : <div key={playerId} className="individual-report space-y-5 rounded-2xl bg-gradient-to-b from-[#EFF3FA] via-[#F7F0F2] to-[#EFF4F6] p-3 sm:p-5">
       <header className="rounded-xl bg-gradient-to-r from-[#0B234A] via-[#152E58] to-[#8D1731] p-6 text-white">
         <p className="text-xs font-semibold uppercase tracking-widest text-white/75">Club Atlético San Lorenzo de Almagro · Fútbol Femenino</p>
         <h2 className="mt-2 text-2xl font-bold">Informe nutricional individual 2026</h2>
@@ -276,13 +276,10 @@ function IndividualReport() {
           </div>
         </> : <p className="text-sm text-muted-foreground">No hay tests de hidratación vinculados a esta jugadora en 2026.</p>}
       </section>
+      <PlayerNutritionNotes key={playerId} playerId={playerId} playerName={player.name} includeInPrint={printSelection.balance} onSaved={()=>setNotesVersion(v=>v+1)} />
       <div className="no-print">
-        <PlayerNutritionNotes key={playerId} playerId={playerId} onSaved={()=>setNotesVersion(v=>v+1)} />
         <PlayerAnnualTargets key={playerId} playerId={playerId} />
       </div>
-      {printSelection.balance && <div className="hidden print:block">
-        <section className={card+" print-balance"}><h3 className="mb-3 rounded-lg bg-gradient-to-r from-[#0B234A] to-[#8D1731] px-4 py-3 text-lg font-semibold text-white">Balance nutricional individual · 2026</h3><p className="whitespace-pre-wrap text-sm">{balance||"Pendiente de completar."}</p></section>
-      </div>}
     </div>}
   </AppLayout>;
 }
