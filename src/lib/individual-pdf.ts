@@ -8,7 +8,9 @@ export async function buildIndividualPdf(name:string, root:HTMLElement):Promise<
   let canvas:HTMLCanvasElement,ctx:CanvasRenderingContext2D,y=0;
   function page(){canvas=document.createElement("canvas");canvas.width=W;canvas.height=H;ctx=canvas.getContext("2d")!;ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);pages.push(canvas);y=M;}
   const host=document.createElement("div");
-  host.style.cssText="position:fixed;left:-10000px;top:0;width:"+width+"px;background:white;pointer-events:none;";
+  host.inert=true;
+  host.setAttribute("aria-hidden","true");
+  host.style.cssText="visibility:hidden;position:fixed;left:-10000px;top:0;width:"+width+"px;background:white;pointer-events:none;";
   document.body.append(host);
   function cloneStyled(source:Element):Element {
     const clone=source.cloneNode(false) as HTMLElement;
@@ -40,6 +42,7 @@ export async function buildIndividualPdf(name:string, root:HTMLElement):Promise<
   }
   async function capture(source:HTMLElement){
     const block=cloneStyled(source) as HTMLElement;
+    block.style.setProperty("visibility","visible","important");
     block.style.setProperty("width","100%","important");
     block.style.setProperty("padding","10px","important");
     block.style.setProperty("box-shadow","none","important");
@@ -72,7 +75,7 @@ export async function buildIndividualPdf(name:string, root:HTMLElement):Promise<
   page();
   try {
     for(const section of Array.from(root.querySelectorAll<HTMLElement>(":scope > header, :scope > section, :scope > div.hidden > section"))){
-      if(!section.classList.contains("no-print"))await capture(section);
+      if(!section.classList.contains("no-print") && section.dataset.balancePrint !== "no")await capture(section);
     }
   } finally {host.remove();}
   const enc=new TextEncoder();const chunks:Uint8Array[]=[];let offset=0;const offsets:number[]=[0];
